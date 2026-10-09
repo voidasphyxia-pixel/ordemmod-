@@ -75,6 +75,8 @@ public class TelaMarcado extends Screen {
 
     // estado visual/sonoro controlado pelos efeitos do roteiro
     private float volumeBase = 0.06f;      // volume do drone (quase inaudível na abertura)
+    private static final float ESCALA_SOMBRA = 0.4f;                                  // câmera lenta da criatura
+    private static final float DURACAO_SOMBRA = VfxMarcado.SOMBRA.duracao() / ESCALA_SOMBRA; // ~2,5 s
     private float particulas;              // 0..1: névoa e poeira (nascem devagar depois do TUM)
     private boolean particulasOn;
     private float aparicao;                // 0..1: o personagem só é revelado perto do fim
@@ -399,10 +401,9 @@ public class TelaMarcado extends Screen {
         }
 
         // sombra humanoide passando atrás do personagem
-        float sombra = efeito("shadow", VfxMarcado.SOMBRA.duracao());
+        float sombra = efeito("shadow", DURACAO_SOMBRA);
         if (sombra >= 0) {
-            int s = Math.min(width, height);
-            VfxMarcado.SOMBRA.desenhar(g, efeitos.get("shadow"), 0.85f, cx - s / 2, height / 2 - s / 2 - 10, s, s);
+            desenharCriatura(g, cx, sombra);
         }
 
         // luz no chão e o personagem girando devagar
@@ -494,6 +495,32 @@ public class TelaMarcado extends Screen {
         if (aparicao < 1f) { // surge devagar saindo do preto
             g.fill(0, 0, width, height, ((int) ((1f - aparicao) * 255f)) << 24);
         }
+    }
+
+    /**
+     * A criatura é uma silhueta PRETA, então sobre o fundo preto ela some. Por isso: um brilho frio atrás dela
+     * e um feixe de luz que varre a tela da esquerda para a direita, recortando a silhueta. A animação roda em
+     * câmera lenta ({@link #ESCALA_SOMBRA}).
+     */
+    private void desenharCriatura(GuiGraphics g, int cx, float p) {
+        int s = Math.min(width, height);
+        int topo = height / 2 - s / 2 - 10;
+        float env = (float) Math.sin(p * Math.PI);
+        // brilho fixo atrás do corpo
+        desenharHalo(g, cx, topo + s / 2, (int) (s * 0.8f), 0.30f * env, 0.70f, 0.82f, 1f);
+        // feixe de luz que passa (elipse alta e estreita)
+        float x = -width * 0.15f + p * width * 1.3f;
+        desenharHaloEliptico(g, (int) x, height / 2, (int) (s * 0.35f), (int) (height * 0.75f), 0.55f * env, 0.85f, 0.92f, 1f);
+        VfxMarcado.SOMBRA.desenhar(g, efeitos.get("shadow") * ESCALA_SOMBRA, 0.97f, cx - s / 2, topo, s, s);
+    }
+
+    private void desenharHaloEliptico(GuiGraphics g, int x, int y, int rx, int ry, float alfa, float r, float gc, float b) {
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
+        g.setColor(r, gc, b, alfa);
+        g.blit(HALO, x - rx, y - ry, rx * 2, ry * 2, 0f, 0f, 128, 128, 128, 128);
+        g.setColor(1f, 1f, 1f, 1f);
+        RenderSystem.defaultBlendFunc();
     }
 
     /** Brilho suave (textura radial branca), somado à imagem de trás. */

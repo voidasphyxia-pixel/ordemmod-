@@ -3,6 +3,20 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (criatura do Marcado) ------------------------------------------
+Criatura visivel: luz passando + particulas trocadas de roxo para branco-gelo
+  Arquivos: marcado/TelaMarcado.java, assets/ordemmod/marcado/marcado.json,
+            textures/gui/marcado/vfx/sombra/f0000..f0023.png (recoloridos)
+  - Problema: a silhueta da criatura e PRETA sobre fundo preto, so as particulas roxas apareciam.
+  - Particulas dos 24 quadros recoloridas de roxo para branco-gelo (190-255, 215-255, 255).
+  - Novo desenharCriatura(): brilho frio fixo atras do corpo + feixe de luz (elipse) que varre a
+    tela da esquerda para a direita; a silhueta preta aparece recortada contra a luz.
+  - Animacao em camera lenta (ESCALA_SOMBRA = 0.4 -> ~2,5 s); passo "shadow" do marcado.json
+    de 1.1 s para 2.7 s.
+  - Como testar: /ordem resetar, va ate a parte do medo (apos a pergunta de Medo) e veja a criatura.
+    Ajustes: ESCALA_SOMBRA (velocidade), 0.55f do feixe (forca), 0.30f do brilho de fundo.
+    Nao compilado pelo Claude: rode gradlew build.
+
 --- 09/10/2026 (HUD de criacao) ---------------------------------------------
 Tela de criacao de ficha (TelaCriacao) com a estetica da cena do Marcado + cores Energia/Medo trocadas
   Arquivos: TelaCriacao.java, FonteOP.java, marcado/TelaMarcado.java, marcado/VfxMarcado.java,
