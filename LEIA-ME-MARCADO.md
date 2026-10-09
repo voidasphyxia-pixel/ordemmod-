@@ -21,6 +21,8 @@
 
 **Saída secreta (09/10/2026):** ESC 5 vezes seguidas (máx. 2,5 s entre eles) durante a cena → fade out, o som para, aparece "Como... você sabe disso?" e abre a `TelaCriacao`. Marca a cena como concluída (perguntas não respondidas = opção 0). Ainda não compilado/testado.
 
+**Legibilidade da criação (09/10/2026):** nas etapas Origem/Classe/Perícias a lista ocupa 3/4 da altura e a descrição 1/4; textos maiores, com sombra. Ainda não compilado/testado.
+
 ## O que falta (por ordem)
 
 1. **Compilar e corrigir erros.** Escrevi sem poder compilar. Rode `gradlew build` e me mande os erros. Pontos de maior risco:

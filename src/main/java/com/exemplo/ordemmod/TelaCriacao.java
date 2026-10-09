@@ -86,6 +86,7 @@ public class TelaCriacao extends Screen {
         boolean bloqueado;    // clicável, mas só para avisar que não dá (ex.: atributo no limite da criação)
         int attr = -1;        // índice do atributo a que a zona pertence (-1 = nenhum); é o que treme
         int cor = COR_OSSO;
+        float escala = 1F;    // tamanho do texto do chip (cresce junto com a altura dele)
 
         Zona(int tipo, int x, int y, int w, int h) {
             this.tipo = tipo;
@@ -126,7 +127,11 @@ public class TelaCriacao extends Screen {
     private int pentCx, pentCy, infoX, infoW;
     private float pentRaio;
     private int caixaY, caixaH; // caixa de descrição das etapas 2, 3 e 4
+    private int listaH;         // altura da área da lista (origens/classes/perícias) nessas etapas
     private int contadorY;
+
+    /** Altura de uma linha de texto corrido (a Cormorant fica maior e precisa de mais respiro). */
+    private static final int LINHA = 12;
 
     public TelaCriacao() {
         super(Component.literal("Criação de personagem"));
@@ -339,18 +344,36 @@ public class TelaCriacao extends Screen {
 
     // ---------------------------------------------------------------- etapa 2: origem
 
+    /**
+     * Nas etapas 2, 3 e 4 a lista (origens/classes/perícias) fica com 3/4 da altura e a caixa de descrição com 1/4.
+     * Define listaH, caixaY e caixaH.
+     */
+    private void dividirTela() {
+        int tresQuartos = dirH * 3 / 4;
+        listaH = tresQuartos - 3;
+        caixaY = dirY + tresQuartos + 3;
+        caixaH = dirY + dirH - caixaY;
+    }
+
+    /** Tamanho do texto de um chip: cresce com a altura (1x até 1,9x). */
+    private static float escalaChip(int altura) {
+        return Mth.clamp(altura / 18F, 1F, 1.9F);
+    }
+
     private void montarOrigens() {
         Origem[] todas = Origem.values();
-        int gap = 4;
-        int colunas = Mth.clamp(dirW / 104, 2, 5);
+        dividirTela();
+        int gap = 5;
+        int colunas = Mth.clamp(dirW / 190, 2, 4);
         int linhas = (todas.length + colunas - 1) / colunas;
         int largura = (dirW - (colunas - 1) * gap) / colunas;
-        int altura = Mth.clamp((int) (dirH * 0.52) / linhas - gap, 12, 16);
+        int altura = Mth.clamp((listaH - (linhas - 1) * gap) / linhas, 14, 56);
         for (int k = 0; k < todas.length; k++) {
             final Origem o = todas[k];
             int x = dirX + (k % colunas) * (largura + gap);
             int y = dirY + (k / colunas) * (altura + gap);
             Zona z = nova(CHIP, x, y, largura, altura, o.getNome());
+            z.escala = escalaChip(altura);
             z.dado = o;
             z.selecionada = o == origem;
             z.acao = () -> {
@@ -359,17 +382,16 @@ public class TelaCriacao extends Screen {
                 reconstruir();
             };
         }
-        caixaY = dirY + linhas * (altura + gap) + 4;
-        caixaH = dirY + dirH - caixaY;
     }
 
     // ---------------------------------------------------------------- etapa 3: classe
 
     private void montarClasses() {
         ClasseOP[] todas = ClasseOP.values();
+        dividirTela();
         int gap = 6;
         int largura = (dirW - 2 * gap) / 3;
-        int altura = Mth.clamp((int) (dirH * 0.46), 74, 122);
+        int altura = Math.max(60, listaH);
         for (int k = 0; k < todas.length; k++) {
             final ClasseOP c = todas[k];
             Personagem p = CriacaoPersonagem.construir(c, valores, origem);
@@ -392,8 +414,6 @@ public class TelaCriacao extends Screen {
                 reconstruir();
             };
         }
-        caixaY = dirY + altura + 6;
-        caixaH = dirY + dirH - caixaY;
     }
 
     private static String coracoes(int vida) {
@@ -428,18 +448,21 @@ public class TelaCriacao extends Screen {
 
     private void montarPericias() {
         Pericia[] todas = Pericia.values();
-        int gap = 4;
-        int colunas = Mth.clamp(dirW / 110, 3, 5);
+        dividirTela();
+        int gap = 5;
+        int colunas = Mth.clamp(dirW / 150, 3, 5);
         int linhas = (todas.length + colunas - 1) / colunas;
         int largura = (dirW - (colunas - 1) * gap) / colunas;
         contadorY = dirY;
-        int gradeY = dirY + 13;
-        int altura = Mth.clamp(((int) (dirH * 0.55) - 13) / linhas - gap, 12, 16);
+        int cabecalho = 18; // a linha "Perícias treinadas: x de y"
+        int gradeY = dirY + cabecalho;
+        int altura = Mth.clamp((listaH - cabecalho - (linhas - 1) * gap) / linhas, 14, 48);
         for (int k = 0; k < todas.length; k++) {
             final Pericia p = todas[k];
             int x = dirX + (k % colunas) * (largura + gap);
             int y = gradeY + (k / colunas) * (altura + gap);
             Zona z = nova(CHIP, x, y, largura, altura, p.getNome());
+            z.escala = escalaChip(altura);
             z.dado = p;
             boolean gratis = daOrigem(p);
             z.travada = gratis;
@@ -458,8 +481,6 @@ public class TelaCriacao extends Screen {
                 z.ativa = escolhidas.contains(p) || vagasRestantes() > 0;
             }
         }
-        caixaY = gradeY + linhas * (altura + gap) + 2;
-        caixaH = dirY + dirH - caixaY;
     }
 
     // ---------------------------------------------------------------- rodapé
@@ -550,7 +571,8 @@ public class TelaCriacao extends Screen {
             default -> {
                 String contador = "Perícias treinadas: " + escolhidas.size() + " de " + vagasDeTreino()
                         + "   (as da origem são de graça)";
-                FonteOP.desenharEntidade(g, font, contador, dirX, contadorY + 1, vagasRestantes() == 0 ? COR_OK : COR_DOURADO, false);
+                textoEscala(g, FonteOP.entidade(contador), dirX, contadorY + 1, 1.25F,
+                        vagasRestantes() == 0 ? COR_OK : COR_DOURADO, true);
                 desenharDetalhe(g, dirX, caixaY, dirW, caixaH, alvo, true);
             }
         }
@@ -561,7 +583,7 @@ public class TelaCriacao extends Screen {
 
         String dica = dica();
         if (!dica.isEmpty()) {
-            FonteOP.desenharEntidade(g, font, dica, dirX + 78, height - 26 + 4, COR_DOURADO, false);
+            textoEscala(g, FonteOP.entidade(dica), dirX + 78, height - 26 + 3, 1.25F, COR_DOURADO, true);
         }
     }
 
@@ -728,17 +750,17 @@ public class TelaCriacao extends Screen {
         g.fill(px, y, px + pw, y + 1, COR_BORDA);
         if (avisoAtivo()) {
             List<FormattedCharSequence> linhasAviso = font.split(FonteOP.entidade(aviso), pw - 10);
-            int alturaAviso = 6 + 12 + linhasAviso.size() * 10 + 2;
+            int alturaAviso = 6 + 12 + linhasAviso.size() * LINHA + 2;
             int topoAviso = y + 4;
             caixa(g, px, topoAviso, pw, alturaAviso, 0xFF2A0A10, COR_SANGUE);
             FonteOP.desenharTitulo(g, font, "NÃO DÁ PARA SUBIR MAIS", px + 5, topoAviso + 5, COR_SANGUE_CLARO, true);
             int ay = topoAviso + 17;
             for (FormattedCharSequence linha : linhasAviso) {
-                if (ay + 9 > dirY + dirH - 4) {
+                if (ay + 10 > dirY + dirH - 4) {
                     break;
                 }
-                g.drawString(font, linha, px + 5, ay, COR_OSSO, false);
-                ay += 10;
+                g.drawString(font, linha, px + 5, ay, COR_OSSO, true);
+                ay += LINHA;
             }
             y = topoAviso + alturaAviso + 2;
         }
@@ -814,16 +836,31 @@ public class TelaCriacao extends Screen {
         };
     }
 
-    /** Escreve um texto quebrando em linhas. Devolve o Y logo abaixo do que foi escrito. */
+    /** Escreve um texto quebrando em linhas (com sombra, para ler melhor). Devolve o Y logo abaixo do que foi escrito. */
     private int paragrafo(GuiGraphics g, String texto, int x, int y, int largura, int cor, int yMax) {
         for (FormattedCharSequence linha : font.split(FonteOP.entidade(texto), largura)) {
-            if (y + 9 > yMax) {
+            if (y + 10 > yMax) {
                 return yMax + 1;
             }
-            g.drawString(font, linha, x, y, cor, false);
-            y += 10;
+            g.drawString(font, linha, x, y, cor, true);
+            y += LINHA;
         }
         return y;
+    }
+
+    /** Desenha um texto já com fonte aplicada numa escala (x, y = canto superior esquerdo do texto). */
+    private void textoEscala(GuiGraphics g, Component texto, float x, float y, float escala, int cor, boolean sombra) {
+        g.pose().pushPose();
+        g.pose().translate(x, y, 0F);
+        g.pose().scale(escala, escala, 1F);
+        g.drawString(font, texto.getVisualOrderText(), 0F, 0F, cor, sombra);
+        g.pose().popPose();
+    }
+
+    /** A maior escala (entre 1 e {@code maxima}) com que o texto ainda cabe na largura. */
+    private float escalaQueCabe(float maxima, int largura, Component texto) {
+        float cabe = largura / (float) Math.max(1, font.width(texto));
+        return Math.max(1F, Math.min(maxima, cabe));
     }
 
     // ---------------------------------------------------------------- zonas
@@ -896,15 +933,26 @@ public class TelaCriacao extends Screen {
         caixa(g, z.x, z.y, z.w, z.h, fundo, borda);
 
         if (z.tipo == CHIP) {
-            int larguraEtiqueta = z.etiqueta.isEmpty() ? 0 : FonteOP.largura(font, z.etiqueta) + 6;
-            String t = FonteOP.cortar(font, z.texto, z.w - 8 - larguraEtiqueta);
-            FonteOP.desenhar(g, font, t, z.x + 4, textoY, cor, false);
+            // nome à esquerda no maior tamanho que couber; etiqueta (sigla do atributo / "origem") menor, à direita
+            float s = z.escala;
+            float sEtiqueta = Math.max(1F, s * 0.75F);
+            int larguraEtiqueta = z.etiqueta.isEmpty() ? 0
+                    : Math.round(FonteOP.largura(font, z.etiqueta) * sEtiqueta) + 8;
+            int disponivel = z.w - 12 - larguraEtiqueta;
+            float sNome = Math.min(s, disponivel / (float) Math.max(1, FonteOP.largura(font, z.texto)));
+            String t = z.texto;
+            if (sNome < 1F) { // não cabe nem no tamanho normal: corta o texto
+                sNome = 1F;
+                t = FonteOP.cortar(font, z.texto, disponivel);
+            }
+            textoEscala(g, FonteOP.c(t), z.x + 6, z.y + (z.h - 8F * sNome) / 2F, sNome, cor, true);
             if (!z.etiqueta.isEmpty()) {
-                FonteOP.desenhar(g, font, z.etiqueta, z.x + z.w - 4 - FonteOP.largura(font, z.etiqueta), textoY,
-                        z.travada ? COR_DOURADO : COR_APAGADO, false);
+                float ex = z.x + z.w - 6 - FonteOP.largura(font, z.etiqueta) * sEtiqueta;
+                textoEscala(g, FonteOP.c(z.etiqueta), ex, z.y + (z.h - 8F * sEtiqueta) / 2F, sEtiqueta,
+                        z.travada ? COR_DOURADO : COR_APAGADO, true);
             }
         } else {
-            FonteOP.desenharTitulo(g, font, z.texto, z.x + (z.w - FonteOP.larguraTitulo(font, z.texto)) / 2F, textoY, cor, false);
+            FonteOP.desenharTitulo(g, font, z.texto, z.x + (z.w - FonteOP.larguraTitulo(font, z.texto)) / 2F, textoY, cor, true);
         }
         if (z.tipo == PRINCIPAL && z.ativa) {
             cantos(g, z.x, z.y, z.w, z.h, 0xFFFFD0D6);
@@ -917,21 +965,36 @@ public class TelaCriacao extends Screen {
         if (z.selecionada) {
             cantos(g, z.x, z.y, z.w, z.h, COR_SANGUE_CLARO);
         }
-        int px = z.x + 6;
-        int y = z.y + 6;
+        // a carta ocupa 3/4 da tela: o texto cresce junto com ela (sempre limitado pela largura)
+        int px = z.x + 8;
+        int util = z.w - 16;
+        float s = Mth.clamp(Math.min(z.h / 130F, z.w / 130F), 1F, 2.2F);
+        float y = z.y + 8;
+
+        String titulo = z.texto.toUpperCase();
+        float sTitulo = Math.max(1F, Math.min(1.25F * s, util / (float) Math.max(1, FonteOP.larguraTitulo(font, titulo))));
         g.pose().pushPose();
-        g.pose().scale(1.25F, 1.25F, 1F);
-        FonteOP.desenharTitulo(g, font, z.texto.toUpperCase(), px / 1.25F, y / 1.25F, z.selecionada ? COR_SANGUE_CLARO : COR_OSSO, true);
+        g.pose().translate(px, y, 0F);
+        g.pose().scale(sTitulo, sTitulo, 1F);
+        FonteOP.desenharTitulo(g, font, titulo, 0F, 0F, z.selecionada ? COR_SANGUE_CLARO : COR_OSSO, true);
         g.pose().popPose();
-        y += 15;
-        FonteOP.desenharEntidade(g, font, z.etiqueta, px, y, COR_DOURADO, false);
-        y += 14;
+        y += 9F * sTitulo + 5F * s;
+
+        float sPapel = escalaQueCabe(s, util, FonteOP.entidade(z.etiqueta));
+        textoEscala(g, FonteOP.entidade(z.etiqueta), px, y, sPapel, COR_DOURADO, true);
+        y += 12F * sPapel + 6F * s;
+
+        float sLinha = s * 0.95F;
+        for (String linha : z.linhas) { // todas as linhas no mesmo tamanho: o da mais comprida que ainda cabe
+            sLinha = Math.min(sLinha, escalaQueCabe(s * 0.95F, util, FonteOP.entidade(linha)));
+        }
+        sLinha = Math.max(1F, sLinha);
         for (String linha : z.linhas) {
-            if (y + 9 > z.y + z.h - 3) {
+            if (y + 9F * sLinha > z.y + z.h - 4) {
                 break;
             }
-            FonteOP.desenharEntidade(g, font, FonteOP.cortar(font, linha, z.w - 12), px, y, COR_OSSO, false);
-            y += 11;
+            textoEscala(g, FonteOP.entidade(linha), px, y, sLinha, COR_OSSO, true);
+            y += 12F * sLinha + 3F * s;
         }
     }
 

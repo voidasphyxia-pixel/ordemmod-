@@ -3,6 +3,24 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (legibilidade da tela de criacao) ----------------------------
+Etapas Origem, Classe e Pericias: lista com 3/4 da altura, descricao com 1/4, texto maior e mais legivel
+  Arquivos: TelaCriacao.java, assets/ordemmod/font/entidade_hud.json (size 12.5 -> 14.5),
+            font/titulo_hud.json (size 11 -> 12.5), LEIA-ME-MARCADO.md
+  - Problema (print em GUI scale 2): chips com no maximo 16 px de altura, texto pequeno/fino e a caixa de
+    descricao ocupando quase metade da tela.
+  - Novo dividirTela(): listaH = 3/4 de dirH; caixa de descricao (caixaY/caixaH) = 1/4 restante.
+  - Origens: 2 a 4 colunas (dirW/190), chips altos (14..56 px) que preenchem os 3/4. Pericias: 3 a 5 colunas
+    (dirW/150), chips 14..48 px, contador "Pericias treinadas" maior. Classes: as 3 cartas ocupam os 3/4.
+  - Texto dos chips e das cartas escala com a altura (escalaChip: 1x ate 1,9x; carta ate 2,2x), sempre limitado
+    pela largura disponivel (escalaQueCabe); nome em Tektur com sombra, sigla/etiqueta menor a direita.
+  - Textos corridos (descricoes, dicas, avisos) com sombra e linha de 12 px (constante LINHA), botoes e dica do
+    rodape maiores. Fontes Cormorant/Cinzel da tela de criacao (so ela usa) um pouco maiores.
+  - Etapa Atributos nao foi reorganizada (so ganhou a fonte um pouco maior e a sombra no texto corrido).
+  - Como testar: /ordem resetar (ou abra a criacao), va nas etapas 2, 3 e 4 e passe o mouse nos itens.
+    Nao compilado pelo Claude: rode gradlew build. Ajustes finos: 0.75 em dividirTela, escalaChip,
+    limites 56/48 de altura, size das fontes *_hud.json.
+
 --- 09/10/2026 (saida secreta da cena do Marcado) ---------------------------
 Easter egg: apertar ESC 5 vezes pula a cena do Marcado
   Arquivos: marcado/TelaMarcado.java, assets/ordemmod/lang/pt_br.json, lang/en_us.json (chave marcado.segredo),
