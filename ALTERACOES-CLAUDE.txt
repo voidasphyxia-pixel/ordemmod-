@@ -4,6 +4,25 @@ Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
 --- 09/10/2026 -------------------------------------------------------------
+Mais variacao nas respostas da entidade + simbolos dos elementos nas perguntas
+  Arquivos: marcado/TelaMarcado.java, marcado/RoteiroMarcado.java,
+            assets/ordemmod/marcado/marcado.json, lang/pt_br.json, lang/en_us.json,
+            LEIA-ME-MARCADO.md
+  - Cada opcao das perguntas Instinto, Percepcao, Vinculos, Sangue, Energia, Origem e
+    O Caminho agora tem reacao propria, com 2 variantes sorteadas (campo "reacao" com
+    chaves separadas por "|").
+  - Novo campo "se" nos passos (ex.: "p04=1"): falas que so aparecem para certas respostas.
+    Usado em: Conhecimento ("...interessante" muda), Medo ("...por enquanto" muda), Morte
+    (3 ramos) e no Silencio, onde a entidade LEMBRA as respostas (Instinto, Vinculos).
+  - Simbolos: cada pergunta de elemento mostra uma sombra fraca do simbolo quando a pergunta
+    surge (ghost_*) e um flash tingido com brilho ao responder (symbol_*). Conhecimento,
+    Medo, Sangue, Morte e Energia usam as 5 imagens; nada fica na tela.
+  - Pulso vermelho do Sangue mais sutil (alfa 70 -> 40; tinta 0.6 -> 0.45).
+  - Texto novo do Claude (nao esta na ficha): todas as reacoes/variantes e as falas condicionais.
+    Edite em lang/pt_br.json (chaves marcado.f### e marcado.pNN.x.reacao.N).
+  - Como testar: /ordem resetar e repetir a cena respondendo de formas diferentes.
+    Nao compilado pelo Claude: rode gradlew build e me mande os erros.
+
 Roteiro real da cena do Marcado (FICHA DE ROTEIRO) colocado no mod
   Arquivos: assets/ordemmod/marcado/marcado.json (reescrito: 83 passos, 10 perguntas)
             assets/ordemmod/lang/pt_br.json e en_us.json (115 chaves marcado.*)

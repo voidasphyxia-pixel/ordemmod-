@@ -69,7 +69,7 @@
       "opcoes": [
         {
           "texto": "marcado.p01.a",
-          "reacao": "marcado.p01.a.reacao",
+          "reacao": "marcado.p01.a.reacao.1|marcado.p01.a.reacao.2",
           "tags": {
             "curiosidade": 1,
             "confronto": 1
@@ -77,7 +77,7 @@
         },
         {
           "texto": "marcado.p01.b",
-          "reacao": "marcado.p01.b.reacao",
+          "reacao": "marcado.p01.b.reacao.1|marcado.p01.b.reacao.2",
           "tags": {
             "cautela": 1,
             "autocontrole": 1
@@ -85,7 +85,7 @@
         },
         {
           "texto": "marcado.p01.c",
-          "reacao": "marcado.p01.c.reacao",
+          "reacao": "marcado.p01.c.reacao.1|marcado.p01.c.reacao.2",
           "tags": {
             "sobrevivencia": 1,
             "instinto": 1
@@ -120,7 +120,7 @@
       "opcoes": [
         {
           "texto": "marcado.p02.a",
-          "reacao": "marcado.p02.a.reacao",
+          "reacao": "marcado.p02.a.reacao.1|marcado.p02.a.reacao.2",
           "tags": {
             "empatia": 1,
             "percepcao_social": 1
@@ -128,7 +128,7 @@
         },
         {
           "texto": "marcado.p02.b",
-          "reacao": "marcado.p02.b.reacao",
+          "reacao": "marcado.p02.b.reacao.1|marcado.p02.b.reacao.2",
           "tags": {
             "cautela": 1,
             "tatica": 1
@@ -136,7 +136,7 @@
         },
         {
           "texto": "marcado.p02.c",
-          "reacao": "marcado.p02.c.reacao",
+          "reacao": "marcado.p02.c.reacao.1|marcado.p02.c.reacao.2",
           "tags": {
             "investigacao": 1,
             "percepcao": 1
@@ -161,6 +161,7 @@
       "opcoes": [
         {
           "texto": "marcado.p03.a",
+          "reacao": "marcado.p03.a.reacao.1|marcado.p03.a.reacao.2",
           "tags": {
             "lealdade": 1,
             "egoismo": 1
@@ -168,12 +169,14 @@
         },
         {
           "texto": "marcado.p03.b",
+          "reacao": "marcado.p03.b.reacao.1|marcado.p03.b.reacao.2",
           "tags": {
             "responsabilidade": 1
           }
         },
         {
           "texto": "marcado.p03.c",
+          "reacao": "marcado.p03.c.reacao.1|marcado.p03.c.reacao.2",
           "tags": {
             "altruismo": 1,
             "moralidade": 1
@@ -230,7 +233,8 @@
             "metodo": 1
           }
         }
-      ]
+      ],
+      "efeito": "ghost_conhecimento"
     },
     {
       "tipo": "pausa",
@@ -239,16 +243,29 @@
     {
       "tipo": "fala",
       "texto": "marcado.f021",
-      "duracao": 1.2
+      "duracao": 1.2,
+      "se": "p04=0"
     },
     {
       "tipo": "fala",
       "texto": "marcado.f022",
-      "duracao": 1.6
+      "duracao": 1.2,
+      "se": "p04=1"
     },
     {
       "tipo": "fala",
       "texto": "marcado.f023",
+      "duracao": 1.2,
+      "se": "p04=2"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f024",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f025",
       "duracao": 1.5,
       "efeito": "silence,particulas_off"
     },
@@ -259,23 +276,27 @@
       "opcoes": [
         {
           "texto": "marcado.p05.a",
+          "efeito": "symbol_medo",
           "tags": {
             "autonomia": 1
           }
         },
         {
           "texto": "marcado.p05.b",
+          "efeito": "symbol_medo",
           "tags": {
             "desconfianca": 1
           }
         },
         {
           "texto": "marcado.p05.c",
+          "efeito": "symbol_medo",
           "tags": {
             "evasao": 1
           }
         }
-      ]
+      ],
+      "efeito": "ghost_medo"
     },
     {
       "tipo": "pausa",
@@ -293,12 +314,25 @@
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f024",
-      "duracao": 1.6
+      "texto": "marcado.f026",
+      "duracao": 1.6,
+      "se": "p05=0"
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f025",
+      "texto": "marcado.f027",
+      "duracao": 1.6,
+      "se": "p05=1"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f028",
+      "duracao": 1.6,
+      "se": "p05=2"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f029",
       "duracao": 1.2,
       "efeito": "som_volta"
     },
@@ -309,40 +343,39 @@
       "opcoes": [
         {
           "texto": "marcado.p06.a",
-          "efeito": "pulse_red",
+          "reacao": "marcado.p06.a.reacao.1|marcado.p06.a.reacao.2",
+          "efeito": "pulse_red,symbol_sangue",
           "tags": {
             "devocao": 1
           }
         },
         {
           "texto": "marcado.p06.b",
-          "efeito": "pulse_red",
+          "reacao": "marcado.p06.b.reacao.1|marcado.p06.b.reacao.2",
+          "efeito": "pulse_red,symbol_sangue",
           "tags": {
             "pragmatismo": 1
           }
         },
         {
           "texto": "marcado.p06.c",
-          "efeito": "pulse_red",
+          "reacao": "marcado.p06.c.reacao.1|marcado.p06.c.reacao.2",
+          "efeito": "pulse_red,symbol_sangue",
           "tags": {
             "humanidade": 1
           }
         }
-      ]
+      ],
+      "efeito": "ghost_sangue"
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f026",
-      "duracao": 1.2
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f027",
+      "texto": "marcado.f030",
       "duracao": 1.6
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f028",
+      "texto": "marcado.f031",
       "duracao": 1.2
     },
     {
@@ -352,51 +385,78 @@
       "opcoes": [
         {
           "texto": "marcado.p07.a",
-          "efeito": "silence",
+          "efeito": "silence,symbol_morte",
           "tags": {
             "enfrentar": 1
           }
         },
         {
           "texto": "marcado.p07.b",
-          "efeito": "silence",
+          "efeito": "silence,symbol_morte",
           "tags": {
             "negar": 1
           }
         },
         {
           "texto": "marcado.p07.c",
-          "efeito": "silence",
+          "efeito": "silence,symbol_morte",
           "tags": {
             "aceitar_misterio": 1
           }
         }
-      ]
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f029",
-      "duracao": 1.2
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f030",
-      "duracao": 1.2
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f031",
-      "duracao": 1.6
+      ],
+      "efeito": "ghost_morte"
     },
     {
       "tipo": "fala",
       "texto": "marcado.f032",
+      "duracao": 1.2,
+      "se": "p07=0"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f033",
+      "duracao": 1.2,
+      "se": "p07=0"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f034",
+      "duracao": 1.2,
+      "se": "p07=1"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f035",
+      "duracao": 1.2,
+      "se": "p07=1"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f036",
+      "duracao": 1.2,
+      "se": "p07=2"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f037",
+      "duracao": 1.2,
+      "se": "p07=2"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f038",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f039",
       "duracao": 1.0,
       "efeito": "som_volta"
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f033",
+      "texto": "marcado.f040",
       "duracao": 1.0
     },
     {
@@ -406,150 +466,40 @@
       "opcoes": [
         {
           "texto": "marcado.p08.a",
-          "efeito": "glitch",
+          "reacao": "marcado.p08.a.reacao.1|marcado.p08.a.reacao.2",
+          "efeito": "glitch,symbol_energia",
           "tags": {
             "ousadia": 1
           }
         },
         {
           "texto": "marcado.p08.b",
-          "efeito": "glitch",
+          "reacao": "marcado.p08.b.reacao.1|marcado.p08.b.reacao.2",
+          "efeito": "glitch,symbol_energia",
           "tags": {
             "prudencia": 1
           }
         },
         {
           "texto": "marcado.p08.c",
-          "efeito": "glitch",
+          "reacao": "marcado.p08.c.reacao.1|marcado.p08.c.reacao.2",
+          "efeito": "glitch,symbol_energia",
           "tags": {
             "pragmatismo": 1
           }
         }
-      ]
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f034",
-      "duracao": 1.2
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f035",
-      "duracao": 1.6
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f036",
-      "duracao": 1.0
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f037",
-      "duracao": 1.0
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f038",
-      "duracao": 1.2
-    },
-    {
-      "tipo": "pergunta",
-      "id": "p09",
-      "texto": "marcado.p09.texto",
-      "opcoes": [
-        {
-          "texto": "marcado.p09.a",
-          "tags": {
-            "origem_cidade": 1
-          }
-        },
-        {
-          "texto": "marcado.p09.b",
-          "tags": {
-            "origem_interior": 1
-          }
-        },
-        {
-          "texto": "marcado.p09.c",
-          "tags": {
-            "origem_familia": 1
-          }
-        },
-        {
-          "texto": "marcado.p09.d",
-          "tags": {
-            "origem_militar": 1
-          }
-        },
-        {
-          "texto": "marcado.p09.e",
-          "tags": {
-            "origem_academico": 1
-          }
-        },
-        {
-          "texto": "marcado.p09.f",
-          "tags": {
-            "origem_sobrevivente": 1
-          }
-        },
-        {
-          "texto": "marcado.p09.g",
-          "tags": {
-            "origem_desconhecida": 1
-          }
-        }
-      ]
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f039",
-      "duracao": 1.2
-    },
-    {
-      "tipo": "fala",
-      "texto": "marcado.f040",
-      "duracao": 1.2
-    },
-    {
-      "tipo": "pergunta",
-      "id": "p10",
-      "texto": "marcado.p10.texto",
-      "opcoes": [
-        {
-          "texto": "marcado.p10.a",
-          "tags": {
-            "tradicao": 1
-          }
-        },
-        {
-          "texto": "marcado.p10.b",
-          "tags": {
-            "autonomia": 1
-          }
-        },
-        {
-          "texto": "marcado.p10.c",
-          "tags": {
-            "indecisao": 1
-          }
-        }
-      ]
+      ],
+      "efeito": "ghost_energia"
     },
     {
       "tipo": "fala",
       "texto": "marcado.f041",
-      "duracao": 1.0
+      "duracao": 1.6
     },
     {
       "tipo": "fala",
       "texto": "marcado.f042",
-      "duracao": 1.6
-    },
-    {
-      "tipo": "silencio",
-      "duracao": 4.5,
-      "efeito": "particulas_off"
+      "duracao": 1.0
     },
     {
       "tipo": "fala",
@@ -559,17 +509,101 @@
     {
       "tipo": "fala",
       "texto": "marcado.f044",
-      "duracao": 1.0
+      "duracao": 1.2
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p09",
+      "texto": "marcado.p09.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p09.a",
+          "reacao": "marcado.p09.a.reacao.1|marcado.p09.a.reacao.2",
+          "tags": {
+            "origem_cidade": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.b",
+          "reacao": "marcado.p09.b.reacao.1|marcado.p09.b.reacao.2",
+          "tags": {
+            "origem_interior": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.c",
+          "reacao": "marcado.p09.c.reacao.1|marcado.p09.c.reacao.2",
+          "tags": {
+            "origem_familia": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.d",
+          "reacao": "marcado.p09.d.reacao.1|marcado.p09.d.reacao.2",
+          "tags": {
+            "origem_militar": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.e",
+          "reacao": "marcado.p09.e.reacao.1|marcado.p09.e.reacao.2",
+          "tags": {
+            "origem_academico": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.f",
+          "reacao": "marcado.p09.f.reacao.1|marcado.p09.f.reacao.2",
+          "tags": {
+            "origem_sobrevivente": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.g",
+          "reacao": "marcado.p09.g.reacao.1|marcado.p09.g.reacao.2",
+          "tags": {
+            "origem_desconhecida": 1
+          }
+        }
+      ]
     },
     {
       "tipo": "fala",
       "texto": "marcado.f045",
-      "duracao": 1.0
+      "duracao": 1.2
     },
     {
       "tipo": "fala",
       "texto": "marcado.f046",
-      "duracao": 1.0
+      "duracao": 1.2
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p10",
+      "texto": "marcado.p10.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p10.a",
+          "reacao": "marcado.p10.a.reacao.1|marcado.p10.a.reacao.2",
+          "tags": {
+            "tradicao": 1
+          }
+        },
+        {
+          "texto": "marcado.p10.b",
+          "reacao": "marcado.p10.b.reacao.1|marcado.p10.b.reacao.2",
+          "tags": {
+            "autonomia": 1
+          }
+        },
+        {
+          "texto": "marcado.p10.c",
+          "reacao": "marcado.p10.c.reacao.1|marcado.p10.c.reacao.2",
+          "tags": {
+            "indecisao": 1
+          }
+        }
+      ]
     },
     {
       "tipo": "fala",
@@ -579,42 +613,45 @@
     {
       "tipo": "fala",
       "texto": "marcado.f048",
-      "duracao": 1.8
+      "duracao": 1.6
+    },
+    {
+      "tipo": "silencio",
+      "duracao": 4.5,
+      "efeito": "particulas_off"
     },
     {
       "tipo": "fala",
       "texto": "marcado.f049",
-      "duracao": 1.0,
-      "efeito": "personagem_revela,som_volta,particulas_on"
+      "duracao": 1.0
     },
     {
       "tipo": "fala",
       "texto": "marcado.f050",
-      "duracao": 2.5
+      "duracao": 1.0
     },
     {
       "tipo": "fala",
       "texto": "marcado.f051",
-      "duracao": 1.2,
-      "efeito": "aproximar"
+      "duracao": 1.0
     },
     {
       "tipo": "fala",
       "texto": "marcado.f052",
-      "duracao": 1.5
-    },
-    {
-      "tipo": "revelacao"
+      "duracao": 1.0,
+      "se": "p01=0"
     },
     {
       "tipo": "fala",
       "texto": "marcado.f053",
-      "duracao": 1.2
+      "duracao": 1.0,
+      "se": "p01=1"
     },
     {
       "tipo": "fala",
       "texto": "marcado.f054",
-      "duracao": 1.0
+      "duracao": 1.0,
+      "se": "p01=2"
     },
     {
       "tipo": "fala",
@@ -629,6 +666,74 @@
     {
       "tipo": "fala",
       "texto": "marcado.f057",
+      "duracao": 1.0,
+      "se": "p03=0"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f058",
+      "duracao": 1.0,
+      "se": "p03=1"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f059",
+      "duracao": 1.0,
+      "se": "p03=2"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f060",
+      "duracao": 1.8
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f061",
+      "duracao": 1.0,
+      "efeito": "personagem_revela,som_volta,particulas_on"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f062",
+      "duracao": 2.5
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f063",
+      "duracao": 1.2,
+      "efeito": "aproximar"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f064",
+      "duracao": 1.5
+    },
+    {
+      "tipo": "revelacao"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f065",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f066",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f067",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f068",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f069",
       "duracao": 1.5
     },
     {
@@ -637,18 +742,18 @@
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f058",
+      "texto": "marcado.f070",
       "duracao": 1.5
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f059",
+      "texto": "marcado.f071",
       "duracao": 3.0,
       "efeito": "voz_seria"
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f060",
+      "texto": "marcado.f072",
       "duracao": 1.5
     },
     {
@@ -659,12 +764,12 @@
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f061",
+      "texto": "marcado.f073",
       "duracao": 1.2
     },
     {
       "tipo": "fala",
-      "texto": "marcado.f062",
+      "texto": "marcado.f074",
       "duracao": 1.5
     },
     {

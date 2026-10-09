@@ -34,6 +34,7 @@ public final class RoteiroMarcado {
         public String texto;      // chave de tradução (fala ou enunciado da pergunta)
         public float duracao = 0; // segundos extras de pausa depois da fala (ou duração do silêncio)
         public String efeito;     // efeito ao começar o passo (pode ser null)
+        public String se;         // só roda se a resposta bater: "p01=0", "p01=0|2" (pode ser null = sempre)
         public String som;        // som único ao começar o passo (pode ser null), ex.: "tum"
         public List<Opcao> opcoes = new ArrayList<>();
     }
@@ -103,6 +104,7 @@ public final class RoteiroMarcado {
             p.id = str(o, "id");
             p.texto = str(o, "texto");
             p.efeito = str(o, "efeito");
+            p.se = str(o, "se");
             p.som = str(o, "som");
             p.duracao = o.has("duracao") ? o.get("duracao").getAsFloat() : 0f;
             if (o.has("opcoes")) {

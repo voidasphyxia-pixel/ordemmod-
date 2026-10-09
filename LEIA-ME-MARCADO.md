@@ -35,6 +35,8 @@
 
 Efeitos de controle da cena (adicionados em 09/10/2026): `ambiente` (drone sobe de quase mudo para o volume normal), `particulas_on` / `particulas_off` (névoa e poeira nascem devagar / somem), `silence` (some o som; **só volta com** `som_volta`), `som_volta`, `personagem_revela` (silhueta surge do preto em ~6 s), `aproximar` (zoom lento no personagem), `voz_seria` (texto da entidade muda de cor).
 
+Variação por resposta (09/10/2026): `reacao` aceita várias chaves separadas por `|` (a cena sorteia uma); qualquer passo aceita `"se": "p01=0"` ou `"p01=0|2"` (vírgula = todas valem) e só roda se a resposta bater (0 = 1ª opção). Símbolos: `symbol_<elemento>` (flash forte ao responder, <1 s) e `ghost_<elemento>` (sombra fraca quando a pergunta surge, ~2 s); elementos: conhecimento, sangue, morte, energia, medo. Nunca ficam na tela.
+
 Tipos de passo: `pausa` (espera sem texto e sem mexer no som; `duracao`), `fala` (campos `texto`, `duracao` = pausa depois), `pergunta` (`id`, `texto`, `opcoes[]` com `texto`, `reacao`, `efeito`, `tags`), `silencio` (`duracao`), `revelacao`, `fim`. Todo texto é uma chave de `lang/pt_br.json`.
 
 ## Para continuar em outro chat, anexe

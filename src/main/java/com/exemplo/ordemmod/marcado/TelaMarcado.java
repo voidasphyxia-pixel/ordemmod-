@@ -71,6 +71,7 @@ public class TelaMarcado extends Screen {
     private boolean mudo;
     private boolean revelacaoTocou;
     private boolean enviado;
+    private final Map<String, Integer> respostasPorId = new HashMap<>(); // id da pergunta -> opção escolhida
 
     // estado visual/sonoro controlado pelos efeitos do roteiro
     private float volumeBase = 0.06f;      // volume do drone (quase inaudível na abertura)
@@ -135,6 +136,9 @@ public class TelaMarcado extends Screen {
         idx++;
         t = 0;
         escolhida = null;
+        while (idx < roteiro.passos.size() && !condicaoOk(roteiro.passos.get(idx))) {
+            idx++; // passo que só vale para outra resposta
+        }
         if (idx >= roteiro.passos.size()) {
             terminar();
             return;
@@ -183,6 +187,33 @@ public class TelaMarcado extends Screen {
         }
     }
 
+    /** Campo "se" do passo: "p01=0" ou "p01=0|2" (várias, separadas por vírgula, todas precisam valer). */
+    private boolean condicaoOk(RoteiroMarcado.Passo p) {
+        if (p.se == null) {
+            return true;
+        }
+        for (String c : p.se.split(",")) {
+            String[] kv = c.trim().split("=");
+            if (kv.length != 2) {
+                continue;
+            }
+            Integer r = respostasPorId.get(kv[0].trim());
+            if (r == null) {
+                return false;
+            }
+            boolean ok = false;
+            for (String v : kv[1].split("\\|")) {
+                if (v.trim().equals(String.valueOf(r))) {
+                    ok = true;
+                }
+            }
+            if (!ok) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void mostrar(String chave, Fase novaFase, float pausa) {
         fase = novaFase;
         t = 0;
@@ -206,11 +237,15 @@ public class TelaMarcado extends Screen {
         }
         escolhida = passo.opcoes.get(i);
         escolhas[perguntaAtual] = i;
+        if (passo.id != null) {
+            respostasPorId.put(passo.id, i);
+        }
         AudioMarcado.tocar("ui_select", 0.6f, 1f);
         disparar(escolhida.efeito);
         if (escolhida.reacao != null) {
             AudioMarcado.tocar("reacao_entidade", 0.8f, 1f);
-            mostrar(escolhida.reacao, Fase.REACAO, PAUSA_PADRAO);
+            String[] variantes = escolhida.reacao.split("\\|");
+            mostrar(variantes[SORTEIO.nextInt(variantes.length)].trim(), Fase.REACAO, PAUSA_PADRAO);
         } else {
             proximoPasso();
         }
@@ -497,10 +532,10 @@ public class TelaMarcado extends Screen {
     private void desenharEfeitos(GuiGraphics g, int cx) {
         float p = efeito("pulse_red", 1.25f);
         if (p >= 0) {
-            int a = (int) (70 * Math.sin(p * Math.PI));
+            int a = (int) (40 * Math.sin(p * Math.PI));
             g.fill(0, 0, width, height, (a << 24) | 0x00660000);
             int s = Math.min(width, height);
-            VfxMarcado.TINTA.desenhar(g, efeitos.get("pulse_red"), 0.6f, cx - s / 2, height / 2 - s / 2, s, s);
+            VfxMarcado.TINTA.desenhar(g, efeitos.get("pulse_red"), 0.45f, cx - s / 2, height / 2 - s / 2, s, s);
         }
         float gl = efeito("glitch", 0.6f);
         if (gl >= 0) {
@@ -512,16 +547,36 @@ public class TelaMarcado extends Screen {
             }
         }
         for (String el : new String[] { "conhecimento", "sangue", "morte", "energia", "medo" }) {
-            float s = efeito("symbol_" + el, 0.35f);
-            if (s >= 0) {
-                ResourceLocation tex = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/simbolo_" + el + ".png");
-                float a = (float) Math.sin(s * Math.PI);
-                g.setColor(1f, 1f, 1f, a);
-                com.mojang.blaze3d.systems.RenderSystem.enableBlend();
-                g.blit(tex, cx - 48, height / 2 - 48, 96, 96, 0f, 0f, 128, 128, 128, 128);
-                g.setColor(1f, 1f, 1f, 1f);
+            float f = efeito("symbol_" + el, 0.8f);   // flash ao responder (some em menos de 1 s)
+            if (f >= 0) {
+                desenharSimbolo(g, cx, el, 128, 0.95f * (float) Math.sin(f * Math.PI));
+            }
+            float gh = efeito("ghost_" + el, 2.2f);   // sombra fraca quando a pergunta surge
+            if (gh >= 0) {
+                desenharSimbolo(g, cx, el, 190, 0.20f * (float) Math.sin(gh * Math.PI));
             }
         }
+    }
+
+    /** Símbolo do elemento, tingido e com brilho; só aparece por instantes (nunca fica na tela). */
+    private void desenharSimbolo(GuiGraphics g, int cx, String el, int tam, float alfa) {
+        float r = 1f, gc = 1f, b = 1f;
+        switch (el) {
+            case "conhecimento" -> { r = 0.95f; gc = 0.85f; b = 0.55f; }
+            case "sangue" -> { r = 0.90f; gc = 0.15f; b = 0.15f; }
+            case "morte" -> { r = 0.72f; gc = 0.72f; b = 0.85f; }
+            case "energia" -> { r = 0.50f; gc = 0.90f; b = 1.00f; }
+            case "medo" -> { r = 0.65f; gc = 0.45f; b = 0.85f; }
+            default -> { }
+        }
+        int cy = height / 2 - 10;
+        desenharHalo(g, cx, cy, (int) (tam * 1.1f), alfa * 0.6f, r, gc, b);
+        ResourceLocation tex = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/simbolo_" + el + ".png");
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        g.setColor(r, gc, b, alfa);
+        g.blit(tex, cx - tam / 2, cy - tam / 2, tam, tam, 0f, 0f, 128, 128, 128, 128);
+        g.setColor(1f, 1f, 1f, 1f);
     }
 
     private void desenharRevelacao(GuiGraphics g) {
