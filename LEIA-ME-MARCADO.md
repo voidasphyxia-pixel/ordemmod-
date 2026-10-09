@@ -19,6 +19,8 @@
 
 **HUD de criação (`TelaCriacao`) restilizado em 09/10/2026** na estética do Marcado: névoa/poeira, vinheta, Cinzel (títulos) e Cormorant (textos), painéis translúcidos com cantos dourados e o círculo ritual (`circulo_ritual.png`) atrás do pentágono de atributos. Cores dos símbolos: Energia = roxo, Medo = ciano. Ainda não compilado/testado.
 
+**HUD do jogo (`HudOrdem`) restilizada em 09/10/2026** no visual dos menus: barras retas de vidro escuro, cantos dourados, rótulos em Cinzel, vinheta no pé da tela e o símbolo do medo (ciano, `textures/gui/hud_simbolo_medo.png`) no vão entre as colunas PE/DEF e PV/FOME. Ainda não compilado/testado; ajustes finos listados no `ALTERACOES-CLAUDE.txt`.
+
 **Saída secreta (09/10/2026):** ESC 5 vezes seguidas (máx. 2,5 s entre eles) durante a cena → fade out, o som para, aparece "Como... você sabe disso?" e abre a `TelaCriacao`. Marca a cena como concluída (perguntas não respondidas = opção 0). Ainda não compilado/testado.
 
 **Legibilidade da criação (09/10/2026):** nas etapas Origem/Classe/Perícias a lista ocupa 3/4 da altura e a descrição 1/4; textos maiores, com sombra. Ainda não compilado/testado.

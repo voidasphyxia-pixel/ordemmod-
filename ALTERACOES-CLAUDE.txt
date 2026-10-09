@@ -3,6 +3,25 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (HUD do jogo no estilo dos menus + simbolo do medo) -------------
+HUD das barras (HudOrdem) com a estetica da TelaCriacao/TelaFicha/cena do Marcado; simbolo do medo ciano entre as barras
+  Arquivos: HudOrdem.java, assets/ordemmod/textures/gui/hud_simbolo_medo.png (novo, 22x34 branco sobre transparente),
+            LEIA-ME-MARCADO.md
+  - Barras agora RETAS (INCLINACAO = 0; antes eram paralelogramos), vidro escuro translucido (mesmo tom do COR_PAINEL),
+    borda fina, brilho neon e rastro de dano mantidos. Cores de cada barra, valores e logica NAO mudaram.
+  - Cantos de ritual dourados (0xCCC2B48C) em volta do bloco SAN..NEX e na casa selecionada da hotbar.
+  - Rotulos SAN/PE/DEF/PV/FOME em Cinzel (ESCALA_ROTULO 0,62); numeros continuam em Tektur. Tres marcas escuras
+    discretas (25/50/75%) em cada barra. Vinheta escura no pe da tela (alfa max 0x66, 100 px de altura).
+  - Vao central entre as colunas (PE|DEF e PV|FOME) foi de 2 px para 20 px (VAO_CENTRAL); cada barra da coluna
+    ficou com 81 px (antes 90). No vao fica o SIMBOLO DO MEDO em ciano (0.50, 0.90, 1.00, o mesmo da cena do Marcado),
+    11x17 px, com brilho radial atras e "respiracao" lenta. A textura e uma versao reduzida/engrossada do
+    simbolo_medo.png (o original, fino, vira serrilhado nesse tamanho); e desenhada com filtro suave (setFilter).
+  - yTopoDasBarras, BASE, PASSO e ALTURA_PILHA nao mudaram, entao RolagemHud e o resto continuam no lugar.
+  - Como testar: entre num mundo com personagem criado e olhe o HUD (GUI scale 2 e 3). Nao compilado pelo Claude:
+    rode gradlew build. Ajustes finos: ESCALA_ROTULO e CENTRO_GLIFO_TITULO (rotulo Cinzel alto/baixo/grande demais),
+    VAO_CENTRAL, SIMBOLO_L/SIMBOLO_A, 0x66 em vinheta(), INCLINACAO (3F volta ao corte inclinado).
+    Pontos de maior risco de API: TextureManager.getTexture(...).setFilter(true, false) e GuiGraphics.blit com 10 args.
+
 --- 09/10/2026 (ajuste de leitura: texto das pericias menor, descricoes maiores) ---
 Criacao (TelaCriacao) e ficha (TelaFicha): proporcoes de texto corrigidas depois dos prints do usuario
   Arquivos: TelaCriacao.java, TelaFicha.java, LEIA-ME-MARCADO.md

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.joml.Matrix4f;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -33,11 +34,12 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * A HUD do mod, no mesmo visual da tela de criação: formas desenhadas "na mão" (sem textura, sem pixel art),
- * painéis de vidro escuro inclinados, degradês suaves, brilho neon e borda fina.
+ * A HUD do mod, no mesmo visual dos menus e da cena do Marcado (TelaCriacao, TelaFicha): formas desenhadas "na mão",
+ * painéis retos de vidro escuro translúcido com borda fina, cantos de ritual dourados, degradês, brilho neon,
+ * rótulos em Cinzel, vinheta escura no pé da tela e o símbolo do medo (ciano) entre as barras.
  * Barras empilhadas em cima da hotbar (de baixo para cima):
  * XP (verde, fina) / NEX (branco, 20 células) / vida (vermelho) + fome (marrom) /
- * PE (amarelo) + armadura (cinza) / sanidade (azul).
+ * PE (amarelo) + armadura (cinza) / sanidade (azul). No meio das duas colunas (PE/DEF e PV/FOME) fica o símbolo do medo.
  * Os corações, a fome, a armadura, a barra de XP e a hotbar do jogo não são mais desenhados (a hotbar é refeita aqui). Só existe no cliente.
  *
  * Como desenha: primeiro TODA a geometria num lote só ({@link Pincel}); depois todos os textos.
@@ -49,7 +51,9 @@ public final class HudOrdem {
 
     // ------------------------------------------------------------------ medidas (em pixels da interface)
     private static final int LARGURA = 182;      // a mesma da hotbar
-    private static final int METADE = 90;        // duas barras lado a lado: 90 + 2 + 90 = 182
+    /** Vão entre as duas colunas de barras (PE/DEF e PV/FOME): é onde fica o símbolo do medo. */
+    private static final int VAO_CENTRAL = 20;
+    private static final int METADE = (LARGURA - VAO_CENTRAL) / 2; // duas barras lado a lado: 81 + 20 + 81 = 182
     private static final int ALTURA = 7;
     private static final int PASSO = ALTURA + 1; // altura da barra + 1 de espaço
     private static final int BASE = 43;          // a barra de NEX fica 43 acima do fim da tela
@@ -58,22 +62,41 @@ public final class HudOrdem {
     /** O nome do item e a mensagem da barra de ação sobem para não ficar atrás das barras. */
     private static final int DESLOCAMENTO_TEXTOS = 22;
 
-    private static final float INCLINACAO = 3F;      // quanto o topo da barra "escorrega" para a direita
+    private static final float INCLINACAO = 0F;      // barras retas, como os painéis dos menus (3F devolve o corte inclinado)
     private static final int ALTURA_XP = 7;
-    private static final float INCLINACAO_XP = 2F;
+    private static final float INCLINACAO_XP = 0F;
     private static final int Y_XP = 31;              // a barra de XP fica 31 acima do fim da tela
-    /** Escala do texto dentro das barras (só da HUD; a tela de criação continua com a fonte no tamanho normal). */
+    /** Escala dos números dentro das barras (Tektur). */
     private static final float ESCALA_TEXTO = 0.72F;
+    /** Escala dos rótulos (SAN, PE, DEF, PV, FOME) em Cinzel, como os títulos dos menus. */
+    private static final float ESCALA_ROTULO = 0.62F;
     /**
      * Onde fica o centro visual das letras em relação ao topo da linha de texto (não escalada). Na fonte Tektur com o
      * deslocamento do hud.json as letras ficam um pouco ACIMA da linha, por isso o valor é negativo. Se o texto
      * estiver alto demais na barra, deixe mais negativo; se estiver baixo demais, aproxime de zero.
      */
     private static final float CENTRO_GLIFO = -0.6F;
+    /** Mesmo ajuste para a Cinzel: nos menus o meio das letras fica ~0,5 px ABAIXO do y, por isso o valor é positivo. */
+    private static final float CENTRO_GLIFO_TITULO = 0.5F;
 
-    // ------------------------------------------------------------------ cores (ARGB), as mesmas da tela de criação
-    private static final int COR_OSSO = 0xFFE8E2D4;
+    // ------------------------------------------------------------------ cores (ARGB), as mesmas dos menus e da cena do Marcado
+    private static final int COR_OSSO = 0xFFEDE8DC;
+    private static final int COR_DOURADO = 0xFFC2B48C;
     private static final int COR_HALO = 0x99000000;
+    /** Vidro escuro translúcido dos painéis (o mesmo tom do COR_PAINEL da TelaCriacao, topo e base). */
+    private static final int COR_VIDRO_TOPO = 0xC80E0E16;
+    private static final int COR_VIDRO_BASE = 0xDC050508;
+
+    // símbolo do medo: ciano, o mesmo tom da cena do Marcado (0.50, 0.90, 1.00)
+    private static final ResourceLocation SIMBOLO_MEDO = new ResourceLocation(OrdemMod.MOD_ID,
+            "textures/gui/hud_simbolo_medo.png");
+    private static final ResourceLocation HALO_TEX = new ResourceLocation(OrdemMod.MOD_ID,
+            "textures/gui/marcado/halo.png");
+    private static final int SIMBOLO_L = 11;         // tamanho desenhado (a textura tem 22x34, o dobro, para suavizar)
+    private static final int SIMBOLO_A = 17;         // 2 barras (7+1+7) + 1 px de vão em cima e embaixo
+    private static final float MEDO_R = 0.50F;
+    private static final float MEDO_G = 0.90F;
+    private static final float MEDO_B = 1.00F;
 
     private static final int COR_VIDA = 0xFFC8202E;
     private static final int COR_FOME = 0xFF8B5A2B;
@@ -121,8 +144,8 @@ public final class HudOrdem {
 
     // ================================================================== desenho
 
-    /** Um texto para escrever depois da geometria. alinhamento: 0 esquerda, 1 centro, 2 direita. */
-    private record Texto(String conteudo, float x, float y, float escala, int cor, int alinhamento) {
+    /** Um texto para escrever depois da geometria. alinhamento: 0 esquerda, 1 centro, 2 direita. titulo = Cinzel. */
+    private record Texto(String conteudo, float x, float y, float escala, int cor, int alinhamento, boolean titulo) {
     }
 
     private static final List<Texto> TEXTOS = new ArrayList<>();
@@ -143,7 +166,7 @@ public final class HudOrdem {
         ultimoQuadro = agora;
 
         int x = largura / 2 - LARGURA / 2;
-        int xDireita = x + METADE + 2;
+        int xDireita = x + METADE + VAO_CENTRAL;
         int yNex = altura - BASE;
         int yVida = yNex - PASSO;
         int yEsforco = yVida - PASSO;
@@ -152,6 +175,9 @@ public final class HudOrdem {
         TEXTOS.clear();
         g.flush(); // termina o que já foi pedido antes de desenhar "na mão"
         Pincel p = new Pincel(g);
+
+        // vinheta no pé da tela (a mesma ideia dos menus: o fundo escurece perto da borda), por trás de tudo
+        vinheta(p, largura, altura);
 
         // sanidade (largura total, no topo)
         barra(p, B_SANIDADE, x, ySanidade, LARGURA, s.sanidade(), s.sanidadeMax(), COR_SANIDADE, "SAN", true);
@@ -174,12 +200,48 @@ public final class HudOrdem {
         // hotbar no mesmo estilo (o jogo não desenha mais a dele)
         desenharHotbar(p, largura, altura, jogador);
 
+        // cantos de ritual dourados em volta de todo o bloco de barras (de SAN até NEX), como nos painéis dos menus
+        cantos(p, x, ySanidade, LARGURA, yNex + ALTURA - ySanidade, 0xCCC2B48C, 4F);
+
         p.fim();
+        // símbolo do medo no vão entre as colunas (PE/DEF e PV/FOME)
+        desenharSimboloMedo(g, x + METADE + VAO_CENTRAL / 2F, yEsforco + (2 * ALTURA + 1) / 2F);
         for (Texto t : TEXTOS) {
             escrever(g, mc.font, t);
         }
         g.flush();
         desenharItensHotbar(g, mc, largura, altura, jogador);
+    }
+
+    /** Escurece de leve o pé da tela (transparente em cima, ~40% de preto embaixo), como a vinheta dos menus. */
+    private static void vinheta(Pincel p, int largura, int altura) {
+        float topo = altura - 100F;
+        p.quad(0F, topo, 0x00000000, largura, topo, 0x00000000, largura, altura, 0x66000000, 0F, altura, 0x66000000);
+    }
+
+    /**
+     * O símbolo do medo (ciano) no centro do vão entre as colunas: um brilho suave por trás e o desenho por cima, os
+     * dois respirando devagar, igual ao halo da silhueta nos menus. A textura é desenhada com filtro suave, senão o
+     * desenho (fino) fica serrilhado nesse tamanho.
+     */
+    private static void desenharSimboloMedo(GuiGraphics g, float cx, float cy) {
+        Minecraft mc = Minecraft.getInstance();
+        float respira = 0.5F + 0.5F * (float) Math.sin(Util.getMillis() / 900.0);
+        g.flush();
+        RenderSystem.enableBlend();
+        // brilho: textura radial branca somada ao fundo
+        int raio = 15;
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
+        g.setColor(MEDO_R, MEDO_G, MEDO_B, 0.28F + 0.17F * respira);
+        g.blit(HALO_TEX, Math.round(cx) - raio, Math.round(cy) - raio, raio * 2, raio * 2, 0F, 0F, 128, 128, 128, 128);
+        // o desenho
+        RenderSystem.defaultBlendFunc();
+        mc.getTextureManager().getTexture(SIMBOLO_MEDO).setFilter(true, false);
+        g.setColor(MEDO_R, MEDO_G, MEDO_B, 0.80F + 0.20F * respira);
+        g.blit(SIMBOLO_MEDO, Math.round(cx - SIMBOLO_L / 2F), Math.round(cy - SIMBOLO_A / 2F), SIMBOLO_L, SIMBOLO_A,
+                0F, 0F, 22, 34, 22, 34);
+        g.setColor(1F, 1F, 1F, 1F);
+        g.flush();
     }
 
     // ---------------------------------------------------------------- hotbar
@@ -218,6 +280,7 @@ public final class HudOrdem {
             brilho(p, f, 0F, 1F, COR_OSSO, 3F, 0x48 + Math.round(0x20 * pulso));
             f.celula(p, 0F, 1F, 0F, 1F, 0x30FFFFFF, 0x30FFFFFF, 0x10FFFFFF, 0x10FFFFFF);
             moldura(p, f, COR_OSSO, 1F);
+            cantos(p, x, y, SLOT, SLOT, COR_DOURADO, 3F); // a casa escolhida ganha os cantos dourados
         } else {
             moldura(p, f, COR_OSSO, 0F);
         }
@@ -272,11 +335,23 @@ public final class HudOrdem {
         if (fracao > 0F) {
             preencher(p, f, uI, uCheio, vI, cor, fracao < 1F);
         }
+        graduacoes(p, f, uI, vI);
         moldura(p, f, cor, pulso);
 
-        float yTexto = yTextoCentrado(y, ALTURA);
-        TEXTOS.add(new Texto(rotulo, x + INCLINACAO / 2F + 4F, yTexto, ESCALA_TEXTO, misturar(cor, 0xFFFFFFFF, 0.6F), 0));
-        TEXTOS.add(new Texto(atual + "/" + maximo, x + w - INCLINACAO / 2F - 4F, yTexto, ESCALA_TEXTO, COR_OSSO, 2));
+        // rótulo em Cinzel (como os títulos dos menus) e o "atual/máximo" em Tektur
+        TEXTOS.add(new Texto(rotulo, x + INCLINACAO / 2F + 4F, yTextoTituloCentrado(y, ALTURA), ESCALA_ROTULO,
+                misturar(cor, 0xFFFFFFFF, 0.6F), 0, true));
+        TEXTOS.add(new Texto(atual + "/" + maximo, x + w - INCLINACAO / 2F - 4F, yTextoCentrado(y, ALTURA),
+                ESCALA_TEXTO, COR_OSSO, 2, false));
+    }
+
+    /** Três marcas escuras discretas (25%, 50%, 75%) por cima do preenchimento, como a régua de um instrumento. */
+    private static void graduacoes(Pincel p, Forma f, float uI, float vI) {
+        float util = 1F - 2F * uI;
+        for (int k = 1; k <= 3; k++) {
+            float u = uI + util * k / 4F;
+            f.traco(p, u, vI, u, 1F - vI, 0.8F, 0x58000000);
+        }
     }
 
     /** NEX: 20 células inclinadas com um vão entre elas. Cada 5% de NEX acende mais uma. */
@@ -303,12 +378,17 @@ public final class HudOrdem {
         }
         moldura(p, f, COR_NEX, 0F);
         TEXTOS.add(new Texto(s.nex() + "%", f.px(0.5F, 0.5F), yTextoCentrado(y, ALTURA),
-                ESCALA_TEXTO, 0xFFFFFFFF, 1));
+                ESCALA_TEXTO, 0xFFFFFFFF, 1, false));
     }
 
     /** Y em que o texto deve começar para as letras ficarem centralizadas na vertical numa barra de {@code altura}. */
     private static float yTextoCentrado(float y, float altura) {
         return y + altura / 2F - ESCALA_TEXTO * CENTRO_GLIFO;
+    }
+
+    /** O mesmo para os rótulos em Cinzel. */
+    private static float yTextoTituloCentrado(float y, float altura) {
+        return y + altura / 2F - ESCALA_ROTULO * CENTRO_GLIFO_TITULO;
     }
 
     /** XP: uma linha fina e luminosa no mesmo estilo, com o número do nível centralizado dentro dela. */
@@ -327,7 +407,7 @@ public final class HudOrdem {
         moldura(p, f, COR_XP, 0F);
         if (jogador.experienceLevel > 0) {
             TEXTOS.add(new Texto(String.valueOf(jogador.experienceLevel), centroX, yTextoCentrado(y, ALTURA_XP), ESCALA_TEXTO,
-                    misturar(COR_XP, 0xFFFFFFFF, 0.5F), 1));
+                    misturar(COR_XP, 0xFFFFFFFF, 0.5F), 1, false));
         }
     }
 
@@ -335,7 +415,22 @@ public final class HudOrdem {
 
     /** Fundo de "vidro": escuro e levemente translúcido, um pouco mais claro em cima. */
     private static void painel(Pincel p, Forma f) {
-        f.celula(p, 0F, 1F, 0F, 1F, 0xC81B1B23, 0xC81B1B23, 0xDC09090D, 0xDC09090D);
+        f.celula(p, 0F, 1F, 0F, 1F, COR_VIDRO_TOPO, COR_VIDRO_TOPO, COR_VIDRO_BASE, COR_VIDRO_BASE);
+    }
+
+    /**
+     * Pequenos colchetes nos quatro cantos, por FORA do retângulo (x, y, w, h) em 1 px, como os "cantos de ritual"
+     * dourados dos painéis da TelaCriacao/TelaFicha. {@code t} é o comprimento de cada braço.
+     */
+    private static void cantos(Pincel p, float x, float y, float w, float h, int cor, float t) {
+        p.ret(x - 1F, y - 1F, x + t, y, cor);
+        p.ret(x - 1F, y - 1F, x, y + t, cor);
+        p.ret(x + w - t, y - 1F, x + w + 1F, y, cor);
+        p.ret(x + w, y - 1F, x + w + 1F, y + t, cor);
+        p.ret(x - 1F, y + h, x + t, y + h + 1F, cor);
+        p.ret(x - 1F, y + h - t, x, y + h + 1F, cor);
+        p.ret(x + w - t, y + h, x + w + 1F, y + h + 1F, cor);
+        p.ret(x + w, y + h - t, x + w + 1F, y + h + 1F, cor);
     }
 
     /** A parte cheia: degradê da cor, reflexo de vidro na metade de cima e um fio de luz na ponta. */
@@ -395,7 +490,8 @@ public final class HudOrdem {
 
     /** Escreve um texto pequeno com um halo escuro em volta (legível sobre qualquer cor de barra). */
     private static void escrever(GuiGraphics g, Font fonte, Texto t) {
-        float largura = FonteOP.largura(fonte, t.conteudo()) * t.escala();
+        float largura = (t.titulo() ? FonteOP.larguraTitulo(fonte, t.conteudo()) : FonteOP.largura(fonte, t.conteudo()))
+                * t.escala();
         float x = switch (t.alinhamento()) {
             case 1 -> t.x() - largura / 2F;
             case 2 -> t.x() - largura;
@@ -405,9 +501,17 @@ public final class HudOrdem {
         g.pose().translate(x, t.y(), 0F);
         g.pose().scale(t.escala(), t.escala(), 1F);
         for (float[] o : HALO) {
-            FonteOP.desenhar(g, fonte, t.conteudo(), o[0], o[1], COR_HALO, false);
+            if (t.titulo()) {
+                FonteOP.desenharTitulo(g, fonte, t.conteudo(), o[0], o[1], COR_HALO, false);
+            } else {
+                FonteOP.desenhar(g, fonte, t.conteudo(), o[0], o[1], COR_HALO, false);
+            }
         }
-        FonteOP.desenhar(g, fonte, t.conteudo(), 0F, 0F, t.cor(), false);
+        if (t.titulo()) {
+            FonteOP.desenharTitulo(g, fonte, t.conteudo(), 0F, 0F, t.cor(), false);
+        } else {
+            FonteOP.desenhar(g, fonte, t.conteudo(), 0F, 0F, t.cor(), false);
+        }
         g.pose().popPose();
     }
 
@@ -477,6 +581,11 @@ public final class HudOrdem {
             vertice(x2, y2, c2);
             vertice(x3, y3, c3);
             vertice(x4, y4, c4);
+        }
+
+        /** Retângulo de uma cor só, em coordenadas de tela. */
+        void ret(float x0, float y0, float x1, float y1, int argb) {
+            quad(x0, y0, argb, x1, y0, argb, x1, y1, argb, x0, y1, argb);
         }
 
         /** Linha com espessura; estica meia espessura nas pontas para os cantos não ficarem com buraco. */
