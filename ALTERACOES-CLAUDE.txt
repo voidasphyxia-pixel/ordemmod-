@@ -1,0 +1,41 @@
+REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
+=====================================================
+Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
+com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
+
+--- 09/10/2026 -------------------------------------------------------------
+* Criado este registro e o CLAUDE.md (regras de trabalho para o Claude).
+* Projeto enviado ao GitHub: repositorio ordemmod- (privado).
+
+--- 08/10/2026 -------------------------------------------------------------
+Cena do Marcado: silhueta branca com brilho
+  Arquivos: marcado/TelaMarcado.java
+            assets/ordemmod/textures/gui/marcado/branco.png (novo)
+            assets/ordemmod/textures/gui/marcado/halo.png   (novo)
+  - O personagem agora e desenhado como silhueta clara (textura branca unica,
+    sem skin), copiando a logica do InventoryScreen.renderEntityInInventory.
+  - Halo grande atras do corpo e nucleo menor no peito (soma de luz).
+  - Brilho respira devagar, pulsa com o batimento, fica vermelho no Sangue,
+    falha no glitch (Energia) e quase some no silencio (Morte).
+  - Removido o retangulo de "luz no chao" antigo.
+  - Ajustar no jogo: intensidade em desenharPersonagem (alfa = 0.30 + 0.20*resp)
+    e raios do halo. Armadura encantada pode dar glitch visual (raro).
+
+Correcoes na revisao do codigo da cena
+  Arquivos: marcado/AudioMarcado.java, marcado/TelaMarcado.java, marcado/VfxMarcado.java
+  - AudioMarcado.Laco: volume inicial 0 -> 0.001. O Minecraft descarta sons que
+    comecam com volume zero, entao o drone e o batimento nunca tocavam.
+  - TelaMarcado.desenharRevelacao: altura do VFX das correntes estava errada
+    (esticado). Agora usa 16:9 centralizado, igual ao titulo.
+  - TelaMarcado: efeito "silence" numa resposta deixava o drone mudo para sempre.
+    Agora o som volta ao fim da reacao (campo "mudo" + restaurarSom()).
+  - VfxMarcado.liberarTodos(): libera da VRAM os ~300 quadros dos VFX ao fechar
+    a cena (chamado em TelaMarcado.removed()).
+  - Observacao: compileJava rodou sem erros (so 6 avisos [removal], inofensivos).
+
+--- PENDENCIAS (ver LEIA-ME-MARCADO.md) ---------------------------------------
+  1. Colocar o roteiro real (ficha com as 10 perguntas) em marcado.json + lang.
+  2. Ligar origens sugeridas pelas tags e a pergunta "O Caminho".
+  3. Ajustes visuais olhando o jogo (silhueta, nevoa, volumes, tempo da revelacao).
+  4. Proteger o jogador durante a cena no singleplayer (nao pausa).
+  5. Anomalia ao entrar no mundo (figura distante; sons ja existem).
