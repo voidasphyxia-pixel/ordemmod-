@@ -68,8 +68,12 @@ public final class HudOrdem {
     private static final int Y_XP = 31;              // a barra de XP fica 31 acima do fim da tela
     /** Escala dos números dentro das barras (Tektur). */
     private static final float ESCALA_TEXTO = 0.72F;
-    /** Escala dos rótulos (SAN, PE, DEF, PV, FOME) em Cinzel, como os títulos dos menus. */
-    private static final float ESCALA_ROTULO = 0.62F;
+    /**
+     * Rótulos (SAN, PE, DEF, PV, FOME) em Cinzel como nos menus? Em barras de 7 px a Cinzel pequena ficou ilegível
+     * (traço fino demais), então o padrão é false: rótulos em Tektur, igual aos números. Com true usa ESCALA_ROTULO.
+     */
+    private static final boolean ROTULO_CINZEL = false;
+    private static final float ESCALA_ROTULO = 0.80F;
     /**
      * Onde fica o centro visual das letras em relação ao topo da linha de texto (não escalada). Na fonte Tektur com o
      * deslocamento do hud.json as letras ficam um pouco ACIMA da linha, por isso o valor é negativo. Se o texto
@@ -338,9 +342,10 @@ public final class HudOrdem {
         graduacoes(p, f, uI, vI);
         moldura(p, f, cor, pulso);
 
-        // rótulo em Cinzel (como os títulos dos menus) e o "atual/máximo" em Tektur
-        TEXTOS.add(new Texto(rotulo, x + INCLINACAO / 2F + 4F, yTextoTituloCentrado(y, ALTURA), ESCALA_ROTULO,
-                misturar(cor, 0xFFFFFFFF, 0.6F), 0, true));
+        // rótulo (bem claro, para ler sobre qualquer cor de barra) e o "atual/máximo" em Tektur
+        TEXTOS.add(new Texto(rotulo, x + INCLINACAO / 2F + 4F,
+                ROTULO_CINZEL ? yTextoTituloCentrado(y, ALTURA) : yTextoCentrado(y, ALTURA),
+                ROTULO_CINZEL ? ESCALA_ROTULO : ESCALA_TEXTO, misturar(cor, 0xFFFFFFFF, 0.8F), 0, ROTULO_CINZEL));
         TEXTOS.add(new Texto(atual + "/" + maximo, x + w - INCLINACAO / 2F - 4F, yTextoCentrado(y, ALTURA),
                 ESCALA_TEXTO, COR_OSSO, 2, false));
     }
@@ -350,7 +355,7 @@ public final class HudOrdem {
         float util = 1F - 2F * uI;
         for (int k = 1; k <= 3; k++) {
             float u = uI + util * k / 4F;
-            f.traco(p, u, vI, u, 1F - vI, 0.8F, 0x58000000);
+            f.traco(p, u, vI, u, 1F - vI, 0.8F, 0x30000000);
         }
     }
 

@@ -3,6 +3,17 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (HUD do jogo: correcao de legibilidade dos textos) ------------
+Print do usuario: "nao da pra ler os textos da hud" (rotulos em Cinzel pequena ficaram apagados)
+  Arquivos: HudOrdem.java
+  - Rotulos SAN/PE/DEF/PV/FOME voltaram para Tektur no tamanho dos numeros (ESCALA_TEXTO 0,72), centralizados como antes.
+    A Cinzel continua disponivel: ROTULO_CINZEL = true (usa ESCALA_ROTULO 0,80), mas nao e o padrao.
+  - Cor do rotulo mais clara (mistura 80% com branco, antes 60%) para ler sobre barras escuras/marrons/cinza.
+  - Marcas de 25/50/75% mais suaves (alfa 0x58 -> 0x30) para nao cortarem os numeros.
+  - Como testar: HUD no jogo em GUI scale 2 e 3. Nao compilado pelo Claude: gradlew build.
+    Se ainda estiver pequeno: o limite e a altura da barra (ALTURA = 7); aumentar ESCALA_TEXTO (ex.: 0,8) e conferir
+    CENTRO_GLIFO, ou aumentar ALTURA (e PASSO/BASE se necessario).
+
 --- 09/10/2026 (HUD do jogo no estilo dos menus + simbolo do medo) -------------
 HUD das barras (HudOrdem) com a estetica da TelaCriacao/TelaFicha/cena do Marcado; simbolo do medo ciano entre as barras
   Arquivos: HudOrdem.java, assets/ordemmod/textures/gui/hud_simbolo_medo.png (novo, 22x34 branco sobre transparente),
