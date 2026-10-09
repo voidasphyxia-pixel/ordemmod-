@@ -87,6 +87,7 @@ public class TelaCriacao extends Screen {
         int attr = -1;        // índice do atributo a que a zona pertence (-1 = nenhum); é o que treme
         int cor = COR_OSSO;
         float escala = 1F;    // tamanho do texto do chip (cresce junto com a altura dele)
+        String descricao;     // texto curto extra (cartas de classe)
 
         Zona(int tipo, int x, int y, int w, int h) {
             this.tipo = tipo;
@@ -355,9 +356,9 @@ public class TelaCriacao extends Screen {
         caixaH = dirY + dirH - caixaY;
     }
 
-    /** Tamanho do texto de um chip: cresce com a altura (1x até 1,9x). */
+    /** Tamanho do texto de um chip: cresce um pouco com a altura (1x até 1,25x). */
     private static float escalaChip(int altura) {
-        return Mth.clamp(altura / 18F, 1F, 1.9F);
+        return Mth.clamp(altura / 30F, 1F, 1.25F);
     }
 
     private void montarOrigens() {
@@ -403,6 +404,7 @@ public class TelaCriacao extends Screen {
                     "PE " + p.esforcoMaximo() + " (+" + c.esforcoRecuperado() + " a cada 30 s)",
                     p.pericias.vagasDeTreino() + " perícias treinadas"
             };
+            z.descricao = DescricoesOP.classe(c);
             z.dado = c;
             z.selecionada = c == classe;
             z.acao = () -> {
@@ -571,7 +573,7 @@ public class TelaCriacao extends Screen {
             default -> {
                 String contador = "Perícias treinadas: " + escolhidas.size() + " de " + vagasDeTreino()
                         + "   (as da origem são de graça)";
-                textoEscala(g, FonteOP.entidade(contador), dirX, contadorY + 1, 1.25F,
+                textoEscala(g, FonteOP.c(contador), dirX, contadorY + 9F, 1.1F,
                         vagasRestantes() == 0 ? COR_OK : COR_DOURADO, true);
                 desenharDetalhe(g, dirX, caixaY, dirW, caixaH, alvo, true);
             }
@@ -665,10 +667,10 @@ public class TelaCriacao extends Screen {
         if (y + 9 > yMax) {
             return y;
         }
-        FonteOP.desenharTitulo(g, font, rotulo, x, y, COR_DOURADO, false);
+        FonteOP.desenharTitulo(g, font, rotulo, x, y + 3, COR_DOURADO, true);
         String v = FonteOP.cortar(font, valor, largura - FonteOP.larguraTitulo(font, rotulo) - 6);
-        FonteOP.desenharEntidade(g, font, v, x + largura - font.width(FonteOP.entidade(v)), y, COR_OSSO, false);
-        return y + 11;
+        FonteOP.desenhar(g, font, v, x + largura - FonteOP.largura(font, v), y + 4, COR_OSSO, true);
+        return y + 14;
     }
 
     // ---------------------------------------------------------------- etapa 1: pentágono
@@ -749,7 +751,7 @@ public class TelaCriacao extends Screen {
         y = paragrafo(g, regras, px, y, pw, COR_APAGADO, dirY + dirH - 4) + 2;
         g.fill(px, y, px + pw, y + 1, COR_BORDA);
         if (avisoAtivo()) {
-            List<FormattedCharSequence> linhasAviso = font.split(FonteOP.entidade(aviso), pw - 10);
+            List<FormattedCharSequence> linhasAviso = font.split(FonteOP.c(aviso), pw - 10);
             int alturaAviso = 6 + 12 + linhasAviso.size() * LINHA + 2;
             int topoAviso = y + 4;
             caixa(g, px, topoAviso, pw, alturaAviso, 0xFF2A0A10, COR_SANGUE);
@@ -759,7 +761,7 @@ public class TelaCriacao extends Screen {
                 if (ay + 10 > dirY + dirH - 4) {
                     break;
                 }
-                g.drawString(font, linha, px + 5, ay, COR_OSSO, true);
+                g.drawString(font, linha, px + 5, ay + 4, COR_OSSO, true); // Tektur sobe ~4 px: desce para alinhar
                 ay += LINHA;
             }
             y = topoAviso + alturaAviso + 2;
@@ -779,7 +781,7 @@ public class TelaCriacao extends Screen {
         int yMax = y + h - 4;
 
         if (alvo == null) {
-            paragrafo(g, dicaGeral(), px, py, pw, COR_APAGADO, yMax);
+            paragrafo(g, dicaGeral(), px, py, pw, COR_APAGADO, yMax, comCaixa ? 1.2F : 1F);
             return;
         }
 
@@ -817,13 +819,19 @@ public class TelaCriacao extends Screen {
             return;
         }
 
-        FonteOP.desenharTitulo(g, font, titulo, px, py, COR_SANGUE_CLARO, true);
-        py += 12;
+        float st = comCaixa ? 1.3F : 1F;   // título (Cinzel)
+        float se = comCaixa ? 1.2F : 1F;   // texto corrido
+        g.pose().pushPose();
+        g.pose().translate(px, py + 4F * st, 0F); // a Cinzel também é desenhada ~4 px acima do y
+        g.pose().scale(st, st, 1F);
+        FonteOP.desenharTitulo(g, font, titulo, 0F, 0F, COR_SANGUE_CLARO, true);
+        g.pose().popPose();
+        py += Math.round(9F * st) + 6;
         if (sub != null) {
-            py = paragrafo(g, sub, px, py, pw, COR_DOURADO, yMax) + 3;
+            py = paragrafo(g, sub, px, py, pw, COR_DOURADO, yMax, se) + 3;
         }
         for (String t : textos) {
-            py = paragrafo(g, t, px, py, pw, COR_OSSO, yMax) + 3;
+            py = paragrafo(g, t, px, py, pw, COR_OSSO, yMax, se) + 3;
         }
     }
 
@@ -836,14 +844,28 @@ public class TelaCriacao extends Screen {
         };
     }
 
-    /** Escreve um texto quebrando em linhas (com sombra, para ler melhor). Devolve o Y logo abaixo do que foi escrito. */
+    /** Texto corrido em tamanho normal. */
     private int paragrafo(GuiGraphics g, String texto, int x, int y, int largura, int cor, int yMax) {
-        for (FormattedCharSequence linha : font.split(FonteOP.entidade(texto), largura)) {
-            if (y + 10 > yMax) {
+        return paragrafo(g, texto, x, y, largura, cor, yMax, 1F);
+    }
+
+    /**
+     * Escreve um texto quebrando em linhas, com sombra e numa escala. Usa a Tektur (a Cormorant desenha os números
+     * em "estilo antigo", como ₁₀%, que não se leem bem). A Tektur é desenhada ~4 px acima do y, então desce 4*escala
+     * para a linha começar de fato em y. Devolve o Y logo abaixo do que foi escrito.
+     */
+    private int paragrafo(GuiGraphics g, String texto, int x, int y, int largura, int cor, int yMax, float escala) {
+        int passo = Math.round(LINHA * escala);
+        for (FormattedCharSequence linha : font.split(FonteOP.c(texto), Math.round(largura / escala))) {
+            if (y + 9F * escala > yMax) {
                 return yMax + 1;
             }
-            g.drawString(font, linha, x, y, cor, true);
-            y += LINHA;
+            g.pose().pushPose();
+            g.pose().translate(x, y + 4F * escala, 0F);
+            g.pose().scale(escala, escala, 1F);
+            g.drawString(font, linha, 0F, 0F, cor, true);
+            g.pose().popPose();
+            y += passo;
         }
         return y;
     }
@@ -880,7 +902,7 @@ public class TelaCriacao extends Screen {
 
     private void desenharZonaBase(GuiGraphics g, Zona z, int mx, int my) {
         boolean sobre = z.ativa && z.acao != null && z.contem(mx, my);
-        int textoY = z.y + (z.h - 8) / 2;
+        int textoY = Math.round(z.y + z.h / 2F - 0.5F); // Cinzel: o meio das letras fica ~0,5 px abaixo do y
 
         if (z.tipo == TEXTO) {
             // rótulo do atributo em Cinzel; o número (cor de sangue) em Cinzel também, com sombra
@@ -945,10 +967,10 @@ public class TelaCriacao extends Screen {
                 sNome = 1F;
                 t = FonteOP.cortar(font, z.texto, disponivel);
             }
-            textoEscala(g, FonteOP.c(t), z.x + 6, z.y + (z.h - 8F * sNome) / 2F, sNome, cor, true);
+            textoEscala(g, FonteOP.c(t), z.x + 6, z.y + z.h / 2F + 0.5F * sNome, sNome, cor, true); // Tektur: meio ~0,5 px acima do y
             if (!z.etiqueta.isEmpty()) {
                 float ex = z.x + z.w - 6 - FonteOP.largura(font, z.etiqueta) * sEtiqueta;
-                textoEscala(g, FonteOP.c(z.etiqueta), ex, z.y + (z.h - 8F * sEtiqueta) / 2F, sEtiqueta,
+                textoEscala(g, FonteOP.c(z.etiqueta), ex, z.y + z.h / 2F + 0.5F * sEtiqueta, sEtiqueta,
                         z.travada ? COR_DOURADO : COR_APAGADO, true);
             }
         } else {
@@ -965,36 +987,47 @@ public class TelaCriacao extends Screen {
         if (z.selecionada) {
             cantos(g, z.x, z.y, z.w, z.h, COR_SANGUE_CLARO);
         }
-        // a carta ocupa 3/4 da tela: o texto cresce junto com ela (sempre limitado pela largura)
+        // a carta ocupa 3/4 da tela, mas o texto cresce pouco (máx. ~1,4x) para não ficar enorme
         int px = z.x + 8;
         int util = z.w - 16;
-        float s = Mth.clamp(Math.min(z.h / 130F, z.w / 130F), 1F, 2.2F);
+        float s = Mth.clamp(Math.min(z.h / 200F, z.w / 200F), 1F, 1.4F);
         float y = z.y + 8;
 
+        // título (Cinzel desce 4*escala para começar de fato em y)
         String titulo = z.texto.toUpperCase();
-        float sTitulo = Math.max(1F, Math.min(1.25F * s, util / (float) Math.max(1, FonteOP.larguraTitulo(font, titulo))));
+        float sTitulo = Math.max(1F, Math.min(1.5F * s, util / (float) Math.max(1, FonteOP.larguraTitulo(font, titulo))));
         g.pose().pushPose();
-        g.pose().translate(px, y, 0F);
+        g.pose().translate(px, y + 4F * sTitulo, 0F);
         g.pose().scale(sTitulo, sTitulo, 1F);
         FonteOP.desenharTitulo(g, font, titulo, 0F, 0F, z.selecionada ? COR_SANGUE_CLARO : COR_OSSO, true);
         g.pose().popPose();
-        y += 9F * sTitulo + 5F * s;
+        y += 10F * sTitulo + 4F * s;
 
-        float sPapel = escalaQueCabe(s, util, FonteOP.entidade(z.etiqueta));
+        // papel da classe (Cormorant, sem números)
+        float sPapel = escalaQueCabe(1.3F * s, util, FonteOP.entidade(z.etiqueta));
         textoEscala(g, FonteOP.entidade(z.etiqueta), px, y, sPapel, COR_DOURADO, true);
         y += 12F * sPapel + 6F * s;
 
-        float sLinha = s * 0.95F;
-        for (String linha : z.linhas) { // todas as linhas no mesmo tamanho: o da mais comprida que ainda cabe
-            sLinha = Math.min(sLinha, escalaQueCabe(s * 0.95F, util, FonteOP.entidade(linha)));
+        // PV / SAN / PE / perícias (Tektur: números normais), todas no mesmo tamanho: o da mais comprida que cabe
+        float sLinha = 1.3F * s;
+        for (String linha : z.linhas) {
+            sLinha = Math.min(sLinha, escalaQueCabe(1.3F * s, util, FonteOP.c(linha)));
         }
         sLinha = Math.max(1F, sLinha);
         for (String linha : z.linhas) {
             if (y + 9F * sLinha > z.y + z.h - 4) {
                 break;
             }
-            textoEscala(g, FonteOP.entidade(linha), px, y, sLinha, COR_OSSO, true);
-            y += 12F * sLinha + 3F * s;
+            textoEscala(g, FonteOP.c(linha), px, y + 4F * sLinha, sLinha, COR_OSSO, true);
+            y += 13F * sLinha;
+        }
+
+        // descrição curta da classe, quebrada na largura da carta
+        if (z.descricao != null && !z.descricao.isEmpty()) {
+            y += 6F * s;
+            g.fill(px, Math.round(y), px + util, Math.round(y) + 1, COR_BORDA);
+            y += 8F * s;
+            paragrafo(g, z.descricao, px, Math.round(y), util, 0xFFB8B3A8, z.y + z.h - 4, 1.15F * s);
         }
     }
 

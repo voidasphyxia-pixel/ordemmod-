@@ -3,6 +3,25 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (ajuste de leitura: texto das pericias menor, descricoes maiores) ---
+Criacao (TelaCriacao) e ficha (TelaFicha): proporcoes de texto corrigidas depois dos prints do usuario
+  Arquivos: TelaCriacao.java, TelaFicha.java, LEIA-ME-MARCADO.md
+  - Chips (origens/pericias): texto bem menor (escalaChip: 1x a 1,25x; antes ate 1,9x).
+  - Textos corridos (descricoes, avisos, contador, linhas das cartas) agora em TEKTUR em vez de Cormorant: a
+    Cormorant desenha algarismos em "estilo antigo" (10% virava um 10 caido), dificil de ler. Cormorant ficou so
+    em frases sem numeros (papel da classe, dica do rodape, marca).
+  - Caixa de descricao (1/4 da tela): titulo Cinzel 1,3x e texto 1,2x, com sombra.
+  - Cartas de classe: texto moderado (ate ~1,4x) e agora levam a descricao curta da classe dentro da carta
+    (DescricoesOP.classe), para nao ficarem vazias.
+  - Alinhamento vertical: medido nos prints, a Tektur e a Cinzel sao desenhadas ~4 px acima do y; textos soltos
+    ganharam +4*escala (paragrafo, titulos, cartas) e o centro dos chips/botoes/abas foi recalculado
+    (textoY = centro - 0,5 para Cinzel; centro + 0,5*escala para Tektur). Isso tambem desce os numeros dos
+    atributos para o meio dos botoes - e +.
+  - Painel esquerdo: rotulos Cinzel com sombra e valores em Tektur; linhas de 14 px.
+  - Ficha (K): texto corrido tambem voltou para Tektur (linha 11 px).
+  - Como testar: etapas 2, 3 e 4 da criacao e as abas da ficha (K). Nao compilado pelo Claude: gradlew build.
+    Ajustes finos: escalaChip, 1.2F/1.3F em desenharDetalhe, 1.3F/1.4F em desenharCarta, os "4F" de alinhamento.
+
 --- 09/10/2026 (menu do personagem no estilo da criacao) ---------------------
 Ficha do personagem (tecla K, TelaFicha) com o mesmo visual da tela de criacao
   Arquivos: TelaFicha.java, LEIA-ME-MARCADO.md

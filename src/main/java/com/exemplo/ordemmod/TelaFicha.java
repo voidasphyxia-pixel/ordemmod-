@@ -876,9 +876,9 @@ public class TelaFicha extends Screen {
 
         // caixa com a regra, no topo (não rola)
         int w = cw - 12;
-        int linhas = font.split(FonteOP.entidade(regra), w).size()
-                + (disponiveis.isEmpty() ? 0 : font.split(FonteOP.entidade(disponiveis), w).size());
-        int notaH = 8 + linhas * 12 + (disponiveis.isEmpty() ? 0 : 2);
+        int linhas = font.split(FonteOP.c(regra), w).size()
+                + (disponiveis.isEmpty() ? 0 : font.split(FonteOP.c(disponiveis), w).size());
+        int notaH = 8 + linhas * 11 + (disponiveis.isEmpty() ? 0 : 2);
         painel(g, cx, corpoY, cw, notaH);
         recortar(g, cx + 1, corpoY + 1, cw - 2, notaH - 2);
         int ny = paragrafo(g, regra, cx + 6, corpoY + 4, w, COR_APAGADO, corpoY + notaH - 1);
@@ -1449,15 +1449,15 @@ public class TelaFicha extends Screen {
             return y;
         }
         // rótulo em Cinzel (dourado) e valor em Cormorant, como no painel da tela de criação
-        String v = font.substrByWidth(FonteOP.entidade(valor), largura * 2 / 3).getString();
-        int larguraValor = font.width(FonteOP.entidade(v));
+        String v = ajustar(valor, largura * 2 / 3);
+        int larguraValor = FonteOP.largura(font, v);
         String r = rotulo;
         int maxRotulo = largura - larguraValor - 6;
         while (r.length() > 1 && FonteOP.larguraTitulo(font, r) > maxRotulo) {
             r = r.substring(0, r.length() - 1);
         }
         FonteOP.desenharTitulo(g, font, r, x, y, COR_DOURADO, false);
-        FonteOP.desenharEntidade(g, font, v, x + largura - larguraValor, y, COR_OSSO, false);
+        texto(g, v, x + largura - larguraValor, y, COR_OSSO);
         return y + 12;
     }
 
@@ -1554,13 +1554,13 @@ public class TelaFicha extends Screen {
 
     /** Escreve um texto quebrando em linhas. Devolve o Y logo abaixo do que foi escrito. */
     private int paragrafo(GuiGraphics g, String texto, int x, int y, int largura, int cor, int yMax) {
-        // texto corrido em Cormorant com sombra, como as descrições da tela de criação
-        for (FormattedCharSequence linha : font.split(FonteOP.entidade(texto), largura)) {
+        // texto corrido em Tektur com sombra (a Cormorant desenha números em "estilo antigo", difíceis de ler)
+        for (FormattedCharSequence linha : font.split(FonteOP.c(texto), largura)) {
             if (y + 10 > yMax) {
                 return yMax + 1;
             }
-            g.drawString(font, linha, x, y, cor, true);
-            y += 12;
+            FonteOP.desenhar(g, font, linha, x, y + DESLOC_TEXTO, cor, true);
+            y += 11;
         }
         return y;
     }
