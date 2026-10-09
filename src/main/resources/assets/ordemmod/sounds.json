@@ -1,0 +1,165 @@
+{
+  "dado_rolando": {
+    "sounds": [
+      "ordemmod:dado_rolando"
+    ]
+  },
+  "bonus_soma": {
+    "sounds": [
+      "ordemmod:bonus_soma"
+    ]
+  },
+  "sucesso": {
+    "sounds": [
+      "ordemmod:sucesso"
+    ]
+  },
+  "falha": {
+    "sounds": [
+      "ordemmod:falha"
+    ]
+  },
+  "critico": {
+    "sounds": [
+      "ordemmod:critico"
+    ]
+  },
+  "falha_critica": {
+    "sounds": [
+      "ordemmod:falha_critica"
+    ]
+  },
+  "marcado.tum": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/tum"
+      }
+    ]
+  },
+  "marcado.ambiente_drone": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/ambiente_drone"
+      }
+    ]
+  },
+  "marcado.blip_texto": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/blip_texto"
+      }
+    ]
+  },
+  "marcado.ui_hover": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/ui_hover"
+      }
+    ]
+  },
+  "marcado.ui_select": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/ui_select"
+      }
+    ]
+  },
+  "marcado.glitch": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/glitch"
+      }
+    ]
+  },
+  "marcado.batimento_loop": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/batimento_loop"
+      }
+    ]
+  },
+  "marcado.revelacao_marcado": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/revelacao_marcado"
+      }
+    ]
+  },
+  "marcado.sussuros_1": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/sussuros_1"
+      }
+    ]
+  },
+  "marcado.sussuros_2": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/sussuros_2"
+      }
+    ]
+  },
+  "marcado.sussuros_3": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/sussuros_3"
+      }
+    ]
+  },
+  "marcado.sussuros_4": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/sussuros_4"
+      }
+    ]
+  },
+  "marcado.sangue": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/sangue"
+      }
+    ]
+  },
+  "marcado.sombra": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/sombra"
+      }
+    ]
+  },
+  "marcado.transicao_mundo": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/transicao_mundo"
+      }
+    ]
+  },
+  "marcado.reacao_entidade": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/reacao_entidade"
+      }
+    ]
+  },
+  "marcado.anomalia_passos": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/anomalia_passos"
+      }
+    ]
+  },
+  "marcado.anomalia_arranhado": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/anomalia_arranhado"
+      }
+    ]
+  },
+  "marcado.distorcao": {
+    "sounds": [
+      {
+        "name": "ordemmod:marcado/distorcao"
+      }
+    ]
+  }
+}

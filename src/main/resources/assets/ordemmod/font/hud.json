@@ -1,0 +1,15 @@
+{
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "ordemmod:tektur.ttf",
+      "shift": [0.0, -1.5],
+      "size": 11.0,
+      "oversample": 6.0
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:include/default"
+    }
+  ]
+}

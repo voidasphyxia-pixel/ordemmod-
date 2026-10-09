@@ -1,0 +1,29 @@
+ZUMBI DE SANGUE NO MOD (GeckoLib 4.8.4 / Forge 1.20.1)
+======================================================
+
+COMO INSTALAR
+1. Extraia este zip POR CIMA da pasta do projeto (a que tem o build.gradle).
+   Aceite substituir: build.gradle, OrdemMod.java, mods.toml, lang/pt_br.json, lang/en_us.json.
+2. Recarregue o Gradle na IDE (ou rode:  gradlew --refresh-dependencies  e depois  gradlew runClient).
+3. No jogo: modo criativo > aba "Ovos de spawn" > "Ovo de spawn: Zumbi de Sangue"
+   (ou  /summon ordemmod:zumbi_sangue ).
+4. Para jogar FORA do ambiente de desenvolvimento, coloque o jar do GeckoLib
+   (libs/geckolib-forge-1_20_1-4_8_4.jar) tambem na pasta mods junto com o seu mod.
+
+COMO FUNCIONA
+- Nasce deitado. Quando um jogador chega a 8 blocos, toca "levantar" e depois anda/idle.
+  (mude RAIO_GATILHO em ZumbiSangueEntity.java; 0 = levanta assim que nasce)
+- Deitado/levantando ele nao leva dano (a hitbox nao acompanha o corpo deitado) e nao pensa.
+- Ataque: ele para, toca a animacao, e o dano so e aplicado no tick do IMPACTO da animacao,
+  e so se o alvo ainda estiver ao alcance. Se o jogador se afastar, o golpe pega no ar.
+
+SE VOCE MUDAR A DURACAO/IMPACTO DE UMA ANIMACAO
+Atualize as constantes de tempo no topo de ZumbiSangueEntity.java
+(ATAQUE1_IMPACTO, ATAQUE1_FIM, ATAQUE2_IMPACTO, ATAQUE2_FIM, LEVANTAR_FIM).
+Valores em ticks: segundos x 20.
+  ataque_1: 1.3s, impacto em 0.65s   |   ataque_2: 1.5s, impacto em 0.75s   |   levantar: 5.4s
+
+ARQUIVOS
+- blockbench/ZUMBI_DE_SANGUE_3.bbmodel : seu modelo + as animacoes novas (deitado, idle, andar,
+  ataque_1, ataque_2) para continuar editando no Blockbench.
+- assets/ordemmod/geo|animations|textures/entity : versoes convertidas para o GeckoLib.

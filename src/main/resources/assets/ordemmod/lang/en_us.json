@@ -1,0 +1,21 @@
+{
+  "key.categories.ordemmod": "Ordem Mod",
+  "key.ordemmod.usar_habilidade": "Usar habilidade",
+  "key.ordemmod.trocar_habilidade": "Trocar habilidade",
+  "key.ordemmod.menu": "Abrir ficha do personagem",
+  "entity.ordemmod.zumbi_sangue": "Blood Zombie",
+  "item.ordemmod.zumbi_sangue_spawn_egg": "Blood Zombie Spawn Egg",
+  "marcado.abertura.1": "Você chegou.",
+  "marcado.abertura.2": "Eu estava esperando. Responda sem pensar.",
+  "marcado.p01.texto": "Quando algo se move no escuro, o que você faz?",
+  "marcado.p01.a": "Eu corro.",
+  "marcado.p01.a.reacao": "Rápido. Mas o escuro sempre alcança.",
+  "marcado.p01.b": "Eu fico parado, observando.",
+  "marcado.p01.b.reacao": "Paciente. Ele também.",
+  "marcado.p01.c": "Eu vou até lá.",
+  "marcado.p01.c.reacao": "Curioso demais.",
+  "marcado.p02.texto": "O que você faria por conhecimento?",
+  "marcado.p02.a": "Quase tudo.",
+  "marcado.p02.b": "Nada. Não vale o preço.",
+  "marcado.p02.c": "Qualquer coisa."
+}

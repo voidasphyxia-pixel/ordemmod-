@@ -1,0 +1,85 @@
+{
+  "_aviso": "ROTEIRO DE EXEMPLO. Substituir pelos passos reais da ficha de roteiro (10 perguntas). Formato explicado no LEIA-ME-MARCADO.md.",
+  "passos": [
+    {
+      "tipo": "fala",
+      "texto": "marcado.abertura.1",
+      "duracao": 1.5,
+      "efeito": "heartbeat"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.abertura.2",
+      "duracao": 1.8
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p01",
+      "texto": "marcado.p01.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p01.a",
+          "reacao": "marcado.p01.a.reacao",
+          "tags": {
+            "instinto": 1
+          }
+        },
+        {
+          "texto": "marcado.p01.b",
+          "reacao": "marcado.p01.b.reacao",
+          "tags": {
+            "cautela": 1
+          },
+          "efeito": "silence"
+        },
+        {
+          "texto": "marcado.p01.c",
+          "reacao": "marcado.p01.c.reacao",
+          "tags": {
+            "curiosidade": 1
+          },
+          "efeito": "pulse_red"
+        }
+      ]
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p02",
+      "texto": "marcado.p02.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p02.a",
+          "tags": {
+            "curiosidade": 1
+          },
+          "efeito": "distort,symbol_conhecimento"
+        },
+        {
+          "texto": "marcado.p02.b",
+          "tags": {
+            "cautela": 1
+          },
+          "efeito": "glitch,symbol_energia"
+        },
+        {
+          "texto": "marcado.p02.c",
+          "tags": {
+            "instinto": 1
+          },
+          "efeito": "shadow,symbol_medo"
+        }
+      ]
+    },
+    {
+      "tipo": "silencio",
+      "duracao": 3
+    },
+    {
+      "tipo": "revelacao"
+    },
+    {
+      "tipo": "fim",
+      "duracao": 2.5
+    }
+  ]
+}
