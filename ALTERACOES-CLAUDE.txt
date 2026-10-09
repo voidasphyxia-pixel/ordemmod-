@@ -3,6 +3,22 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (saida secreta da cena do Marcado) ---------------------------
+Easter egg: apertar ESC 5 vezes pula a cena do Marcado
+  Arquivos: marcado/TelaMarcado.java, assets/ordemmod/lang/pt_br.json, lang/en_us.json (chave marcado.segredo),
+            LEIA-ME-MARCADO.md
+  - ESC e contado ao SOLTAR a tecla (segurar nao conta varias vezes). Os 5 precisam ser seguidos, com no
+    maximo 2,5 s entre um e outro (senao a contagem recomeca). Nao ha nenhuma dica na tela.
+  - Ao completar: fase SAIDA_FADE = fade out da tela para o preto em 1,8 s, drone e batimento descem
+    de volume; no fim do fade todo som MASTER e cortado (SoundManager.stop). Em seguida aparece, no centro
+    e em silencio, a frase "Como... voce sabe disso?" (chave marcado.segredo), e depois a TelaCriacao abre.
+  - terminar() e reaproveitado: manda o PacoteMarcado (perguntas nao respondidas ficam com a opcao 0), entao o
+    servidor marca a cena como concluida e ela nao repete (use /ordem resetar para ver de novo).
+    Obs.: as tags somadas nesse caso sao as da 1a opcao de cada pergunta; hoje as tags nao sao usadas.
+  - Como testar: /ordem resetar, entre no mundo e na cena aperte ESC 5 vezes.
+    Nao compilado pelo Claude: rode gradlew build e me mande erros. Ajustes: ESC_PARA_PULAR, ESC_JANELA,
+    SAIDA_FADE_SEG (no topo de TelaMarcado) e o tempo da frase (2.6f em iniciar da fase SAIDA_FADE).
+
 --- 09/10/2026 (criatura do Marcado) ------------------------------------------
 Criatura visivel: luz passando + particulas trocadas de roxo para branco-gelo
   Arquivos: marcado/TelaMarcado.java, assets/ordemmod/marcado/marcado.json,

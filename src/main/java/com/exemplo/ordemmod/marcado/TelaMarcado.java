@@ -28,6 +28,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
 
 /**
  * A cena do Marcado: introdução narrativa de terror que vem ANTES da tela de criação de personagem.
@@ -44,7 +45,15 @@ public class TelaMarcado extends Screen {
     private static final float PAUSA_PADRAO = 1.2f;
     private static final Random SORTEIO = new Random();
 
-    private enum Fase { DIGITANDO, PAUSA, ESCOLHA, REACAO, SILENCIO, ESPERA, REVELACAO, FIM }
+    private enum Fase { DIGITANDO, PAUSA, ESCOLHA, REACAO, SILENCIO, ESPERA, REVELACAO, FIM, SAIDA_FADE }
+
+    // saída secreta: ESC 5 vezes seguidas pula a cena (fade out, som para, uma frase, e vai para a criação)
+    private static final int ESC_PARA_PULAR = 5;
+    private static final float ESC_JANELA = 2.5f;      // segundos máximos entre um ESC e o próximo
+    private static final float SAIDA_FADE_SEG = 1.8f;  // duração do fade out
+    private int escContagem;
+    private float escUltimo = -100f;
+    private boolean saindo;
 
     private final RoteiroMarcado roteiro = RoteiroMarcado.carregar();
     private final int[] escolhas = new int[roteiro.totalPerguntas()];
@@ -253,6 +262,34 @@ public class TelaMarcado extends Screen {
         }
     }
 
+    /** Conta os ESC (um por vez que a tecla é solta). Cinco seguidos, com no máximo 2,5 s entre eles, pulam a cena. */
+    private void contarEsc() {
+        if (saindo || enviado || fase == Fase.FIM) {
+            return;
+        }
+        escContagem = relogio - escUltimo <= ESC_JANELA ? escContagem + 1 : 1;
+        escUltimo = relogio;
+        if (escContagem >= ESC_PARA_PULAR) {
+            iniciarSaidaSecreta();
+        }
+    }
+
+    /** Fade out da tela e dos sons; depois aparece a frase e só então abre a tela de criação. */
+    private void iniciarSaidaSecreta() {
+        saindo = true;
+        fase = Fase.SAIDA_FADE;
+        t = 0;
+        linhas = new ArrayList<>();
+        efeitos.clear();
+        revelando = false;
+        if (drone != null) {
+            drone.fim();      // o volume desce devagar durante o fade
+        }
+        if (batimento != null) {
+            batimento.fim();
+        }
+    }
+
     private void terminar() {
         if (enviado) {
             return;
@@ -337,7 +374,7 @@ public class TelaMarcado extends Screen {
             case DIGITANDO, REACAO -> {
                 int mostradas = Math.min(totalLetras, (int) (t * LETRAS_POR_SEGUNDO));
                 while (letrasTocadas < mostradas) {
-                    if (letrasTocadas % 3 == 0) {
+                    if (letrasTocadas % 3 == 0 && !saindo) { // na saída secreta o som já parou: texto em silêncio
                         AudioMarcado.tocar("blip_texto", 0.25f, 0.9f + SORTEIO.nextFloat() * 0.2f);
                     }
                     letrasTocadas++;
@@ -349,7 +386,9 @@ public class TelaMarcado extends Screen {
             }
             case PAUSA -> {
                 if (t >= pausaFinal) {
-                    if (passo != null && "pergunta".equals(passo.tipo) && escolhida == null) {
+                    if (saindo) {
+                        terminar(); // a frase da saída secreta acabou: vai para a criação de personagem
+                    } else if (passo != null && "pergunta".equals(passo.tipo) && escolhida == null) {
                         fase = Fase.ESCOLHA;
                         t = 0;
                     } else {
@@ -374,6 +413,14 @@ public class TelaMarcado extends Screen {
             case FIM -> {
                 if (t >= (passo.duracao > 0 ? passo.duracao : 2.5f)) {
                     terminar();
+                }
+            }
+            case SAIDA_FADE -> {
+                if (t >= SAIDA_FADE_SEG) {
+                    // tela toda preta: corta qualquer som que ainda esteja tocando (drone, batimento, efeitos)
+                    Minecraft.getInstance().getSoundManager().stop(null, SoundSource.MASTER);
+                    corTexto = 0xFFC49A9A;
+                    mostrar("marcado.segredo", Fase.DIGITANDO, 2.6f);
                 }
             }
             default -> { }
@@ -416,6 +463,11 @@ public class TelaMarcado extends Screen {
         // vinheta
         g.fillGradient(0, 0, width, height / 3, 0xDD000000, 0x00000000);
         g.fillGradient(0, height * 2 / 3, width, height, 0x00000000, 0xDD000000);
+
+        if (saindo) { // saída secreta: fade out até o preto total e fica preto durante a frase
+            float k = fase == Fase.SAIDA_FADE ? Math.min(1f, t / SAIDA_FADE_SEG) : 1f;
+            g.fill(0, 0, width, height, ((int) (k * 255f)) << 24);
+        }
 
         if (fase == Fase.REVELACAO) {
             desenharRevelacao(g);
@@ -618,7 +670,7 @@ public class TelaMarcado extends Screen {
 
     private void desenharTexto(GuiGraphics g, int mx, int my) {
         areasOpcao.clear();
-        int y = height * 2 / 3;
+        int y = saindo ? height / 2 - linhas.size() * 13 / 2 : height * 2 / 3; // frase da saída secreta fica no centro
         if (fase == Fase.ESCOLHA && passo != null) { // com muitas opções, sobe o bloco para caber na tela
             int total = linhas.size() * 13 + 10 + passo.opcoes.size() * 15;
             if (y + total > height - 10) {
@@ -676,6 +728,16 @@ public class TelaMarcado extends Screen {
             return true;
         }
         return super.keyPressed(tecla, scan, mods); // ESC não faz nada (shouldCloseOnEsc = false)
+    }
+
+    /** O ESC é contado ao soltar a tecla, assim segurar a tecla (repetição automática) vale um só. */
+    @Override
+    public boolean keyReleased(int tecla, int scan, int mods) {
+        if (tecla == GLFW.GLFW_KEY_ESCAPE) {
+            contarEsc();
+            return true;
+        }
+        return super.keyReleased(tecla, scan, mods);
     }
 
     /** Enter durante a digitação mostra o texto todo; durante a pausa, passa adiante. */

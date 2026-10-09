@@ -19,6 +19,8 @@
 
 **HUD de criação (`TelaCriacao`) restilizado em 09/10/2026** na estética do Marcado: névoa/poeira, vinheta, Cinzel (títulos) e Cormorant (textos), painéis translúcidos com cantos dourados e o círculo ritual (`circulo_ritual.png`) atrás do pentágono de atributos. Cores dos símbolos: Energia = roxo, Medo = ciano. Ainda não compilado/testado.
 
+**Saída secreta (09/10/2026):** ESC 5 vezes seguidas (máx. 2,5 s entre eles) durante a cena → fade out, o som para, aparece "Como... você sabe disso?" e abre a `TelaCriacao`. Marca a cena como concluída (perguntas não respondidas = opção 0). Ainda não compilado/testado.
+
 ## O que falta (por ordem)
 
 1. **Compilar e corrigir erros.** Escrevi sem poder compilar. Rode `gradlew build` e me mande os erros. Pontos de maior risco:
