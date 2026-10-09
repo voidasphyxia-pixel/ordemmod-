@@ -17,6 +17,8 @@
 
 **Fluxo:** entrou no mundo sem personagem criado → servidor manda `PacoteAbrirCriacao(comMarcado)` → se a cena ainda não foi vista abre `TelaMarcado`; no fim ela manda `PacoteMarcado` (índice escolhido em cada pergunta) e abre a `TelaCriacao` que o mod já tinha. `/ordem resetar` agora também apaga o perfil do Marcado, então a cena repete.
 
+**HUD de criação (`TelaCriacao`) restilizado em 09/10/2026** na estética do Marcado: névoa/poeira, vinheta, Cinzel (títulos) e Cormorant (textos), painéis translúcidos com cantos dourados e o círculo ritual (`circulo_ritual.png`) atrás do pentágono de atributos. Cores dos símbolos: Energia = roxo, Medo = ciano. Ainda não compilado/testado.
+
 ## O que falta (por ordem)
 
 1. **Compilar e corrigir erros.** Escrevi sem poder compilar. Rode `gradlew build` e me mande os erros. Pontos de maior risco:

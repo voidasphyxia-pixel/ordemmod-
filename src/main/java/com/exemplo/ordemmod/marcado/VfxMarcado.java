@@ -37,10 +37,14 @@ public enum VfxMarcado {
         }
     }
 
-    /** Solta da memória (VRAM) os quadros já carregados; recarregam sozinhos se a cena abrir de novo. */
-    public static void liberarTodos() {
+    /** Solta da memória (VRAM) os quadros já carregados (menos os das sequências em {@code manter}); recarregam sozinhos. */
+    public static void liberarTodos(VfxMarcado... manter) {
         var tm = net.minecraft.client.Minecraft.getInstance().getTextureManager();
+        java.util.List<VfxMarcado> ficam = java.util.Arrays.asList(manter);
         for (VfxMarcado v : values()) {
+            if (ficam.contains(v)) {
+                continue;
+            }
             for (ResourceLocation r : v.texturas) {
                 tm.release(r);
             }

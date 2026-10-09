@@ -114,7 +114,7 @@ public class TelaMarcado extends Screen {
         if (batimento != null) {
             batimento.fim();
         }
-        VfxMarcado.liberarTodos();
+        VfxMarcado.liberarTodos(VfxMarcado.NEVOA, VfxMarcado.POEIRA); // a tela de criação ainda usa os dois
     }
 
     /** Volta o drone e o batimento depois de um "silence" (a Morte tira o som só por um momento). */
@@ -565,8 +565,8 @@ public class TelaMarcado extends Screen {
             case "conhecimento" -> { r = 0.95f; gc = 0.85f; b = 0.55f; }
             case "sangue" -> { r = 0.90f; gc = 0.15f; b = 0.15f; }
             case "morte" -> { r = 0.72f; gc = 0.72f; b = 0.85f; }
-            case "energia" -> { r = 0.50f; gc = 0.90f; b = 1.00f; }
-            case "medo" -> { r = 0.65f; gc = 0.45f; b = 0.85f; }
+            case "energia" -> { r = 0.65f; gc = 0.45f; b = 0.85f; } // roxo
+            case "medo" -> { r = 0.50f; gc = 0.90f; b = 1.00f; } // ciano
             default -> { }
         }
         int cy = height / 2 - 10;

@@ -3,6 +3,28 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (HUD de criacao) ---------------------------------------------
+Tela de criacao de ficha (TelaCriacao) com a estetica da cena do Marcado + cores Energia/Medo trocadas
+  Arquivos: TelaCriacao.java, FonteOP.java, marcado/TelaMarcado.java, marcado/VfxMarcado.java,
+            assets/ordemmod/font/titulo_hud.json (novo), font/entidade_hud.json (novo),
+            textures/gui/marcado/circulo_ritual.png (novo, 400x400 branco sobre transparente),
+            LEIA-ME-MARCADO.md
+  - Cores dos simbolos trocadas: ENERGIA = roxo, MEDO = ciano (TelaMarcado.desenharSimbolo).
+  - TelaCriacao: fundo preto com NEVOA + POEIRA (os mesmos VFX da cena) e vinheta; titulo em Cinzel
+    com divisoria e losango; etapas em Cinzel maiusculo; textos longos/descricoes em Cormorant;
+    paineis translucidos com cantos dourados (painel/cantos); cartas e botao principal com cantos.
+  - Etapa Atributos: o circulo ritual (pentagono + 5 circulos nos vertices) fica atras do pentagono,
+    com brilho respirando; os vertices do desenho coincidem com o anel nivel 5 (lado = pentRaio*2.74).
+    Aneis mais discretos, area dos valores com brilho vermelho nos pontos.
+  - Painel do personagem: halo branco-azulado atras da skin (a "silhueta com brilho").
+  - FonteOP: titulo(), entidade(), larguraTitulo(), desenharTitulo(), desenharEntidade().
+  - VfxMarcado.liberarTodos(manter...): a cena do Marcado mantem NEVOA/POEIRA carregados para a
+    TelaCriacao; a TelaCriacao.removed() libera tudo.
+  - Nenhuma regra/logica de criacao foi mexida (so visual).
+  - Como testar: /ordem resetar, termine a cena e olhe a tela de criacao nas 4 etapas.
+    Nao compilado pelo Claude: rode gradlew build e me mande erros/prints. Ajustes finos possiveis:
+    opacidade do circulo (0.55F), tamanho do halo, legibilidade da Cormorant (size em entidade_hud.json).
+
 --- 09/10/2026 -------------------------------------------------------------
 Mais variacao nas respostas da entidade + simbolos dos elementos nas perguntas
   Arquivos: marcado/TelaMarcado.java, marcado/RoteiroMarcado.java,
