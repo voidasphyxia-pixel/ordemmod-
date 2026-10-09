@@ -3,6 +3,21 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (menu do personagem no estilo da criacao) ---------------------
+Ficha do personagem (tecla K, TelaFicha) com o mesmo visual da tela de criacao
+  Arquivos: TelaFicha.java, LEIA-ME-MARCADO.md
+  - Fundo: preto + NEVOA e POEIRA do Marcado + vinheta; removed() libera os quadros (VfxMarcado.liberarTodos).
+  - Cabecalho: titulo "FICHA DO PERSONAGEM" em Cinzel, "K ou ESC para fechar" em Cormorant, divisoria com losango.
+  - Paleta igual a da criacao (fundo, osso, dourado, apagado, borda); paineis translucidos (COR_PAINEL 0xB40A0A10)
+    com cantos dourados (novo painel(); caixa() agora pinta so o interior, senao o fundo translucido ficava cinza).
+  - Abas: so texto em Cinzel com sublinhado (sangue na ativa, cinza no hover); bolinha verde de novidade mantida.
+  - Painel esquerdo: halo atras da skin (respirando), nome e rotulos em Cinzel, valores em Cormorant.
+  - Textos corridos (descricoes) em Cormorant com sombra, linha de 12 px; ALTURA_DETALHE 70 -> 82 para caber.
+  - Aba Atributo: brilho + circulo ritual (circulo_ritual.png) atras do pentagono, como na criacao.
+  - Chips, numeros e icones continuam em Tektur (como os chips da criacao). Nenhuma regra/logica foi mexida.
+  - Como testar: entre no mundo com personagem, aperte K e passe pelas 4 abas. Nao compilado pelo Claude:
+    rode gradlew build. Se algum texto Cormorant ficar 1-2 px alto/baixo, ajuste em paragrafo()/linha().
+
 --- 09/10/2026 (legibilidade da tela de criacao) ----------------------------
 Etapas Origem, Classe e Pericias: lista com 3/4 da altura, descricao com 1/4, texto maior e mais legivel
   Arquivos: TelaCriacao.java, assets/ordemmod/font/entidade_hud.json (size 12.5 -> 14.5),

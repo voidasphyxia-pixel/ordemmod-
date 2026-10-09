@@ -23,6 +23,8 @@
 
 **Legibilidade da criação (09/10/2026):** nas etapas Origem/Classe/Perícias a lista ocupa 3/4 da altura e a descrição 1/4; textos maiores, com sombra. Ainda não compilado/testado.
 
+**Menu do personagem (K, `TelaFicha`) restilizado em 09/10/2026** no mesmo visual da tela de criação (névoa/poeira, Cinzel, painéis com cantos dourados, círculo ritual). Ainda não compilado/testado.
+
 ## O que falta (por ordem)
 
 1. **Compilar e corrigir erros.** Escrevi sem poder compilar. Rode `gradlew build` e me mande os erros. Pontos de maior risco:
