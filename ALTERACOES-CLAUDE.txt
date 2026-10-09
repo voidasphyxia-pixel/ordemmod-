@@ -3,6 +3,17 @@ REGISTRO DE ALTERACOES FEITAS PELO CLAUDE NO ORDEMMOD
 Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
+--- 09/10/2026 (HUD do jogo: rotulos em Cinzel Black) -----------------------
+Rotulos SAN/PE/DEF/PV/FOME agora em Cinzel Black (a Regular era fina demais em barras de 7 px)
+  Arquivos: HudOrdem.java, FonteOP.java, assets/ordemmod/font/titulo_black.ttf (novo, Cinzel Black estatica, peso 900,
+            enviada pelo usuario), font/titulo_hud_black.json (novo: size 12.5, shift -1.5, oversample 6)
+  - FonteOP: rotulo(), larguraRotulo(), desenharRotulo() usam a fonte titulo_hud_black. Menus e ficha continuam na
+    Cinzel Regular (titulo.ttf); so a HUD usa a Black.
+  - HudOrdem: ROTULO_CINZEL = true (false volta os rotulos para Tektur); ESCALA_ROTULO 0,66; numeros seguem em Tektur.
+  - Licenca: a Cinzel e OFL (Natanael Gama), o texto ja esta em font/z-OFL.txt.
+  - Como testar: HUD no jogo. Nao compilado pelo Claude: gradlew build. Ajustes: ESCALA_ROTULO (0,6 a 0,8) e
+    CENTRO_GLIFO_TITULO se o rotulo ficar alto/baixo na barra.
+
 --- 09/10/2026 (HUD do jogo: correcao de legibilidade dos textos) ------------
 Print do usuario: "nao da pra ler os textos da hud" (rotulos em Cinzel pequena ficaram apagados)
   Arquivos: HudOrdem.java

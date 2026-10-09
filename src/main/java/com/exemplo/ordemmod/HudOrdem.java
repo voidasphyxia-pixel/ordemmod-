@@ -69,11 +69,12 @@ public final class HudOrdem {
     /** Escala dos números dentro das barras (Tektur). */
     private static final float ESCALA_TEXTO = 0.72F;
     /**
-     * Rótulos (SAN, PE, DEF, PV, FOME) em Cinzel como nos menus? Em barras de 7 px a Cinzel pequena ficou ilegível
-     * (traço fino demais), então o padrão é false: rótulos em Tektur, igual aos números. Com true usa ESCALA_ROTULO.
+     * Rótulos (SAN, PE, DEF, PV, FOME) em Cinzel BLACK (font/titulo_hud_black.json), a família dos menus no peso mais
+     * grosso. A Cinzel Regular ficou ilegível em barras de 7 px (traço fino demais). Com false volta para Tektur,
+     * igual aos números (ESCALA_TEXTO). Se a Black ficar pequena/grande, ajuste ESCALA_ROTULO.
      */
-    private static final boolean ROTULO_CINZEL = false;
-    private static final float ESCALA_ROTULO = 0.80F;
+    private static final boolean ROTULO_CINZEL = true;
+    private static final float ESCALA_ROTULO = 0.66F;
     /**
      * Onde fica o centro visual das letras em relação ao topo da linha de texto (não escalada). Na fonte Tektur com o
      * deslocamento do hud.json as letras ficam um pouco ACIMA da linha, por isso o valor é negativo. Se o texto
@@ -495,7 +496,7 @@ public final class HudOrdem {
 
     /** Escreve um texto pequeno com um halo escuro em volta (legível sobre qualquer cor de barra). */
     private static void escrever(GuiGraphics g, Font fonte, Texto t) {
-        float largura = (t.titulo() ? FonteOP.larguraTitulo(fonte, t.conteudo()) : FonteOP.largura(fonte, t.conteudo()))
+        float largura = (t.titulo() ? FonteOP.larguraRotulo(fonte, t.conteudo()) : FonteOP.largura(fonte, t.conteudo()))
                 * t.escala();
         float x = switch (t.alinhamento()) {
             case 1 -> t.x() - largura / 2F;
@@ -507,13 +508,13 @@ public final class HudOrdem {
         g.pose().scale(t.escala(), t.escala(), 1F);
         for (float[] o : HALO) {
             if (t.titulo()) {
-                FonteOP.desenharTitulo(g, fonte, t.conteudo(), o[0], o[1], COR_HALO, false);
+                FonteOP.desenharRotulo(g, fonte, t.conteudo(), o[0], o[1], COR_HALO, false);
             } else {
                 FonteOP.desenhar(g, fonte, t.conteudo(), o[0], o[1], COR_HALO, false);
             }
         }
         if (t.titulo()) {
-            FonteOP.desenharTitulo(g, fonte, t.conteudo(), 0F, 0F, t.cor(), false);
+            FonteOP.desenharRotulo(g, fonte, t.conteudo(), 0F, 0F, t.cor(), false);
         } else {
             FonteOP.desenhar(g, fonte, t.conteudo(), 0F, 0F, t.cor(), false);
         }

@@ -20,8 +20,23 @@ public final class FonteOP {
     // estilo da cena do Marcado: Cinzel (títulos) e Cormorant Garamond (a "voz" da entidade, textos longos)
     private static final Style ESTILO_TITULO = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "titulo_hud"));
     private static final Style ESTILO_ENTIDADE = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "entidade_hud"));
+    // Cinzel Black: rótulos pequenos da HUD (a Regular é fina demais em barras de 7 px)
+    private static final Style ESTILO_ROTULO = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "titulo_hud_black"));
 
     private FonteOP() {
+    }
+
+    /** Texto em Cinzel Black (rótulos pequenos da HUD). */
+    public static MutableComponent rotulo(String texto) {
+        return Component.literal(texto).withStyle(ESTILO_ROTULO);
+    }
+
+    public static int larguraRotulo(Font fonte, String texto) {
+        return fonte.width(rotulo(texto));
+    }
+
+    public static void desenharRotulo(GuiGraphics g, Font fonte, String texto, float x, float y, int cor, boolean sombra) {
+        g.drawString(fonte, rotulo(texto).getVisualOrderText(), x, y, cor, sombra);
     }
 
     /** Texto em Cinzel (títulos, rótulos). */
