@@ -1,16 +1,66 @@
 {
-  "_aviso": "ROTEIRO DE EXEMPLO. Substituir pelos passos reais da ficha de roteiro (10 perguntas). Formato explicado no LEIA-ME-MARCADO.md.",
+  "_aviso": "Roteiro da FICHA DE ROTEIRO - CRIACAO DO MARCADO. Textos em lang/pt_br.json e en_us.json (chaves marcado.*). Formato no LEIA-ME-MARCADO.md.",
   "passos": [
     {
-      "tipo": "fala",
-      "texto": "marcado.abertura.1",
-      "duracao": 1.5,
-      "efeito": "heartbeat"
+      "tipo": "pausa",
+      "duracao": 3.0
+    },
+    {
+      "tipo": "pausa",
+      "duracao": 2.2,
+      "efeito": "particulas_on",
+      "som": "tum"
     },
     {
       "tipo": "fala",
-      "texto": "marcado.abertura.2",
+      "texto": "marcado.f001",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f002",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f003",
       "duracao": 1.8
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f004",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f005",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f006",
+      "duracao": 0.8
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f007",
+      "duracao": 2.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f008",
+      "duracao": 1.0,
+      "efeito": "ambiente"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f009",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f010",
+      "duracao": 1.0
     },
     {
       "tipo": "pergunta",
@@ -21,26 +71,47 @@
           "texto": "marcado.p01.a",
           "reacao": "marcado.p01.a.reacao",
           "tags": {
-            "instinto": 1
+            "curiosidade": 1,
+            "confronto": 1
           }
         },
         {
           "texto": "marcado.p01.b",
           "reacao": "marcado.p01.b.reacao",
           "tags": {
-            "cautela": 1
-          },
-          "efeito": "silence"
+            "cautela": 1,
+            "autocontrole": 1
+          }
         },
         {
           "texto": "marcado.p01.c",
           "reacao": "marcado.p01.c.reacao",
           "tags": {
-            "curiosidade": 1
-          },
-          "efeito": "pulse_red"
+            "sobrevivencia": 1,
+            "instinto": 1
+          }
         }
       ]
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f011",
+      "duracao": 1.4
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f012",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f013",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f014",
+      "duracao": 1.0
     },
     {
       "tipo": "pergunta",
@@ -49,37 +120,556 @@
       "opcoes": [
         {
           "texto": "marcado.p02.a",
+          "reacao": "marcado.p02.a.reacao",
           "tags": {
-            "curiosidade": 1
-          },
-          "efeito": "distort,symbol_conhecimento"
+            "empatia": 1,
+            "percepcao_social": 1
+          }
         },
         {
           "texto": "marcado.p02.b",
+          "reacao": "marcado.p02.b.reacao",
           "tags": {
-            "cautela": 1
-          },
-          "efeito": "glitch,symbol_energia"
+            "cautela": 1,
+            "tatica": 1
+          }
         },
         {
           "texto": "marcado.p02.c",
+          "reacao": "marcado.p02.c.reacao",
           "tags": {
-            "instinto": 1
-          },
-          "efeito": "shadow,symbol_medo"
+            "investigacao": 1,
+            "percepcao": 1
+          }
         }
       ]
     },
     {
+      "tipo": "fala",
+      "texto": "marcado.f015",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f016",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p03",
+      "texto": "marcado.p03.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p03.a",
+          "tags": {
+            "lealdade": 1,
+            "egoismo": 1
+          }
+        },
+        {
+          "texto": "marcado.p03.b",
+          "tags": {
+            "responsabilidade": 1
+          }
+        },
+        {
+          "texto": "marcado.p03.c",
+          "tags": {
+            "altruismo": 1,
+            "moralidade": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f017",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f018",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f019",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f020",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p04",
+      "texto": "marcado.p04.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p04.a",
+          "efeito": "distort,symbol_conhecimento",
+          "tags": {
+            "ousadia": 1,
+            "curiosidade": 1
+          }
+        },
+        {
+          "texto": "marcado.p04.b",
+          "efeito": "distort,symbol_conhecimento",
+          "tags": {
+            "cautela": 1,
+            "prudencia": 1
+          }
+        },
+        {
+          "texto": "marcado.p04.c",
+          "efeito": "distort,symbol_conhecimento",
+          "tags": {
+            "investigacao": 1,
+            "metodo": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "pausa",
+      "duracao": 2.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f021",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f022",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f023",
+      "duracao": 1.5,
+      "efeito": "silence,particulas_off"
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p05",
+      "texto": "marcado.p05.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p05.a",
+          "tags": {
+            "autonomia": 1
+          }
+        },
+        {
+          "texto": "marcado.p05.b",
+          "tags": {
+            "desconfianca": 1
+          }
+        },
+        {
+          "texto": "marcado.p05.c",
+          "tags": {
+            "evasao": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "pausa",
+      "duracao": 2.0
+    },
+    {
+      "tipo": "pausa",
+      "duracao": 1.1,
+      "efeito": "shadow"
+    },
+    {
+      "tipo": "pausa",
+      "duracao": 1.3,
+      "efeito": "particulas_on"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f024",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f025",
+      "duracao": 1.2,
+      "efeito": "som_volta"
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p06",
+      "texto": "marcado.p06.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p06.a",
+          "efeito": "pulse_red",
+          "tags": {
+            "devocao": 1
+          }
+        },
+        {
+          "texto": "marcado.p06.b",
+          "efeito": "pulse_red",
+          "tags": {
+            "pragmatismo": 1
+          }
+        },
+        {
+          "texto": "marcado.p06.c",
+          "efeito": "pulse_red",
+          "tags": {
+            "humanidade": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f026",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f027",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f028",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p07",
+      "texto": "marcado.p07.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p07.a",
+          "efeito": "silence",
+          "tags": {
+            "enfrentar": 1
+          }
+        },
+        {
+          "texto": "marcado.p07.b",
+          "efeito": "silence",
+          "tags": {
+            "negar": 1
+          }
+        },
+        {
+          "texto": "marcado.p07.c",
+          "efeito": "silence",
+          "tags": {
+            "aceitar_misterio": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f029",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f030",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f031",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f032",
+      "duracao": 1.0,
+      "efeito": "som_volta"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f033",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p08",
+      "texto": "marcado.p08.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p08.a",
+          "efeito": "glitch",
+          "tags": {
+            "ousadia": 1
+          }
+        },
+        {
+          "texto": "marcado.p08.b",
+          "efeito": "glitch",
+          "tags": {
+            "prudencia": 1
+          }
+        },
+        {
+          "texto": "marcado.p08.c",
+          "efeito": "glitch",
+          "tags": {
+            "pragmatismo": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f034",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f035",
+      "duracao": 1.6
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f036",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f037",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f038",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p09",
+      "texto": "marcado.p09.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p09.a",
+          "tags": {
+            "origem_cidade": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.b",
+          "tags": {
+            "origem_interior": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.c",
+          "tags": {
+            "origem_familia": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.d",
+          "tags": {
+            "origem_militar": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.e",
+          "tags": {
+            "origem_academico": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.f",
+          "tags": {
+            "origem_sobrevivente": 1
+          }
+        },
+        {
+          "texto": "marcado.p09.g",
+          "tags": {
+            "origem_desconhecida": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f039",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f040",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "pergunta",
+      "id": "p10",
+      "texto": "marcado.p10.texto",
+      "opcoes": [
+        {
+          "texto": "marcado.p10.a",
+          "tags": {
+            "tradicao": 1
+          }
+        },
+        {
+          "texto": "marcado.p10.b",
+          "tags": {
+            "autonomia": 1
+          }
+        },
+        {
+          "texto": "marcado.p10.c",
+          "tags": {
+            "indecisao": 1
+          }
+        }
+      ]
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f041",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f042",
+      "duracao": 1.6
+    },
+    {
       "tipo": "silencio",
-      "duracao": 3
+      "duracao": 4.5,
+      "efeito": "particulas_off"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f043",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f044",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f045",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f046",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f047",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f048",
+      "duracao": 1.8
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f049",
+      "duracao": 1.0,
+      "efeito": "personagem_revela,som_volta,particulas_on"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f050",
+      "duracao": 2.5
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f051",
+      "duracao": 1.2,
+      "efeito": "aproximar"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f052",
+      "duracao": 1.5
     },
     {
       "tipo": "revelacao"
     },
     {
+      "tipo": "fala",
+      "texto": "marcado.f053",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f054",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f055",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f056",
+      "duracao": 1.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f057",
+      "duracao": 1.5
+    },
+    {
+      "tipo": "pausa",
+      "duracao": 2.0
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f058",
+      "duracao": 1.5
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f059",
+      "duracao": 3.0,
+      "efeito": "voz_seria"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f060",
+      "duracao": 1.5
+    },
+    {
+      "tipo": "pausa",
+      "duracao": 2.0,
+      "efeito": "particulas_off",
+      "som": "tum"
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f061",
+      "duracao": 1.2
+    },
+    {
+      "tipo": "fala",
+      "texto": "marcado.f062",
+      "duracao": 1.5
+    },
+    {
       "tipo": "fim",
-      "duracao": 2.5
+      "duracao": 5.5
     }
   ]
 }

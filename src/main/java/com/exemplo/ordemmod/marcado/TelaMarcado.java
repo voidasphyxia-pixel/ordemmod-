@@ -44,7 +44,7 @@ public class TelaMarcado extends Screen {
     private static final float PAUSA_PADRAO = 1.2f;
     private static final Random SORTEIO = new Random();
 
-    private enum Fase { DIGITANDO, PAUSA, ESCOLHA, REACAO, SILENCIO, REVELACAO, FIM }
+    private enum Fase { DIGITANDO, PAUSA, ESCOLHA, REACAO, SILENCIO, ESPERA, REVELACAO, FIM }
 
     private final RoteiroMarcado roteiro = RoteiroMarcado.carregar();
     private final int[] escolhas = new int[roteiro.totalPerguntas()];
@@ -72,6 +72,16 @@ public class TelaMarcado extends Screen {
     private boolean revelacaoTocou;
     private boolean enviado;
 
+    // estado visual/sonoro controlado pelos efeitos do roteiro
+    private float volumeBase = 0.06f;      // volume do drone (quase inaudível na abertura)
+    private float particulas;              // 0..1: névoa e poeira (nascem devagar depois do TUM)
+    private boolean particulasOn;
+    private float aparicao;                // 0..1: o personagem só é revelado perto do fim
+    private boolean revelando;
+    private float zoom = 1f;               // "a câmera se aproxima" do personagem
+    private boolean aproximando;
+    private int corTexto = 0xFFD8D0D0;
+
     public TelaMarcado() {
         super(Component.literal("Marcado"));
     }
@@ -79,9 +89,8 @@ public class TelaMarcado extends Screen {
     @Override
     protected void init() {
         if (idx < 0) {
-            drone = new AudioMarcado.Laco("ambiente_drone", 0.45f);
+            drone = new AudioMarcado.Laco("ambiente_drone", volumeBase);
             drone.iniciar();
-            AudioMarcado.tocar("tum", 1f, 1f);
             proximoPasso();
         }
     }
@@ -112,7 +121,7 @@ public class TelaMarcado extends Screen {
         if (mudo) {
             mudo = false;
             if (drone != null) {
-                drone.volumeAlvo(0.45f);
+                drone.volumeAlvo(volumeBase);
             }
             if (batimento != null) {
                 batimento.volumeAlvo(0.5f);
@@ -131,9 +140,6 @@ public class TelaMarcado extends Screen {
             return;
         }
         passo = roteiro.passos.get(idx);
-        if (!"silencio".equals(passo.tipo)) {
-            restaurarSom(); // o silêncio de uma resposta vale até o fim da reação, não para sempre
-        }
         disparar(passo.efeito);
         if (passo.som != null) {
             AudioMarcado.tocar(passo.som, 1f, 1f);
@@ -151,10 +157,17 @@ public class TelaMarcado extends Screen {
                 disparar("silence");
                 silencioAte = passo.duracao > 0 ? passo.duracao : 3f;
             }
+            case "pausa" -> { // espera sem texto e SEM mudar o som (o "silence" é outro efeito)
+                fase = Fase.ESPERA;
+                linhas = new ArrayList<>();
+                silencioAte = passo.duracao > 0 ? passo.duracao : 1.5f;
+            }
             case "revelacao" -> {
                 fase = Fase.REVELACAO;
                 linhas = new ArrayList<>();
                 revelacaoTocou = false;
+                aparicao = 0f; // as correntes e o título aparecem sobre o preto
+                revelando = false;
             }
             default -> { // "fim"
                 fase = Fase.FIM;
@@ -243,6 +256,21 @@ public class TelaMarcado extends Screen {
                         batimento.volumeAlvo(0f);
                     }
                 }
+                case "som_volta" -> restaurarSom();
+                case "ambiente" -> {
+                    volumeBase = 0.45f;
+                    if (!mudo && drone != null) {
+                        drone.volumeAlvo(volumeBase);
+                    }
+                }
+                case "particulas_on" -> particulasOn = true;
+                case "particulas_off" -> {
+                    particulasOn = false;
+                    particulas = 0f;
+                }
+                case "personagem_revela" -> revelando = true;
+                case "aproximar" -> aproximando = true;
+                case "voz_seria" -> corTexto = 0xFFC49A9A;
                 default -> { }
             }
         }
@@ -259,6 +287,15 @@ public class TelaMarcado extends Screen {
         t += dt;
         relogio += dt;
         efeitos.replaceAll((k, v) -> v + dt);
+        if (particulasOn) {
+            particulas = Math.min(1f, particulas + dt / 4f);
+        }
+        if (revelando) {
+            aparicao = Math.min(1f, aparicao + dt / 6f);
+        }
+        if (aproximando) {
+            zoom = Math.min(1.5f, zoom + dt * 0.05f);
+        }
         switch (fase) {
             case DIGITANDO, REACAO -> {
                 int mostradas = Math.min(totalLetras, (int) (t * LETRAS_POR_SEGUNDO));
@@ -283,9 +320,8 @@ public class TelaMarcado extends Screen {
                     }
                 }
             }
-            case SILENCIO -> {
+            case SILENCIO, ESPERA -> {
                 if (t >= silencioAte) {
-                    restaurarSom();
                     proximoPasso();
                 }
             }
@@ -322,8 +358,10 @@ public class TelaMarcado extends Screen {
         int cx = width / 2;
 
         // fundo: névoa e poeira em laço, bem discretas
-        VfxMarcado.NEVOA.desenhar(g, relogio, 0.35f, 0, 0, width, height);
-        VfxMarcado.POEIRA.desenhar(g, relogio, 0.7f, 0, 0, width, height);
+        if (particulas > 0.01f) {
+            VfxMarcado.NEVOA.desenhar(g, relogio, 0.35f * particulas, 0, 0, width, height);
+            VfxMarcado.POEIRA.desenhar(g, relogio, 0.7f * particulas, 0, 0, width, height);
+        }
 
         // sombra humanoide passando atrás do personagem
         float sombra = efeito("shadow", VfxMarcado.SOMBRA.duracao());
@@ -333,7 +371,7 @@ public class TelaMarcado extends Screen {
         }
 
         // luz no chão e o personagem girando devagar
-        if (fase != Fase.REVELACAO && fase != Fase.FIM && fase != Fase.SILENCIO) {
+        if (aparicao > 0f && fase != Fase.REVELACAO && fase != Fase.FIM && fase != Fase.SILENCIO) {
             desenharPersonagem(g, cx);
         }
 
@@ -347,6 +385,33 @@ public class TelaMarcado extends Screen {
             desenharRevelacao(g);
         }
         desenharTexto(g, mx, my);
+        if (fase == Fase.FIM) {
+            desenharTitulo(g);
+        }
+    }
+
+    /** "VOCÊ É UM / MARCADO / Você é livre das correntes da realidade." durante o fade final. */
+    private void desenharTitulo(GuiGraphics g) {
+        int a = (int) (255f * Math.min(1f, t / 1.5f));
+        if (a < 8) {
+            return; // alfa muito baixo vira opaco no texto do Minecraft
+        }
+        int alfa = a << 24;
+        Style titulo = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "titulo"));
+        int cx = width / 2;
+        int cy = height / 2;
+        g.pose().pushPose();
+        g.pose().translate(cx, cy - 30, 0);
+        g.pose().scale(1.5f, 1.5f, 1f);
+        g.drawCenteredString(font, Component.translatable("marcado.titulo.1").withStyle(titulo), 0, 0, 0xB8B0B0 | alfa);
+        g.pose().popPose();
+        g.pose().pushPose();
+        g.pose().translate(cx, cy - 10, 0);
+        g.pose().scale(3.5f, 3.5f, 1f);
+        g.drawCenteredString(font, Component.translatable("marcado.titulo.2").withStyle(titulo), 0, 0, 0xF0E8E8 | alfa);
+        g.pose().popPose();
+        g.drawCenteredString(font, Component.translatable("marcado.titulo.3").withStyle(FONTE_ENTIDADE), cx, cy + 38,
+                0x988E8E | alfa);
     }
 
     private void desenharPersonagem(GuiGraphics g, int cx) {
@@ -354,8 +419,8 @@ public class TelaMarcado extends Screen {
         if (mc.player == null) {
             return;
         }
-        int pe = height / 2 + height / 8;
-        int escala = height / 6;
+        int pe = height / 2 + height / 8 + (int) ((zoom - 1f) * height * 0.30f);
+        int escala = (int) (height / 6 * zoom);
         int corpoY = pe - (int) (escala * 0.9f); // meio do corpo
 
         // cor e intensidade do brilho (respira devagar; acompanha batimento, sangue, glitch e silêncio)
@@ -391,6 +456,9 @@ public class TelaMarcado extends Screen {
         Quaternionf pose = new Quaternionf().rotateZ((float) Math.PI).rotateY(ang);
         Quaternionf camera = new Quaternionf().rotateX(-0.12f);
         desenharSilhueta(g, cx + dx, pe, escala, pose, camera, mc.player);
+        if (aparicao < 1f) { // surge devagar saindo do preto
+            g.fill(0, 0, width, height, ((int) ((1f - aparicao) * 255f)) << 24);
+        }
     }
 
     /** Brilho suave (textura radial branca), somado à imagem de trás. */
@@ -469,6 +537,12 @@ public class TelaMarcado extends Screen {
     private void desenharTexto(GuiGraphics g, int mx, int my) {
         areasOpcao.clear();
         int y = height * 2 / 3;
+        if (fase == Fase.ESCOLHA && passo != null) { // com muitas opções, sobe o bloco para caber na tela
+            int total = linhas.size() * 13 + 10 + passo.opcoes.size() * 15;
+            if (y + total > height - 10) {
+                y = Math.max(10, height - 10 - total);
+            }
+        }
         float shake = efeito("distort", 1.6f);
         int dx = shake >= 0 ? (int) (Math.sin(relogio * 40) * 2 * (1 - shake)) : 0;
         int restante = (fase == Fase.DIGITANDO || fase == Fase.REACAO) ? (int) (t * LETRAS_POR_SEGUNDO) : totalLetras;
@@ -477,7 +551,7 @@ public class TelaMarcado extends Screen {
             restante -= linha.length();
             Component c = Component.literal(parte).withStyle(FONTE_ENTIDADE);
             g.drawString(font, c, width / 2 - font.width(Component.literal(linha).withStyle(FONTE_ENTIDADE)) / 2 + dx, y,
-                    0xFFD8D0D0, false);
+                    corTexto, false);
             y += 13;
         }
         if (fase == Fase.ESCOLHA && passo != null) {

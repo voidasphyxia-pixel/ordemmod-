@@ -4,6 +4,32 @@ Regra: toda mudanca no mod feita pelo Claude entra aqui (mais recente primeiro),
 com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz do projeto.
 
 --- 09/10/2026 -------------------------------------------------------------
+Roteiro real da cena do Marcado (FICHA DE ROTEIRO) colocado no mod
+  Arquivos: assets/ordemmod/marcado/marcado.json (reescrito: 83 passos, 10 perguntas)
+            assets/ordemmod/lang/pt_br.json e en_us.json (115 chaves marcado.*)
+            marcado/TelaMarcado.java (motor da cena)
+            LEIA-ME-MARCADO.md
+  - Ordem das perguntas: Instinto, Percepcao, Vinculos, Conhecimento, Medo, Sangue,
+    Morte, Energia, Origem (7 opcoes), O Caminho. Falas e opcoes seguem a ficha.
+  - Nenhuma tag guarda afinidade elemental (so personalidade/origem), como a ficha exige.
+    As perguntas dos 5 elementos so disparam o efeito (distorcao+simbolo, silencio+sombra,
+    pulso vermelho, musica some, glitch).
+  - Abertura no escuro: 3 s de preto com drone quase inaudivel, TUM, particulas nascem devagar.
+  - O personagem (silhueta) NAO aparece mais durante as perguntas: so surge do preto na
+    parte "A tela comeca lentamente a revelar o personagem" (efeito personagem_revela), com
+    zoom lento (aproximar). Na revelacao ficam as correntes + MARCADO sobre o preto.
+  - Silencio (secao 14): tela preta sem particulas nem musica; o som so volta com som_volta.
+  - Titulo final "VOCE E UM / MARCADO / Voce e livre das correntes da realidade." no fade.
+  - Novo tipo de passo "pausa" e efeitos: ambiente, particulas_on/off, som_volta,
+    personagem_revela, aproximar, voz_seria (descritos no LEIA-ME-MARCADO.md).
+  - Lista de opcoes se reposiciona para caber na tela (a Origem tem 7 opcoes).
+  - Texto livre do Claude (nao esta na ficha): reacoes da pergunta p02 (Percepcao) e
+    as 7 opcoes da Origem. Edite em lang/pt_br.json se quiser outras.
+  - Como testar: /ordem resetar e entrar no mundo. Nao foi compilado pelo Claude;
+    rode gradlew build e me mande os erros.
+  - Pendente: ligar origens sugeridas pelas tags (hoje so salvas), anomalia ao entrar
+    no mundo (secao 19), protecao do jogador durante a cena, ajustes visuais.
+
 * Criado este registro e o CLAUDE.md (regras de trabalho para o Claude).
 * Projeto enviado ao GitHub: repositorio ordemmod- (privado).
 

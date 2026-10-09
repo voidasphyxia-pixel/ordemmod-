@@ -8,7 +8,7 @@
 
 | Parte | Arquivo(s) | Situação |
 |---|---|---|
-| Roteiro em dados | `marcado/RoteiroMarcado.java`, `assets/ordemmod/marcado/marcado.json` | motor pronto; **o json é só um EXEMPLO** (2 perguntas inventadas) |
+| Roteiro em dados | `marcado/RoteiroMarcado.java`, `assets/ordemmod/marcado/marcado.json` | motor pronto; **roteiro REAL da ficha colocado em 09/10/2026** (10 perguntas, 83 passos; textos em `lang/pt_br.json` e `en_us.json`) |
 | Persistência (NBT) | `marcado/PerfilMarcado.java`, `marcado/EventosMarcado.java` | pronto: respostas, tags e `concluido`; copiado na morte |
 | Rede | `marcado/PacoteMarcado.java`, `Rede.java` (id 10, versão "7"), `PacoteAbrirCriacao.java` (agora leva um boolean) | pronto; o servidor refaz a soma das tags e não confia no cliente |
 | Cena (cliente) | `marcado/TelaMarcado.java`, `AudioMarcado.java`, `VfxMarcado.java` | esqueleto jogável: fala letra a letra, perguntas com W/S/Enter/mouse, efeitos, VFX, sons |
@@ -21,7 +21,7 @@
 
 1. **Compilar e corrigir erros.** Escrevi sem poder compilar. Rode `gradlew build` e me mande os erros. Pontos de maior risco:
    `InventoryScreen.renderEntityInInventory` (assinatura com 2 `Quaternionf`), `GuiGraphics.blit/setColor`, `AbstractTickableSoundInstance`, `StringSplitter.splitLines`.
-2. **Colocar o roteiro real.** Falta a *ficha de roteiro* (10 perguntas, falas, efeitos de cada elemento, origem e "O Caminho"). Ela não está nesta pasta. Passos: trocar `marcado.json` e adicionar as falas em `lang/pt_br.json` (e `en_us.json`).
+2. ~~Colocar o roteiro real.~~ FEITO (09/10/2026). Revisar os textos no jogo; as reações das opções da pergunta de Percepção (p02) foram escritas pelo Claude (a ficha só dá um exemplo) e podem ser trocadas em `lang/*.json`.
 3. **Origem e "O Caminho"** como as 2 últimas perguntas, com as origens sugeridas pelas tags (`PerfilMarcado.tags`). Hoje as tags só são salvas; a `TelaCriacao` ainda não as usa.
 4. **Ajustes visuais** só possíveis vendo no jogo: tamanho/posição do personagem, intensidade da névoa/poeira, vinheta, tempo da revelação (correntes → título), volume de cada som, se a Cormorant **Bold** ficou pesada (o arquivo `entidade.ttf` pode ser trocado pela Regular/Medium).
 5. **Segurança no singleplayer:** o jogo não pausa durante a cena (o servidor precisa receber o pacote), então o jogador fica vulnerável. Dar invulnerabilidade temporária ou pausar só no cliente.
@@ -33,7 +33,9 @@
 
 `pulse_red` (Sangue), `glitch` (Energia), `distort` (Conhecimento), `shadow` (Medo), `silence` (Morte: some o som), `heartbeat`, `whisper`, e os símbolos `symbol_conhecimento`, `symbol_sangue`, `symbol_morte`, `symbol_energia`, `symbol_medo` (aparecem ~0,35 s e somem).
 
-Tipos de passo: `fala` (campos `texto`, `duracao` = pausa depois), `pergunta` (`id`, `texto`, `opcoes[]` com `texto`, `reacao`, `efeito`, `tags`), `silencio` (`duracao`), `revelacao`, `fim`. Todo texto é uma chave de `lang/pt_br.json`.
+Efeitos de controle da cena (adicionados em 09/10/2026): `ambiente` (drone sobe de quase mudo para o volume normal), `particulas_on` / `particulas_off` (névoa e poeira nascem devagar / somem), `silence` (some o som; **só volta com** `som_volta`), `som_volta`, `personagem_revela` (silhueta surge do preto em ~6 s), `aproximar` (zoom lento no personagem), `voz_seria` (texto da entidade muda de cor).
+
+Tipos de passo: `pausa` (espera sem texto e sem mexer no som; `duracao`), `fala` (campos `texto`, `duracao` = pausa depois), `pergunta` (`id`, `texto`, `opcoes[]` com `texto`, `reacao`, `efeito`, `tags`), `silencio` (`duracao`), `revelacao`, `fim`. Todo texto é uma chave de `lang/pt_br.json`.
 
 ## Para continuar em outro chat, anexe
 
