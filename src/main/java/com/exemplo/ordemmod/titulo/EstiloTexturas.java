@@ -36,7 +36,6 @@ final class EstiloTexturas {
     private static final int COR_BORDA = 0xFF34343F;
     private static final int COR_SANGUE = 0xFFB0172B;
     private static final int COR_SANGUE_CLARO = 0xFFE0263E;
-    private static final int COR_DOURADO = 0xFFC2B48C;
 
     private static final int NORMAL_FUNDO = 0xC0141419;
     private static final int HOVER_FUNDO = 0xE63A0D15;
@@ -87,45 +86,70 @@ final class EstiloTexturas {
     private static DynamicTexture montarWidgets(Minecraft mc) throws IOException {
         NativeImage img = ler(mc, WIDGETS);
         if (img == null) {
+            aviso("widgets.png nao encontrado");
             return null;
         }
-        if (img.getWidth() != 256 || img.getHeight() != 256) {
+        int w = img.getWidth();
+        if (w != img.getHeight() || w % 256 != 0) { // 256x256 (ou 512, 1024... em pacotes HD)
+            aviso("widgets.png com tamanho inesperado: " + w + "x" + img.getHeight());
             img.close();
             return null;
         }
-        botao(img, 0, 46, OFF_FUNDO, OFF_BORDA, 0);                       // desativado
-        botao(img, 0, 66, NORMAL_FUNDO, COR_BORDA, 0);                     // normal
-        botao(img, 0, 86, HOVER_FUNDO, COR_SANGUE, COR_SANGUE_CLARO);      // hover / foco
+        int e = w / 256;
+        botao(img, 0, 46 * e, e, OFF_FUNDO, OFF_BORDA, 0);                       // desativado
+        botao(img, 0, 66 * e, e, NORMAL_FUNDO, COR_BORDA, 0);                     // normal
+        botao(img, 0, 86 * e, e, HOVER_FUNDO, COR_SANGUE, COR_SANGUE_CLARO);      // hover / foco
         return new DynamicTexture(img);
     }
 
     private static DynamicTexture montarSlider(Minecraft mc) throws IOException {
         NativeImage img = ler(mc, SLIDER);
         if (img == null) {
+            aviso("slider.png nao encontrado (os sliders ficam com o desenho original)");
             return null;
         }
-        if (img.getWidth() != 200 || img.getHeight() != 80) {
+        int w = img.getWidth();
+        if (w % 200 != 0 || img.getHeight() != w / 200 * 80) { // 200x80 (ou 400x160... em pacotes HD)
+            aviso("slider.png com tamanho inesperado: " + w + "x" + img.getHeight() + " (esperado 200x80)");
             img.close();
             return null;
         }
-        botao(img, 0, 0, NORMAL_FUNDO, COR_BORDA, 0);                      // trilho
-        botao(img, 0, 20, HOVER_FUNDO, COR_SANGUE, COR_SANGUE_CLARO);      // trilho realcado
-        botao(img, 0, 40, COR_DOURADO, 0xFF8A7D58, 0);                     // cursor
-        botao(img, 0, 60, COR_SANGUE_CLARO, 0xFFFFD0D6, 0);                // cursor realcado
+        int e = w / 200;
+        int h = 20 * e;
+        botao(img, 0, 0, e, NORMAL_FUNDO, COR_BORDA, 0);                          // trilho
+        botao(img, 0, h, e, HOVER_FUNDO, COR_SANGUE, COR_SANGUE_CLARO);           // trilho realcado
+        botao(img, 0, 2 * h, e, 0xF0701020, COR_SANGUE, 0);                       // cursor (escuro: o texto passa por cima)
+        botao(img, 0, 3 * h, e, COR_SANGUE, 0xFFFFD0D6, 0);                       // cursor realcado
         return new DynamicTexture(img);
     }
 
-    /** Pinta uma faixa de 200x20: fundo de vidro, borda de 1 px e (se canto != 0) bracos de 4 px nos quatro cantos. */
-    private static void botao(NativeImage img, int ox, int oy, int fundo, int borda, int canto) {
-        for (int y = 0; y < 20; y++) {
-            for (int x = 0; x < 200; x++) {
+    private static boolean avisou;
+
+    private static void aviso(String msg) {
+        if (!avisou) {
+            avisou = true; // uma vez so, no latest.log
+            System.out.println("Ordem Mod (EstiloTexturas): " + msg);
+        }
+    }
+
+    /**
+     * Pinta uma faixa de 200x20 (vezes {@code e}): fundo de vidro, borda de {@code e} px e (se canto != 0) bracos de
+     * 4*e px nos quatro cantos.
+     */
+    private static void botao(NativeImage img, int ox, int oy, int e, int fundo, int borda, int canto) {
+        int largura = 200 * e;
+        int altura = 20 * e;
+        for (int y = 0; y < altura; y++) {
+            for (int x = 0; x < largura; x++) {
                 int c = fundo;
-                if (x == 0 || x == 199 || y == 0 || y == 19) {
+                boolean bordaX = x < e || x >= largura - e;
+                boolean bordaY = y < e || y >= altura - e;
+                if (bordaX || bordaY) {
                     c = borda;
                 }
                 if (canto != 0) {
-                    boolean bracoH = (x < 4 || x >= 196) && (y == 0 || y == 19);
-                    boolean bracoV = (y < 4 || y >= 16) && (x == 0 || x == 199);
+                    boolean bracoH = (x < 4 * e || x >= largura - 4 * e) && bordaY;
+                    boolean bracoV = (y < 4 * e || y >= altura - 4 * e) && bordaX;
                     if (bracoH || bracoV) {
                         c = canto;
                     }

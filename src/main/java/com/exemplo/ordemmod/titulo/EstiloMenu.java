@@ -19,7 +19,8 @@ import net.minecraftforge.fml.common.Mod;
  * <ul>
  * <li>fundo: preto + NEVOA + POEIRA + vinheta, no lugar do fundo de terra (BackgroundRendered);</li>
  * <li>botoes e sliders: vidro escuro com borda e cantos de sangue (ver {@link EstiloTexturas});</li>
- * <li>o fundo de terra das listas ficou escuro e translucido pela textura assets/minecraft/textures/gui/options_background.png.</li>
+ * <li>o fundo de terra das listas e dos cabecalhos/rodapes some: a textura assets/minecraft/textures/gui/options_background.png
+ * do mod e totalmente transparente (o shader do jogo descarta esses pixels), entao a nevoa aparece por tras de tudo.</li>
  * </ul>
  * So vale fora do mundo (menus); as telas do proprio mod (com.exemplo.ordemmod.*) ja tem o visual delas.
  */

@@ -5,10 +5,23 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 10/10/2026 (ajuste: fundo transparente nas listas + sliders) --------------
+Pelos prints do usuario: Video/Som ficavam PRETOS (sem nevoa) e os sliders continuavam cinza
+  Arquivos: assets/minecraft/textures/gui/options_background.png, titulo/EstiloTexturas.java, titulo/EstiloMenu.java
+  - options_background.png agora e 100% transparente (antes alfa 175). As listas do Minecraft desenham o fundo sem blend, entao
+    alfa 175 saia PRETO opaco; com alfa 0 o shader descarta o pixel e a nevoa/poeira do EstiloMenu aparece por tras das
+    listas, cabecalhos e rodapes (Video, Som, Controles, mundos, servidores, mods).
+  - Sliders: cursor escuro (sangue) com borda, para o texto do slider continuar legivel por cima; trilho como o botao.
+    O painter agora aceita pacotes de textura HD (widgets.png 256*n, slider.png 200*n x 80*n).
+  - Se os sliders AINDA ficarem cinza: o jogo escreve UMA linha "Ordem Mod (EstiloTexturas): ..." no latest.log dizendo se o
+    slider.png nao foi achado ou veio com tamanho diferente de 200x80. Mande essa linha (o latest.log fica em run-data/logs).
+  - Como testar: Opcoes > Video / Som / Controles, lista de mundos e Mods: nevoa visivel por tras da lista.
+    Nao compilado pelo Claude.
+
 --- 10/10/2026 (telas que partem da tela inicial: mesmo visual) --------------
 Um jogador, Multijogador, Mods, Opcoes e seus submenus (telas do Minecraft/Forge) com a estetica da TelaInicial
   Arquivos novos: titulo/EstiloMenu.java, titulo/EstiloTexturas.java,
-            assets/minecraft/textures/gui/options_background.png (16x16, 0x050507 com alfa 175; sobrescreve o fundo de terra)
+            assets/minecraft/textures/gui/options_background.png (16x16 transparente; sobrescreve o fundo de terra)
   - Fundo (EstiloMenu, ScreenEvent.BackgroundRendered): preto + NEVOA + POEIRA + vinheta no topo e no pe, igual a
     TelaInicial. So fora de um mundo e so em telas que NAO sao do mod (as de com.exemplo.ordemmod.* ja tem visual proprio).
   - Fundo de terra das listas (mundos, servidores, mods, opcoes) e dos cabecalhos/rodapes: a textura options_background.png
