@@ -5,6 +5,22 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 10/10/2026 (tela de criar mundo no mesmo padrao) --------------------------
+Criar novo mundo (abas Jogo / Mundo / Mais) com o visual da tela inicial
+  Arquivos: assets/minecraft/textures/gui/light_dirt_background.png (novo, transparente), titulo/EstiloTexturas.java
+  - O fundo da tela de criar mundo usa outra textura (light_dirt_background.png), opaca; agora e transparente como a
+    options_background.png, entao a nevoa/poeira do EstiloMenu aparece por tras das abas.
+  - Abas (tab_button.png), cabecalho (tab_header_background.png) e caixa de marcar (checkbox.png): recoloridas EM MEMORIA
+    pelo brilho de cada pixel (escuro = vidro do mod, meio = cinza da borda 0x34343F, claro = sangue claro 0xE0263E). Como a
+    conversao nao depende de onde o Minecraft pos cada quadro do arquivo, o estado (aba selecionada, check marcado) continua
+    distinguivel. Alfa preservado.
+  - Separadores header_separator.png / footer_separator.png (32x2): viram uma linha fina de sangue escuro (0x5A1620).
+  - Arquivo que nao existir nessa versao e ignorado (uma linha no latest.log: "Ordem Mod (EstiloTexturas): X nao existe").
+  - NAO feito: o cabecalho das abas pode ser desenhado em codigo como faixa preta opaca (g.fill) pelo Minecraft; se for,
+    continua preto. Contorno branco do item selecionado em listas tambem fica como esta.
+  - Como testar: Um jogador > Criar novo mundo, passar pelas 3 abas e marcar/desmarcar caixas (Gerar estruturas, Bonus...).
+    Nao compilado pelo Claude: gradlew build. Se algo ficar feio, mande print + as linhas "EstiloTexturas" do latest.log.
+
 --- 10/10/2026 (ajuste 2: restos da tela inicial em "Um jogador" + sliders + campo de busca) ----
 Print do usuario: ao clicar em Um jogador a tela inicial ficava "fantasma" por tras da lista de mundos; sliders ainda cinza
   Arquivos: titulo/EstiloMenu.java, titulo/EstiloTexturas.java

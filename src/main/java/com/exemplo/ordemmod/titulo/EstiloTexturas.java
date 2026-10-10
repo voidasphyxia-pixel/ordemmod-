@@ -22,6 +22,8 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  * <li>textures/gui/widgets.png: so as 3 faixas de botao (y 46..105: desativado, normal, hover). O resto da imagem
  * (hotbar, etc.) e copiado do original, entao a HUD nao muda.</li>
  * <li>textures/gui/slider.png (200x80): trilho normal/realcado e o cursor normal/realcado.</li>
+ * <li>tela de criar mundo: tab_button.png, tab_header_background.png e checkbox.png sao recoloridas pelo brilho; os
+ * separadores header_separator.png / footer_separator.png viram uma linha fina de sangue escuro.</li>
  * </ul>
  * Se o arquivo original nao tiver o tamanho esperado (resource pack de outra resolucao, por exemplo), aquela textura
  * fica como esta. Depois de F3+T o jogo recarrega os originais; na proxima tela que abrir o estilo volta sozinho.
@@ -41,6 +43,21 @@ final class EstiloTexturas {
     private static final int HOVER_FUNDO = 0xE63A0D15;
     private static final int OFF_FUNDO = 0x900E0E12;
     private static final int OFF_BORDA = 0xFF24242C;
+
+    // tela de criar mundo (1.20.1): abas, caixa de marcar e cabecalho recebem uma "recoloracao" do desenho original
+    // (o brilho de cada pixel vira a paleta do mod), entao nao importa como o Minecraft organizou os quadros do arquivo.
+    private static final ResourceLocation[] COLORIDAS = {
+            new ResourceLocation("textures/gui/tab_button.png"),
+            new ResourceLocation("textures/gui/tab_header_background.png"),
+            new ResourceLocation("textures/gui/checkbox.png"),
+    };
+    // linhas que separam o cabecalho/rodape do corpo (32x2 no jogo): viram uma linha fina de sangue escuro
+    private static final ResourceLocation[] SEPARADORES = {
+            new ResourceLocation("textures/gui/header_separator.png"),
+            new ResourceLocation("textures/gui/footer_separator.png"),
+    };
+    private static final java.util.Map<ResourceLocation, DynamicTexture> feitas = new java.util.HashMap<>();
+    private static final java.util.Set<ResourceLocation> ausentes = new java.util.HashSet<>();
 
     private static DynamicTexture widgets;
     private static DynamicTexture slider;
@@ -68,6 +85,12 @@ final class EstiloTexturas {
                     tm.register(SLIDER, slider);
                 }
             }
+            for (ResourceLocation r : COLORIDAS) {
+                garantirColorida(mc, tm, r, false);
+            }
+            for (ResourceLocation r : SEPARADORES) {
+                garantirColorida(mc, tm, r, true);
+            }
         } catch (RuntimeException | IOException ex) {
             System.out.println("Ordem Mod: nao deu para estilizar os botoes do menu (" + ex + ")");
         }
@@ -81,6 +104,74 @@ final class EstiloTexturas {
         try (InputStream in = r.get().open()) {
             return NativeImage.read(in);
         }
+    }
+
+    private static void garantirColorida(Minecraft mc, TextureManager tm, ResourceLocation r, boolean separador)
+            throws IOException {
+        if (ausentes.contains(r)) {
+            return;
+        }
+        AbstractTexture atual = tm.getTexture(r, null);
+        DynamicTexture feita = feitas.get(r);
+        if (feita != null && atual == feita) {
+            return;
+        }
+        NativeImage img = ler(mc, r);
+        if (img == null) {
+            ausentes.add(r); // esse arquivo nao existe nessa versao: nao procura de novo
+            aviso(r.getPath() + " nao existe nessa versao (ignorado)");
+            return;
+        }
+        aviso(r.getPath() + " ok: " + img.getWidth() + "x" + img.getHeight());
+        if (separador) {
+            separador(img);
+        } else {
+            recolorir(img);
+        }
+        feita = new DynamicTexture(img);
+        feitas.put(r, feita);
+        tm.register(r, feita);
+    }
+
+    /** Linha fina de sangue escuro na metade de cima e transparente embaixo (no jogo: 2 px de altura). */
+    private static void separador(NativeImage img) {
+        int meio = Math.max(1, img.getHeight() / 2);
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                img.setPixelRGBA(x, y, argbParaAbgr(y < meio ? 0xFF5A1620 : 0x00000000));
+            }
+        }
+    }
+
+    /**
+     * Troca as cores pelo brilho: escuro = vidro do mod, meio = cinza da borda, claro = sangue. Mantem o alfa e a
+     * estrutura do desenho (qual aba esta selecionada, onde esta o "check" etc. continuam distinguiveis).
+     */
+    private static void recolorir(NativeImage img) {
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                int abgr = img.getPixelRGBA(x, y);
+                int a = (abgr >>> 24) & 255;
+                if (a == 0) {
+                    continue;
+                }
+                int b = (abgr >> 16) & 255;
+                int g = (abgr >> 8) & 255;
+                int r = abgr & 255;
+                float lum = (0.30F * r + 0.59F * g + 0.11F * b) / 255F;
+                int cor = lum < 0.5F ? misturar(0xFF0C0C10, COR_BORDA, lum / 0.5F)
+                        : misturar(COR_BORDA, COR_SANGUE_CLARO, (lum - 0.5F) / 0.5F);
+                img.setPixelRGBA(x, y, argbParaAbgr((a << 24) | (cor & 0xFFFFFF)));
+            }
+        }
+    }
+
+    private static int misturar(int c1, int c2, float k) {
+        k = Math.max(0F, Math.min(1F, k));
+        int r = Math.round(((c1 >> 16) & 255) * (1 - k) + ((c2 >> 16) & 255) * k);
+        int g = Math.round(((c1 >> 8) & 255) * (1 - k) + ((c2 >> 8) & 255) * k);
+        int b = Math.round((c1 & 255) * (1 - k) + (c2 & 255) * k);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
     private static DynamicTexture montarWidgets(Minecraft mc) throws IOException {
