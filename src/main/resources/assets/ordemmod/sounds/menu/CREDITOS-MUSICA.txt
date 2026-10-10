@@ -1,0 +1,10 @@
+tema_inicial.ogg  -  tema em loop da tela inicial
+
+Origem: faixa "Transcender (Extended)" (video do YouTube YShdCKmb3fY), recortada em 1 ciclo de 240,75 s
+(repeticao exata da faixa original), com emenda sem corte e volume normalizado em -22 LUFS.
+
+PENDENTE: preencher autor/gravadora e a licenca de uso. Sem permissao do autor, NAO publicar/distribuir o mod com
+esta musica (o repositorio no GitHub esta publico).
+
+Autor: ???
+Licenca/permissao: ???

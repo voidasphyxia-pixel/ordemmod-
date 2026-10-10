@@ -28,6 +28,9 @@ public final class SonsOrdem {
     public static final RegistryObject<SoundEvent> CRITICO = som("critico");
     public static final RegistryObject<SoundEvent> FALHA_CRITICA = som("falha_critica");
 
+    /** Tema em laco da tela inicial (arquivo sounds/menu/tema_inicial.ogg). */
+    public static final RegistryObject<SoundEvent> TEMA_INICIAL = som("menu.tema_inicial");
+
     /** Sons da cena do Marcado: nome curto -> evento "marcado.<nome>" (arquivos em sounds/marcado/<nome>.ogg). */
     public static final String[] NOMES_MARCADO = { "tum", "ambiente_drone", "blip_texto", "ui_hover", "ui_select",
             "glitch", "batimento_loop", "revelacao_marcado", "sussuros_1", "sussuros_2", "sussuros_3", "sussuros_4",

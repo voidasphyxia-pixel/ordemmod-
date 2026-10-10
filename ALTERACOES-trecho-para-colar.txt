@@ -1,0 +1,28 @@
+(COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
+
+--- 10/10/2026 (tela inicial do mod + tema em loop) ---------------------------
+Menu principal do jogo substituido por uma tela inicial no visual do Marcado, com musica em loop limpo
+  Arquivos novos: titulo/TelaInicial.java, titulo/TemaInicial.java, titulo/EventosTitulo.java,
+            assets/ordemmod/font/titulo_logo.json, sounds/menu/tema_inicial.ogg (+ CREDITOS-MUSICA.txt),
+            textures/gui/titulo/simbolo_maior.png (1024x1024, branco sobre transparente)
+  Arquivos alterados: SonsOrdem.java (TEMA_INICIAL), sounds.json (menu.tema_inicial, stream:true)
+  - EventosTitulo troca o TitleScreen (ScreenEvent.Opening) pela TelaInicial. EventosTitulo.SUBSTITUIR_MENU = false
+    devolve o menu original. Sem Minecraft Realms (de proposito).
+  - TelaInicial: fundo preto + NEVOA e POEIRA, simbolo maior respirando (com leve parallax do mouse) atras do titulo
+    "ORDEM / PARANORMAL" em Cinzel Black/Cinzel, divisoria com losango, 5 botoes (Um jogador, Multijogador, Mods, Opcoes,
+    Sair) de vidro escuro com cantos de ritual (Um jogador em sangue). Textos dos botoes vem das chaves do proprio jogo
+    (traduzidos). Glitch raro no titulo (t=2 s e a cada 29 s), TUM ao surgir. Teclado: setas/Tab + Enter.
+  - Musica: a faixa de 12:25 era um bloco de 240,75 s repetido; o loop e exatamente 1 ciclo (10.617.075 amostras),
+    emenda com crossfade linear de 4 s com o trecho que naturalmente antecede o inicio (sem clique), -22 LUFS, OGG q4
+    (3,1 MB). Toca como categoria MUSICA (slider de Musica vale), fade-in 4 s, continua nos submenus, some ao entrar
+    no mundo. A musica de menu do Minecraft e cortada enquanto o tema toca (PlaySoundEvent).
+  - TemaInicial.VOLUME (1.0) ajusta o volume maximo. Ao entrar no mundo libera os quadros de nevoa/poeira da VRAM.
+  - Como testar: abrir o jogo / sair de um mundo para o titulo. Nao compilado pelo Claude: gradlew build.
+    Ajustes finos: BASE_LOGO / BASE_SUB (posicao vertical do titulo), CAP_LOGO, TRACK_LOGO, ALFA_SIMBOLO,
+    CENTRO_SIMBOLO (no topo de TelaInicial).
+    Pontos de maior risco de API: ScreenEvent.Opening, PlaySoundEvent, new OptionsScreen(this, options),
+    new ModListScreen(this), minecraft.allowsMultiplayer().
+  - PENDENTE: autor/licenca da musica (ver CREDITOS-MUSICA.txt) antes de publicar o mod.
+
+LEIA-ME-MARCADO.md (paragrafo novo):
+**Tela inicial (10/10/2026):** o menu principal agora e a `titulo/TelaInicial` (substitui o TitleScreen), com o tema em loop `sounds/menu/tema_inicial.ogg`. Ainda nao compilado/testado; ajustes finos no topo de `TelaInicial.java`.

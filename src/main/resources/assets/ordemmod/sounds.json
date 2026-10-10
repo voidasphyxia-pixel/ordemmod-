@@ -29,6 +29,14 @@
       "ordemmod:falha_critica"
     ]
   },
+  "menu.tema_inicial": {
+    "sounds": [
+      {
+        "name": "ordemmod:menu/tema_inicial",
+        "stream": true
+      }
+    ]
+  },
   "marcado.tum": {
     "sounds": [
       {
