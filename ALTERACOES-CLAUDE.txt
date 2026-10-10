@@ -5,6 +5,19 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 10/10/2026 (otimizacao do tamanho dos assets) -----------------------------
+Imagens e musica menores, sem mudar nome, dimensao nem codigo
+  Arquivos: textures/gui/marcado/vfx/{nevoa,poeira,tinta_sangue,correntes,titulo}/*.png (270 quadros),
+            textures/gui/titulo/simbolo_maior.png, sounds/menu/tema_inicial.ogg
+  - Quadros do VFX: de 40 MB para 8,8 MB (com a pasta sombra, que nao mudou). Cores reduzidas para paleta de 256 (PNG indexado
+    com transparencia). Nevoa e tinta: paleta propria (4 cores x 64 niveis de alfa, com ruido no alfa para evitar faixas).
+    Poeira, correntes e titulo: quantizacao padrao. PSNR sobre fundo preto/branco acima de 39 dB em todos os quadros.
+  - simbolo_maior.png: 411 KB -> 117 KB (paleta de 256; diferenca media 0,5/255).
+  - tema_inicial.ogg: 3,0 MB -> 2,3 MB (libvorbis q2, mesma duracao 4:00,75, metadados mantidos).
+  - Como testar: runClient. Conferir a nevoa e a tinta do Marcado (faixas nos degrades?), o simbolo da tela inicial e,
+    principalmente, a EMENDA DO LOOP da musica (estalo ao voltar ao inicio?). Se algo ficar ruim, restaurar do commit anterior
+    (git checkout 0436cd1 -- <arquivo>). Nao compilado/testado no jogo pelo Claude.
+
 --- 10/10/2026 (tela de criar mundo no mesmo padrao) --------------------------
 Criar novo mundo (abas Jogo / Mundo / Mais) com o visual da tela inicial
   Arquivos: assets/minecraft/textures/gui/light_dirt_background.png (novo, transparente), titulo/EstiloTexturas.java
