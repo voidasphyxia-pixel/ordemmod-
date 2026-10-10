@@ -1,0 +1,75 @@
+package com.exemplo.ordemmod.titulo;
+
+import com.exemplo.ordemmod.OrdemMod;
+import com.exemplo.ordemmod.marcado.VfxMarcado;
+
+import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+/**
+ * Leva o visual da {@link TelaInicial} para as telas que partem dela (Um jogador, Multijogador, Mods, Opcoes e todos os
+ * submenus, que sao telas do proprio Minecraft/Forge):
+ * <ul>
+ * <li>fundo: preto + NEVOA + POEIRA + vinheta, no lugar do fundo de terra (BackgroundRendered);</li>
+ * <li>botoes e sliders: vidro escuro com borda e cantos de sangue (ver {@link EstiloTexturas});</li>
+ * <li>o fundo de terra das listas ficou escuro e translucido pela textura assets/minecraft/textures/gui/options_background.png.</li>
+ * </ul>
+ * So vale fora do mundo (menus); as telas do proprio mod (com.exemplo.ordemmod.*) ja tem o visual delas.
+ */
+@Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, value = Dist.CLIENT)
+public final class EstiloMenu {
+    /** false devolve o visual original do Minecraft nessas telas (o fundo de terra e os botoes cinza). */
+    public static final boolean ATIVO = true;
+
+    private static final int COR_FUNDO = 0xFF050507;
+    private static final long INICIO = Util.getMillis();
+
+    private EstiloMenu() {
+    }
+
+    /** True se essa tela deve receber o fundo do mod (menus do jogo, nunca dentro de um mundo nem as telas do mod). */
+    static boolean estilizar(Screen s) {
+        if (!ATIVO || s == null || s instanceof TitleScreen) {
+            return false;
+        }
+        if (Minecraft.getInstance().level != null) {
+            return false;
+        }
+        return !s.getClass().getName().startsWith("com.exemplo.ordemmod");
+    }
+
+    /** Antes de qualquer tela abrir, garante os botoes de vidro (barato: so faz algo na primeira vez ou apos F3+T). */
+    @SubscribeEvent
+    public static void aoAbrirTela(ScreenEvent.Opening e) {
+        if (ATIVO && e.getNewScreen() != null) {
+            EstiloTexturas.garantir();
+        }
+    }
+
+    /** Logo depois do fundo da tela: cobre o fundo de terra com o fundo do mod. */
+    @SubscribeEvent
+    public static void aoDesenharFundo(ScreenEvent.BackgroundRendered e) {
+        Screen s = e.getScreen();
+        if (!estilizar(s)) {
+            return;
+        }
+        GuiGraphics g = e.getGuiGraphics();
+        int w = s.width;
+        int h = s.height;
+        float t = (Util.getMillis() - INICIO) / 1000F;
+        float entrada = Math.min(1F, t / 0.6F); // so para a primeira tela depois de abrir o jogo
+
+        g.fill(0, 0, w, h, COR_FUNDO);
+        VfxMarcado.NEVOA.desenhar(g, t, 0.30F * entrada, 0, 0, w, h);
+        VfxMarcado.POEIRA.desenhar(g, t, 0.45F * entrada, 0, 0, w, h);
+        g.fillGradient(0, 0, w, h / 3, 0xDD000000, 0x00000000);
+        g.fillGradient(0, h * 2 / 3, w, h, 0x00000000, 0xDD000000);
+    }
+}

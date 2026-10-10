@@ -5,6 +5,28 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 10/10/2026 (telas que partem da tela inicial: mesmo visual) --------------
+Um jogador, Multijogador, Mods, Opcoes e seus submenus (telas do Minecraft/Forge) com a estetica da TelaInicial
+  Arquivos novos: titulo/EstiloMenu.java, titulo/EstiloTexturas.java,
+            assets/minecraft/textures/gui/options_background.png (16x16, 0x050507 com alfa 175; sobrescreve o fundo de terra)
+  - Fundo (EstiloMenu, ScreenEvent.BackgroundRendered): preto + NEVOA + POEIRA + vinheta no topo e no pe, igual a
+    TelaInicial. So fora de um mundo e so em telas que NAO sao do mod (as de com.exemplo.ordemmod.* ja tem visual proprio).
+  - Fundo de terra das listas (mundos, servidores, mods, opcoes) e dos cabecalhos/rodapes: a textura options_background.png
+    do mod fica escura e translucida, entao a nevoa aparece por tras das listas.
+  - Botoes e sliders (EstiloTexturas): em memoria, as 3 faixas de botao de widgets.png (desativado/normal/hover) e as 4 de
+    slider.png viram vidro escuro com borda; no hover borda de sangue + cantos de ritual (4 px). O resto de widgets.png
+    (hotbar etc.) e copiado do original. So troca se o arquivo tiver o tamanho esperado (256x256 e 200x80). Depois de
+    F3+T o jogo recarrega os originais e o estilo volta na proxima tela que abrir (ScreenEvent.Opening).
+  - O texto dos botoes continua na fonte padrao do jogo (branca), so a arte mudou.
+  - EstiloMenu.ATIVO = false devolve o visual original do Minecraft.
+  - Como testar: Um jogador (lista de mundos, Criar Novo Mundo e abas), Multijogador, Mods, Opcoes (Video, Som, Controles...).
+    Nao compilado pelo Claude: gradlew build. Pontos de maior risco de API: ScreenEvent.BackgroundRendered
+    (getGuiGraphics), NativeImage.setPixelRGBA/read, new DynamicTexture(NativeImage), TextureManager.getTexture(loc, default),
+    Resource.open(). Se os sliders ficarem estranhos, o layout de slider.png (trilho 0/20, cursor 40/60) e a hipotese
+    mais fraca: apague as 4 chamadas botao(...) de montarSlider.
+  - NAO feito (precisaria de Mixin ou Access Transformer): contorno branco do item selecionado nas listas de mundos/servidores,
+    abas da criacao de mundo (TabButton), caixas de marcar e campos de texto continuam com o desenho do Minecraft.
+
 --- 10/10/2026 (tela inicial do mod + tema em loop) ---------------------------
 Menu principal do jogo substituido por uma tela inicial no visual do Marcado, com musica em loop limpo
   Arquivos novos: titulo/TelaInicial.java, titulo/TemaInicial.java, titulo/EventosTitulo.java,

@@ -27,6 +27,10 @@
 
 **Menu do personagem (K, `TelaFicha`) restilizado em 09/10/2026** no mesmo visual da tela de criação (névoa/poeira, Cinzel, painéis com cantos dourados, círculo ritual). Ainda não compilado/testado.
 
+**Tela inicial (10/10/2026):** o menu principal agora é a `titulo/TelaInicial` (substitui o TitleScreen), com o tema em loop `sounds/menu/tema_inicial.ogg`. Ainda não compilado/testado; ajustes finos no topo de `TelaInicial.java`.
+
+**Telas que partem da tela inicial (10/10/2026):** Um jogador, Multijogador, Mods, Opções e submenus agora têm fundo preto com névoa/poeira/vinheta e botões/sliders de vidro escuro (`titulo/EstiloMenu.java`, `titulo/EstiloTexturas.java`, `assets/minecraft/textures/gui/options_background.png`). Ainda não compilado/testado; detalhes e o que ficou de fora no `ALTERACOES-CLAUDE.txt`.
+
 ## O que falta (por ordem)
 
 1. **Compilar e corrigir erros.** Escrevi sem poder compilar. Rode `gradlew build` e me mande os erros. Pontos de maior risco:
