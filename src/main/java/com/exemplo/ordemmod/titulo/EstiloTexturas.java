@@ -95,6 +95,7 @@ final class EstiloTexturas {
             img.close();
             return null;
         }
+        aviso("widgets.png ok: " + w + "x" + img.getHeight());
         int e = w / 256;
         botao(img, 0, 46 * e, e, OFF_FUNDO, OFF_BORDA, 0);                       // desativado
         botao(img, 0, 66 * e, e, NORMAL_FUNDO, COR_BORDA, 0);                     // normal
@@ -109,12 +110,15 @@ final class EstiloTexturas {
             return null;
         }
         int w = img.getWidth();
-        if (w % 200 != 0 || img.getHeight() != w / 200 * 80) { // 200x80 (ou 400x160... em pacotes HD)
-            aviso("slider.png com tamanho inesperado: " + w + "x" + img.getHeight() + " (esperado 200x80)");
+        // o arquivo pode ser 200x80 ou 256x256 (os 4 quadros de 200x20 ficam no canto superior esquerdo); em pacote HD, 400/512...
+        int base = w % 256 == 0 ? 256 : w % 200 == 0 ? 200 : 0;
+        if (base == 0 || img.getHeight() < 80 * (w / base)) {
+            aviso("slider.png com tamanho inesperado: " + w + "x" + img.getHeight() + " (esperado 200x80 ou 256x256)");
             img.close();
             return null;
         }
-        int e = w / 200;
+        aviso("slider.png ok: " + w + "x" + img.getHeight());
+        int e = w / base;
         int h = 20 * e;
         botao(img, 0, 0, e, NORMAL_FUNDO, COR_BORDA, 0);                          // trilho
         botao(img, 0, h, e, HOVER_FUNDO, COR_SANGUE, COR_SANGUE_CLARO);           // trilho realcado
@@ -123,11 +127,11 @@ final class EstiloTexturas {
         return new DynamicTexture(img);
     }
 
-    private static boolean avisou;
+    private static final java.util.Set<String> avisados = new java.util.HashSet<>();
 
+    /** Escreve no latest.log (uma vez por mensagem): ajuda a descobrir porque um desenho nao mudou. */
     private static void aviso(String msg) {
-        if (!avisou) {
-            avisou = true; // uma vez so, no latest.log
+        if (avisados.add(msg)) {
             System.out.println("Ordem Mod (EstiloTexturas): " + msg);
         }
     }

@@ -5,6 +5,22 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 10/10/2026 (ajuste 2: restos da tela inicial em "Um jogador" + sliders + campo de busca) ----
+Print do usuario: ao clicar em Um jogador a tela inicial ficava "fantasma" por tras da lista de mundos; sliders ainda cinza
+  Arquivos: titulo/EstiloMenu.java, titulo/EstiloTexturas.java
+  - CAUSA do fantasma: SelectWorldScreen nao chama renderBackground (so as listas pintavam o fundo) e o fundo de terra agora e
+    transparente, entao o quadro anterior nunca era apagado (logo, botoes, "Carregando lista de mundos" acumulavam).
+    O fundo do mod (preto + nevoa + poeira + vinheta) agora e desenhado em ScreenEvent.Render.Pre (antes de a tela
+    desenhar), e nao mais em BackgroundRendered. Vale para TODA tela de menu, chame ela renderBackground ou nao.
+  - Campos de texto (busca de mundos, nome do mundo...): borda do mod por cima da branca (cinza; sangue quando em foco),
+    em ScreenEvent.Render.Post, so campos que sao filhos diretos da tela. O interior continua preto do Minecraft.
+  - Sliders: o slider.png pode ser 256x256 (nao 200x80): agora aceita 200x80, 256x256 e versoes HD (200/256 x n). Os 4
+    quadros de 200x20 (trilho, trilho realcado, cursor, cursor realcado) sao pintados no canto superior esquerdo.
+  - O jogo escreve no latest.log (uma vez cada) "Ordem Mod (EstiloTexturas): widgets.png ok: WxH" e
+    "slider.png ok: WxH" (ou o motivo de nao ter trocado). Se os sliders continuarem cinza, mande essas linhas.
+  - Como testar: Um jogador (sem fantasma, nevoa atras da lista), campo de busca, Opcoes > Acessibilidade/Som (sliders).
+    Nao compilado pelo Claude. API nova: ScreenEvent.Render.Pre/Post (getGuiGraphics), EditBox (getX/getY/isFocused).
+
 --- 10/10/2026 (ajuste: fundo transparente nas listas + sliders) --------------
 Pelos prints do usuario: Video/Som ficavam PRETOS (sem nevoa) e os sliders continuavam cinza
   Arquivos: assets/minecraft/textures/gui/options_background.png, titulo/EstiloTexturas.java, titulo/EstiloMenu.java
