@@ -2,18 +2,21 @@ package com.exemplo.ordemmod;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Cliente -> servidor: as escolhas feitas na tela de criação.
- * O servidor NUNCA confia no que chega: refaz as contas em {@link CriacaoPersonagem#montar}.
+ * Cliente -> servidor: as escolhas feitas na tela de criacao.
+ * O servidor NUNCA confia no que chega: refaz as contas em CriacaoPersonagem#montar (veja ReceptoresServidor).
  */
-public class PacoteCriarPersonagem {
+public class PacoteCriarPersonagem implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<PacoteCriarPersonagem> TYPE = Rede.tipo("criar_personagem");
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacoteCriarPersonagem> CODEC =
+            CodecsOrdem.de(PacoteCriarPersonagem::escrever, PacoteCriarPersonagem::ler);
+
     private final int classe;
     private final int[] atributos;
     private final int origem;
@@ -34,6 +37,22 @@ public class PacoteCriarPersonagem {
         this.atributos = atributos;
         this.origem = origem;
         this.pericias = pericias;
+    }
+
+    public int classe() {
+        return classe;
+    }
+
+    public int[] atributos() {
+        return atributos;
+    }
+
+    public int origem() {
+        return origem;
+    }
+
+    public List<Integer> pericias() {
+        return pericias;
     }
 
     public static void escrever(PacoteCriarPersonagem m, FriendlyByteBuf buffer) {
@@ -63,31 +82,8 @@ public class PacoteCriarPersonagem {
         return new PacoteCriarPersonagem(classe, atributos, origem, pericias);
     }
 
-    /** Roda no servidor quando a mensagem chega. */
-    public static void tratar(PacoteCriarPersonagem m, Supplier<NetworkEvent.Context> contexto) {
-        NetworkEvent.Context ctx = contexto.get();
-        ctx.enqueueWork(() -> {
-            ServerPlayer jogador = ctx.getSender();
-            if (jogador == null || EventosOrdem.de(jogador).isCriado()) {
-                return; // quem já criou o personagem não recria por aqui (use /ordem resetar)
-            }
-            Personagem novo = CriacaoPersonagem.montar(
-                    daLista(ClasseOP.values(), m.classe),
-                    m.atributos,
-                    daLista(Origem.values(), m.origem),
-                    m.pericias.stream().map(i -> daLista(Pericia.values(), i)).toList());
-            if (novo == null) {
-                Avisos.enviar(jogador, "Criação não aceita. Tente de novo.", net.minecraft.ChatFormatting.RED);
-                EventosOrdem.abrirCriacao(jogador);
-                return;
-            }
-            EventosOrdem.definir(jogador, novo);
-        });
-        ctx.setPacketHandled(true);
-    }
-
-    /** Valor do enum pelo índice, ou null se o índice é inválido. */
-    private static <T> T daLista(T[] valores, int indice) {
-        return indice >= 0 && indice < valores.length ? valores[indice] : null;
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

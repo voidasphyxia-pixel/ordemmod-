@@ -2,25 +2,28 @@ package com.exemplo.ordemmod;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Servidor -> cliente: o resultado de um teste de perícia, para a tela do dado tocar a animação.
- * O servidor já rolou tudo (ninguém trapaceia); o cliente só mostra.
+ * Servidor -> cliente: o resultado de um teste de pericia, para a tela do dado tocar a animacao.
+ * O servidor ja rolou tudo (ninguem trapaceia); o cliente so mostra.
  *
- * @param pericia   índice da perícia no enum {@link Pericia}
+ * @param pericia   indice da pericia no enum {@link Pericia}
  * @param dados     todos os dados rolados (um por ponto de atributo)
  * @param escolhido o dado que valeu (o maior, ou o menor com atributo 0)
- * @param partes    de onde vem o bônus, uma linha por fonte
- * @param motivo    texto opcional sobre o que está sendo testado (pode ser vazio)
+ * @param partes    de onde vem o bonus, uma linha por fonte
+ * @param motivo    texto opcional sobre o que esta sendo testado (pode ser vazio)
  */
 public record PacoteTeste(int pericia, List<Integer> dados, int escolhido, List<ParteBonus> partes,
-                          int total, int dt, boolean sucesso, boolean critico, String motivo) {
+                          int total, int dt, boolean sucesso, boolean critico, String motivo)
+        implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<PacoteTeste> TYPE = Rede.tipo("teste");
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacoteTeste> CODEC =
+            CodecsOrdem.de(PacoteTeste::escrever, PacoteTeste::ler);
 
     public static PacoteTeste de(ResultadoTeste r, List<ParteBonus> partes, String motivo) {
         return new PacoteTeste(r.pericia().ordinal(), r.dados(), r.escolhido(), List.copyOf(partes),
@@ -68,10 +71,8 @@ public record PacoteTeste(int pericia, List<Integer> dados, int escolhido, List<
                 critico, motivo);
     }
 
-    /** Roda no cliente quando a mensagem chega. */
-    public static void tratar(PacoteTeste m, Supplier<NetworkEvent.Context> contexto) {
-        NetworkEvent.Context ctx = contexto.get();
-        ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClienteTeste.abrir(m)));
-        ctx.setPacketHandled(true);
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

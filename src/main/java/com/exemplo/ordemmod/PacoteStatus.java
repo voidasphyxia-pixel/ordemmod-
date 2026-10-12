@@ -1,18 +1,20 @@
 package com.exemplo.ordemmod;
 
-import java.util.function.Supplier;
-
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Servidor -> cliente: os números que só o servidor sabe (sanidade, PE e NEX) para a HUD desenhar as barras.
- * A vida, a fome e a armadura o cliente já conhece sozinho.
- * É um record, então o {@code equals} vem pronto: o servidor só reenvia quando algum valor muda.
+ * Servidor -> cliente: os numeros que so o servidor sabe (sanidade, PE e NEX) para a HUD desenhar as barras.
+ * A vida, a fome e a armadura o cliente ja conhece sozinho.
+ * E um record, entao o {@code equals} vem pronto: o servidor so reenvia quando algum valor muda.
  */
-public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int nex, int nivel) {
+public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int nex, int nivel)
+        implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<PacoteStatus> TYPE = Rede.tipo("status");
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacoteStatus> CODEC =
+            CodecsOrdem.de(PacoteStatus::escrever, PacoteStatus::ler);
 
     public static PacoteStatus de(Personagem p) {
         return new PacoteStatus(p.getSanidade(), p.sanidadeMaxima(), p.pe.getAtual(), p.pe.getMaximo(),
@@ -33,10 +35,8 @@ public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt());
     }
 
-    /** Roda no cliente quando a mensagem chega. */
-    public static void tratar(PacoteStatus m, Supplier<NetworkEvent.Context> contexto) {
-        NetworkEvent.Context ctx = contexto.get();
-        ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> HudOrdem.receber(m)));
-        ctx.setPacketHandled(true);
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

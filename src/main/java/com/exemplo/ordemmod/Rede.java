@@ -1,67 +1,47 @@
 package com.exemplo.ordemmod;
 
-import java.util.Optional;
+import com.exemplo.ordemmod.marcado.PacoteMarcado;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
 
-/** O "canal" por onde o cliente e o servidor do mod conversam. */
+/**
+ * Registro dos pacotes do mod. No Forge era um SimpleChannel com ids numericos; no Fabric cada pacote
+ * e um payload com Identifier proprio, registrado aqui (nos dois lados) e tratado em ReceptoresServidor
+ * (servidor) e ReceptoresCliente (cliente).
+ */
 public final class Rede {
-    private static final String VERSAO = "7";
-
-    public static final SimpleChannel CANAL = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation(OrdemMod.MOD_ID, "principal"),
-            () -> VERSAO, VERSAO::equals, VERSAO::equals);
-
     private Rede() {
     }
 
-    public static void registrar() {
-        CANAL.registerMessage(0, PacoteHabilidade.class,
-                PacoteHabilidade::escrever, PacoteHabilidade::ler, PacoteHabilidade::tratar);
-        // servidor -> cliente: "abra a tela de criação de personagem"
-        CANAL.registerMessage(1, PacoteAbrirCriacao.class,
-                PacoteAbrirCriacao::escrever, PacoteAbrirCriacao::ler, PacoteAbrirCriacao::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        // cliente -> servidor: "terminei a criação, aqui estão minhas escolhas"
-        CANAL.registerMessage(2, PacoteCriarPersonagem.class,
-                PacoteCriarPersonagem::escrever, PacoteCriarPersonagem::ler, PacoteCriarPersonagem::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
-        // servidor -> cliente: sanidade, PE e NEX para a HUD desenhar as barras
-        CANAL.registerMessage(3, PacoteStatus.class,
-                PacoteStatus::escrever, PacoteStatus::ler, PacoteStatus::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        // servidor -> cliente: um aviso curto para aparecer embaixo da mira (no lugar do chat)
-        CANAL.registerMessage(4, PacoteAviso.class,
-                PacoteAviso::escrever, PacoteAviso::ler, PacoteAviso::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        // servidor -> cliente: a ficha do personagem, para o menu da tecla K
-        CANAL.registerMessage(5, PacoteFicha.class,
-                PacoteFicha::escrever, PacoteFicha::ler, PacoteFicha::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        // cliente -> servidor: "quero aprender esta habilidade" / "quero esta trilha" (aba Árvore da ficha)
-        CANAL.registerMessage(6, PacoteArvore.class,
-                PacoteArvore::escrever, PacoteArvore::ler, PacoteArvore::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
-        // cliente -> servidor: "cliquei nesta perícia na ficha, role um teste"
-        CANAL.registerMessage(7, PacoteRolarPericia.class,
-                PacoteRolarPericia::escrever, PacoteRolarPericia::ler, PacoteRolarPericia::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
-        // servidor -> cliente: o resultado de um teste, para a tela do dado rolar na tela
-        CANAL.registerMessage(8, PacoteTeste.class,
-                PacoteTeste::escrever, PacoteTeste::ler, PacoteTeste::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        // servidor -> cliente: uma rolagem já feita, para o painel acima da barra de sanidade (só estética)
-        CANAL.registerMessage(9, PacoteRolagemHud.class,
-                PacoteRolagemHud::escrever, PacoteRolagemHud::ler, PacoteRolagemHud::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-        // cliente -> servidor: "terminei a cena do Marcado, estas foram as minhas escolhas"
-        CANAL.registerMessage(10, com.exemplo.ordemmod.marcado.PacoteMarcado.class,
-                com.exemplo.ordemmod.marcado.PacoteMarcado::escrever,
-                com.exemplo.ordemmod.marcado.PacoteMarcado::ler,
-                com.exemplo.ordemmod.marcado.PacoteMarcado::tratar,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
+    /** Cria o tipo (identificador) de um payload: ordemmod:<nome>. */
+    public static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> tipo(String nome) {
+        return new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, nome));
+    }
+
+    /** Chamar no inicializador comum, nos dois lados, ANTES de registrar qualquer receptor. */
+    public static void registrarTipos() {
+        // cliente -> servidor
+        PayloadTypeRegistry.serverboundPlay().register(PacoteHabilidade.TYPE, PacoteHabilidade.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PacoteCriarPersonagem.TYPE, PacoteCriarPersonagem.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PacoteArvore.TYPE, PacoteArvore.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PacoteRolarPericia.TYPE, PacoteRolarPericia.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PacoteMarcado.TYPE, PacoteMarcado.CODEC);
+
+        // servidor -> cliente
+        PayloadTypeRegistry.clientboundPlay().register(PacoteAbrirCriacao.TYPE, PacoteAbrirCriacao.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PacoteStatus.TYPE, PacoteStatus.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PacoteAviso.TYPE, PacoteAviso.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PacoteFicha.TYPE, PacoteFicha.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PacoteTeste.TYPE, PacoteTeste.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(PacoteRolagemHud.TYPE, PacoteRolagemHud.CODEC);
+    }
+
+    /** Substitui Rede.CANAL.send(PacketDistributor.PLAYER.with(() -> jogador), pacote). */
+    public static void paraJogador(ServerPlayer jogador, CustomPacketPayload pacote) {
+        ServerPlayNetworking.send(jogador, pacote);
     }
 }

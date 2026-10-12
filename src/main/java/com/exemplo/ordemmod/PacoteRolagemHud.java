@@ -2,26 +2,29 @@ package com.exemplo.ordemmod;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Servidor -> cliente: uma rolagem para aparecer num painel pequeno logo acima da barra de sanidade (veja {@link RolagemHud}).
- * O servidor já rolou e já aplicou o efeito; o cliente só mostra, por estética.
+ * Servidor -> cliente: uma rolagem para aparecer num painel pequeno logo acima da barra de sanidade (veja RolagemHud).
+ * O servidor ja rolou e ja aplicou o efeito; o cliente so mostra, por estetica.
  *
- * @param pericia   índice da perícia no enum {@link Pericia}
+ * @param pericia   indice da pericia no enum {@link Pericia}
  * @param dados     todos os dados rolados
  * @param escolhido o dado que valeu
- * @param bonus     soma dos bônus
- * @param reducao   quanto do dano foi reduzido, de 0 a 100 (-1 = não mostrar nada sobre dano)
- * @param motivo    texto curto do que está sendo testado (ex.: "Queda")
+ * @param bonus     soma dos bonus
+ * @param reducao   quanto do dano foi reduzido, de 0 a 100 (-1 = nao mostrar nada sobre dano)
+ * @param motivo    texto curto do que esta sendo testado (ex.: "Queda")
  */
 public record PacoteRolagemHud(int pericia, List<Integer> dados, int escolhido, int bonus, int total, int dt,
-                               boolean sucesso, boolean critico, int reducao, String motivo) {
+                               boolean sucesso, boolean critico, int reducao, String motivo)
+        implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<PacoteRolagemHud> TYPE = Rede.tipo("rolagem_hud");
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacoteRolagemHud> CODEC =
+            CodecsOrdem.de(PacoteRolagemHud::escrever, PacoteRolagemHud::ler);
 
     public static PacoteRolagemHud de(ResultadoTeste r, int reducao, String motivo) {
         return new PacoteRolagemHud(r.pericia().ordinal(), List.copyOf(r.dados()), r.escolhido(), r.bonus(), r.total(),
@@ -63,10 +66,8 @@ public record PacoteRolagemHud(int pericia, List<Integer> dados, int escolhido, 
                 motivo);
     }
 
-    /** Roda no cliente quando a mensagem chega. */
-    public static void tratar(PacoteRolagemHud m, Supplier<NetworkEvent.Context> contexto) {
-        NetworkEvent.Context ctx = contexto.get();
-        ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> RolagemHud.receber(m)));
-        ctx.setPacketHandled(true);
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

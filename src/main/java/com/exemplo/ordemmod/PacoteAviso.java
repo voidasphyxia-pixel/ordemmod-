@@ -1,14 +1,15 @@
 package com.exemplo.ordemmod;
 
-import java.util.function.Supplier;
-
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Servidor -> cliente: um texto curto para aparecer embaixo da mira. {@code cor} é RGB, ou -1 para a cor padrão. */
-public record PacoteAviso(String texto, int cor) {
+/** Servidor -> cliente: um texto curto para aparecer embaixo da mira. {@code cor} e RGB, ou -1 para a cor padrao. */
+public record PacoteAviso(String texto, int cor) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<PacoteAviso> TYPE = Rede.tipo("aviso");
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacoteAviso> CODEC =
+            CodecsOrdem.de(PacoteAviso::escrever, PacoteAviso::ler);
 
     public static void escrever(PacoteAviso m, FriendlyByteBuf buffer) {
         buffer.writeUtf(m.texto, 256);
@@ -19,10 +20,8 @@ public record PacoteAviso(String texto, int cor) {
         return new PacoteAviso(buffer.readUtf(256), buffer.readInt());
     }
 
-    /** Roda no cliente quando a mensagem chega. */
-    public static void tratar(PacoteAviso m, Supplier<NetworkEvent.Context> contexto) {
-        NetworkEvent.Context ctx = contexto.get();
-        ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> AvisoOrdem.receber(m.texto(), m.cor())));
-        ctx.setPacketHandled(true);
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

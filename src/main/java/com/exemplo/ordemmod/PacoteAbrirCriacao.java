@@ -1,38 +1,29 @@
 package com.exemplo.ordemmod;
 
-import java.util.function.Supplier;
-
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Servidor -> cliente: "abra a tela de criação de personagem".
- * Não carrega dados; só o aviso.
+ * Servidor -> cliente: "abra a tela de criacao de personagem".
+ * comMarcado = true: a cena do Marcado ainda nao foi vista, abre ela antes da tela de criacao.
  */
-public class PacoteAbrirCriacao {
+public record PacoteAbrirCriacao(boolean comMarcado) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<PacoteAbrirCriacao> TYPE = Rede.tipo("abrir_criacao");
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacoteAbrirCriacao> CODEC =
+            CodecsOrdem.de(PacoteAbrirCriacao::escrever, PacoteAbrirCriacao::ler);
 
-    /** true = a cena do Marcado ainda não foi vista: abre ela antes da tela de criação. */
-    private final boolean comMarcado;
-
-    public PacoteAbrirCriacao(boolean comMarcado) {
-        this.comMarcado = comMarcado;
-    }
-
-    public static void escrever(PacoteAbrirCriacao mensagem, FriendlyByteBuf buffer) {
-        buffer.writeBoolean(mensagem.comMarcado);
+    public static void escrever(PacoteAbrirCriacao m, FriendlyByteBuf buffer) {
+        buffer.writeBoolean(m.comMarcado);
     }
 
     public static PacoteAbrirCriacao ler(FriendlyByteBuf buffer) {
         return new PacoteAbrirCriacao(buffer.readBoolean());
     }
 
-    /** Roda no cliente quando a mensagem chega. */
-    public static void tratar(PacoteAbrirCriacao mensagem, Supplier<NetworkEvent.Context> contexto) {
-        NetworkEvent.Context ctx = contexto.get();
-        // DistExecutor garante que o código de tela só é carregado no cliente
-        ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClienteCriacao.abrir(mensagem.comMarcado)));
-        ctx.setPacketHandled(true);
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

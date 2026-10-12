@@ -3,32 +3,26 @@ package com.exemplo.ordemmod;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Supplier;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.PacketDistributor;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
  * Servidor -> cliente: a ficha do personagem (tudo o que o menu da tecla K mostra) e a ordem de abrir a tela.
- * Os dados vão num CompoundTag, então acrescentar uma informação nova é só uma linha em {@link #de} e uma na tela.
+ * Os dados vao num CompoundTag, entao acrescentar uma informacao nova e so uma linha em {@link #de} e uma na tela.
+ *
+ * O envio (que depende de EventosOrdem) fica em ReceptoresServidor#enviarFicha.
+ * Atencao para a tela (etapa 6): na 1.21.5+ os getters do CompoundTag devolvem Optional;
+ * use getIntOr / getStringOr / getBooleanOr / getCompoundOrEmpty / getListOrEmpty.
  */
-public record PacoteFicha(CompoundTag dados) {
-
-    /** O servidor monta a ficha e manda para o jogador (quem ainda não criou o personagem vai para a criação). */
-    public static void enviar(ServerPlayer jogador) {
-        Personagem p = EventosOrdem.de(jogador);
-        if (!p.isCriado()) {
-            EventosOrdem.abrirCriacao(jogador);
-            return;
-        }
-        Rede.CANAL.send(PacketDistributor.PLAYER.with(() -> jogador), de(p));
-    }
+public record PacoteFicha(CompoundTag dados) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<PacoteFicha> TYPE = Rede.tipo("ficha");
+    public static final StreamCodec<RegistryFriendlyByteBuf, PacoteFicha> CODEC =
+            StreamCodec.composite(ByteBufCodecs.COMPOUND_TAG, PacoteFicha::dados, PacoteFicha::new);
 
     public static PacoteFicha de(Personagem p) {
         CompoundTag t = new CompoundTag();
@@ -86,14 +80,14 @@ public record PacoteFicha(CompoundTag dados) {
         return new PacoteFicha(t);
     }
 
-    /** Estados de um nó da árvore (a tela usa os mesmos números). */
+    /** Estados de um no da arvore (a tela usa os mesmos numeros). */
     public static final int BLOQUEADA = 0;
     public static final int DISPONIVEL = 1;
     public static final int APRENDIDA = 2;
 
     /**
-     * As habilidades de classe da árvore (as "raízes": sem as versões aprimoradas e sem as de trilha).
-     * Já vão com o estado calculado pelo servidor, então a tela só desenha e manda o clique de volta.
+     * As habilidades de classe da arvore (as "raizes": sem as versoes aprimoradas e sem as de trilha).
+     * Ja vao com o estado calculado pelo servidor, entao a tela so desenha e manda o clique de volta.
      */
     private static ListTag arvore(Personagem p) {
         ListTag lista = new ListTag();
@@ -106,9 +100,9 @@ public record PacoteFicha(CompoundTag dados) {
         }
         raizes.sort(Comparator.comparingInt(Habilidade::getNivelMinimo));
         for (Habilidade raiz : raizes) {
-            Habilidade atual = p.habilidades.melhorVersao(raiz); // a versão mais forte já aprendida
+            Habilidade atual = p.habilidades.melhorVersao(raiz); // a versao mais forte ja aprendida
             boolean aprendida = p.habilidades.temAprendida(raiz);
-            // repetível (Treinamento em Perícia): continua à venda mesmo depois de aprendida
+            // repetivel (Treinamento em Pericia): continua a venda mesmo depois de aprendida
             String motivo = aprendida && !raiz.isRepetivel() ? null : p.habilidades.motivoBloqueio(raiz, nivel);
 
             CompoundTag c = new CompoundTag();
@@ -125,14 +119,14 @@ public record PacoteFicha(CompoundTag dados) {
             } else if (motivo == null) {
                 estado = DISPONIVEL;
             } else {
-                estado = aprendida ? APRENDIDA : BLOQUEADA; // repetível já aprendida, mas sem ponto agora
+                estado = aprendida ? APRENDIDA : BLOQUEADA; // repetivel ja aprendida, mas sem ponto agora
             }
             c.putInt("estado", estado);
             c.putString("motivo", motivo == null ? "" : motivo);
             c.putBoolean("repetivel", raiz.isRepetivel());
             c.putInt("vezes", p.habilidades.vezesAprendida(raiz));
 
-            // versões aprimoradas: em que NEX cada uma chega, e quantas já estão liberadas
+            // versoes aprimoradas: em que NEX cada uma chega, e quantas ja estao liberadas
             StringBuilder evolucoes = new StringBuilder();
             int total = 1;
             int liberadas = aprendida ? 1 : 0;
@@ -209,19 +203,8 @@ public record PacoteFicha(CompoundTag dados) {
         return c;
     }
 
-    public static void escrever(PacoteFicha m, FriendlyByteBuf buffer) {
-        buffer.writeNbt(m.dados);
-    }
-
-    public static PacoteFicha ler(FriendlyByteBuf buffer) {
-        CompoundTag t = buffer.readNbt();
-        return new PacoteFicha(t == null ? new CompoundTag() : t);
-    }
-
-    /** Roda no cliente quando a ficha chega: abre a tela. */
-    public static void tratar(PacoteFicha m, Supplier<NetworkEvent.Context> contexto) {
-        NetworkEvent.Context ctx = contexto.get();
-        ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClienteFicha.abrir(m.dados())));
-        ctx.setPacketHandled(true);
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }
