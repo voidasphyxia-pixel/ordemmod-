@@ -1,17 +1,29 @@
 package com.exemplo.ordemmod;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 import com.exemplo.ordemmod.marcado.PerfilMarcado;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -23,12 +35,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 /**
- * A ponte entre o jogo e as suas regras: o CICLO DE VIDA do personagem (entrar, tick, sair, renascer) e o uso
- * de habilidades pela tecla. No Forge eram metodos @SubscribeEvent; no Fabric sao callbacks registrados em
- * {@link #registrar()}. O personagem e salvo no proprio jogador (veja SalvamentoOrdem).
+ * A ponte entre o jogo e as suas regras: o CICLO DE VIDA do personagem (entrar, tick, sair, renascer), o uso
+ * de habilidades pela tecla e os comandos /ordem. No Forge eram metodos @SubscribeEvent; no Fabric sao callbacks
+ * registrados em {@link #registrar()}. O personagem e salvo no proprio jogador (veja SalvamentoOrdem).
  *
  * AINDA FALTA PORTAR (continua na main, no EventosOrdem.java do Forge): dano e critico, resistencia a efeitos,
- * dormir, estado mental (efeitos da sanidade baixa) e os comandos /ordem. Entram nas partes seguintes da etapa 4.
+ * dormir e estado mental (efeitos da sanidade baixa). Entram na parte 4b.
  */
 public class EventosOrdem {
     private static final Map<UUID, Personagem> PERSONAGENS = new HashMap<>();
@@ -63,6 +75,9 @@ public class EventosOrdem {
             ULTIMO_STATUS.clear();
             ULTIMA_LINHA.clear();
         });
+        // No Forge era o RegisterCommandsEvent.
+        CommandRegistrationCallback.EVENT.register((dispatcher, acessoRegistros, ambiente) ->
+                registrarComandos(dispatcher));
     }
 
     /** Pega o personagem do jogador; se ainda nao existe, le o salvo ou cria um Combatente. */
@@ -187,6 +202,204 @@ public class EventosOrdem {
                 SalvamentoOrdem.salvar(jogador, p);
             }
         }
+    }
+
+    // ------------------------------------------------------------------ comandos
+
+    /**
+     * /ordem status | nex | san <valor> | trilha [nome] | habilidades | aprender <id> | usar <id> | resetar
+     */
+    private static void registrarComandos(CommandDispatcher<CommandSourceStack> dispatcher) {
+        LiteralArgumentBuilder<CommandSourceStack> raiz = Commands.literal("ordem");
+
+        raiz.then(Commands.literal("status").executes(ctx -> {
+            ServerPlayer j = ctx.getSource().getPlayerOrException();
+            Personagem p = de(j);
+            return ok(ctx, p.classe + (p.getOrigem() == null ? "" : " (" + p.getOrigem().getNome() + ")")
+                    + " | " + p.barra(j.getHealth())
+                    + " | pontos de habilidade: " + p.habilidades.getPontos()
+                    + " | crítico (corpo a corpo): " + Math.round(p.chanceCritico(TipoDano.CORPO_A_CORPO) * 100)
+                    + "% | resistência: " + Math.round(p.chanceResistencia() * 100) + "%");
+        }));
+
+        raiz.then(Commands.literal("nex").executes(ctx -> {
+            ServerPlayer j = ctx.getSource().getPlayerOrException();
+            Personagem p = de(j);
+            boolean subiu = p.ganharNex(5);
+            aplicar(j, p);
+            SalvamentoOrdem.salvar(j, p);
+            return ok(ctx, (subiu ? "Subiu de nível! " : "") + p.nex);
+        }));
+
+        raiz.then(Commands.literal("trilha")
+                .executes(ctx -> listarTrilhas(ctx))
+                .then(Commands.argument("nome", StringArgumentType.word())
+                        .suggests((ctx, b) -> SharedSuggestionProvider.suggest(
+                                nomesDasTrilhas(de(ctx.getSource().getPlayerOrException())), b))
+                        .executes(ctx -> escolherTrilha(ctx, StringArgumentType.getString(ctx, "nome")))));
+
+        raiz.then(Commands.literal("habilidades").executes(ctx -> listarHabilidades(ctx)));
+
+        raiz.then(Commands.literal("aprender")
+                .then(Commands.argument("id", StringArgumentType.word())
+                        .suggests((ctx, b) -> {
+                            Personagem p = de(ctx.getSource().getPlayerOrException());
+                            List<String> ids = new ArrayList<>();
+                            for (Habilidade h : p.habilidades.disponiveis(p.nivel())) {
+                                ids.add(h.getId());
+                            }
+                            return SharedSuggestionProvider.suggest(ids, b);
+                        })
+                        .executes(ctx -> aprender(ctx, StringArgumentType.getString(ctx, "id")))));
+
+        raiz.then(Commands.literal("usar")
+                .then(Commands.argument("id", StringArgumentType.word())
+                        .suggests((ctx, b) -> {
+                            Personagem p = de(ctx.getSource().getPlayerOrException());
+                            List<String> ids = new ArrayList<>();
+                            for (Habilidade h : p.habilidades.getAtivas()) {
+                                ids.add(h.getId());
+                            }
+                            return SharedSuggestionProvider.suggest(ids, b);
+                        })
+                        .executes(ctx -> usar(ctx, StringArgumentType.getString(ctx, "id")))));
+
+        raiz.then(Commands.literal("san")
+                .then(Commands.argument("valor", IntegerArgumentType.integer(0, 999)).executes(ctx -> {
+                    ServerPlayer j = ctx.getSource().getPlayerOrException();
+                    Personagem p = de(j);
+                    p.setSanidade(IntegerArgumentType.getInteger(ctx, "valor"));
+                    SalvamentoOrdem.salvar(j, p);
+                    return ok(ctx, "Sanidade: " + p.getSanidade() + "/" + p.sanidadeMaxima());
+                })));
+
+        raiz.then(Commands.literal("resetar").executes(ctx -> {
+            ServerPlayer j = ctx.getSource().getPlayerOrException();
+            Personagem novo = new Personagem(ClasseOP.COMBATENTE);
+            PERSONAGENS.put(j.getUUID(), novo);
+            aplicar(j, novo);
+            j.setHealth(j.getMaxHealth());
+            SalvamentoOrdem.salvar(j, novo);
+            PerfilMarcado.resetar(j); // a cena do Marcado tambem repete
+            abrirCriacao(j); // recomecar = passar pela criacao de novo
+            return ok(ctx, "Personagem reiniciado. Crie o novo personagem na tela que abriu.");
+        }));
+
+        dispatcher.register(raiz);
+    }
+
+    private static int ok(CommandContext<CommandSourceStack> ctx, String texto) {
+        ctx.getSource().sendSuccess(() -> Component.literal(texto), false);
+        return 1;
+    }
+
+    private static int erro(CommandContext<CommandSourceStack> ctx, String texto) {
+        ctx.getSource().sendFailure(Component.literal(texto));
+        return 0;
+    }
+
+    private static List<String> nomesDasTrilhas(Personagem p) {
+        List<String> nomes = new ArrayList<>();
+        for (Trilha t : Trilha.values()) {
+            if (t.getClasse() == p.classe) {
+                nomes.add(t.name().toLowerCase(Locale.ROOT));
+            }
+        }
+        return nomes;
+    }
+
+    private static int listarTrilhas(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        Personagem p = de(ctx.getSource().getPlayerOrException());
+        if (p.habilidades.getTrilha() != null) {
+            return ok(ctx, "Sua trilha: " + p.habilidades.getTrilha().getNome());
+        }
+        StringBuilder sb = new StringBuilder("Trilhas de " + p.classe + " (escolha com /ordem trilha <nome>,"
+                + " a partir do NEX 10%, não dá para trocar):");
+        for (Trilha t : Trilha.values()) {
+            if (t.getClasse() == p.classe) {
+                sb.append("\n- ").append(t.name().toLowerCase(Locale.ROOT)).append(" (").append(t.getNome()).append(")");
+            }
+        }
+        return ok(ctx, sb.toString());
+    }
+
+    private static int escolherTrilha(CommandContext<CommandSourceStack> ctx, String nome)
+            throws CommandSyntaxException {
+        ServerPlayer j = ctx.getSource().getPlayerOrException();
+        Personagem p = de(j);
+        Trilha alvo = null;
+        for (Trilha t : Trilha.values()) {
+            if (t.name().equalsIgnoreCase(nome)) {
+                alvo = t;
+            }
+        }
+        if (alvo == null) {
+            return erro(ctx, "Trilha não encontrada. Use /ordem trilha para ver a lista.");
+        }
+        if (!p.habilidades.podeEscolherTrilha(alvo, p.nivel())) {
+            return erro(ctx, p.habilidades.getTrilha() != null
+                    ? "Você já escolheu a trilha " + p.habilidades.getTrilha().getNome() + "."
+                    : "Não dá: precisa ser da sua classe e ter NEX 10% ou mais (use /ordem nex).");
+        }
+        List<Habilidade> antes = p.habilidades.getAprendidas();
+        p.habilidades.escolherTrilha(alvo, p.nivel());
+        StringBuilder sb = new StringBuilder("Trilha escolhida: " + alvo.getNome() + ".");
+        for (Habilidade h : p.habilidades.getAprendidas()) {
+            if (!antes.contains(h)) {
+                sb.append("\nLiberada: ").append(h.getNome());
+            }
+        }
+        aplicar(j, p);
+        SalvamentoOrdem.salvar(j, p);
+        return ok(ctx, sb.toString());
+    }
+
+    private static int listarHabilidades(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        Personagem p = de(ctx.getSource().getPlayerOrException());
+        StringBuilder sb = new StringBuilder("Pontos de habilidade: " + p.habilidades.getPontos());
+        sb.append("\nTrilha: ").append(p.habilidades.getTrilha() == null
+                ? "nenhuma" : p.habilidades.getTrilha().getNome());
+        sb.append("\nAtivas:");
+        for (Habilidade h : p.habilidades.getAtivas()) {
+            sb.append("\n- ").append(h.getNome()).append(" [").append(h.getId()).append("] ")
+                    .append(h.getCustoPe()).append(" PE");
+        }
+        sb.append("\nPassivas:");
+        for (Habilidade h : p.habilidades.getPassivas()) {
+            sb.append("\n- ").append(h.getNome());
+        }
+        sb.append("\nPode aprender (1 ponto):");
+        for (Habilidade h : p.habilidades.disponiveis(p.nivel())) {
+            sb.append("\n- ").append(h.getNome()).append(" [").append(h.getId()).append("]");
+        }
+        return ok(ctx, sb.toString());
+    }
+
+    private static int aprender(CommandContext<CommandSourceStack> ctx, String id) throws CommandSyntaxException {
+        ServerPlayer j = ctx.getSource().getPlayerOrException();
+        Personagem p = de(j);
+        Habilidade h = CatalogoHabilidades.porId(id);
+        if (h == null) {
+            return erro(ctx, "Habilidade não encontrada: " + id);
+        }
+        if (!p.habilidades.aprender(h, p.nivel())) {
+            return erro(ctx, "Não dá para aprender " + h.getNome()
+                    + " agora (falta ponto, nível, pré-requisito ou atributo, ou já foi aprendida).");
+        }
+        aplicar(j, p);
+        SalvamentoOrdem.salvar(j, p);
+        return ok(ctx, "Aprendeu: " + h.getNome() + ". Pontos restantes: " + p.habilidades.getPontos());
+    }
+
+    private static int usar(CommandContext<CommandSourceStack> ctx, String id) throws CommandSyntaxException {
+        ServerPlayer j = ctx.getSource().getPlayerOrException();
+        Personagem p = de(j);
+        Habilidade h = CatalogoHabilidades.porId(id);
+        if (h == null) {
+            return erro(ctx, "Habilidade não encontrada: " + id);
+        }
+        Resultado r = tentarUsar(j, p, h);
+        return r.ok() ? ok(ctx, r.texto()) : erro(ctx, r.texto());
     }
 
     // ------------------------------------------------------------------ usar habilidade

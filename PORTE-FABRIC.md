@@ -18,16 +18,21 @@ No log (ou no console do `runClient`) deve aparecer, nesta ordem:
 
 Para testar o salvamento: saia do mundo e entre de novo; a linha do servidor deve dizer `CARREGADO do save`.
 
-As etapas 3 e 4a foram escritas sem compilar. Se der erro, cole aqui a saida do `gradlew build`.
+Para testar os comandos (etapa 4c), no mundo, abra o chat com `T` e digite (o personagem precisa estar num mundo com trapacas ligadas ou ser o dono):
+- `/ordem status`, `/ordem nex` (repita ate subir de nivel), `/ordem habilidades`
+- `/ordem aprender <id>` (o chat sugere os ids com Tab), `/ordem usar <id>`
+- `/ordem san 5`, `/ordem trilha`, `/ordem resetar`
+
+As etapas 3 e 4a foram compiladas e testadas no jogo. A 4c foi escrita sem compilar. Se der erro, cole aqui a saida do `gradlew build`.
 
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
 - [x] 2. Nucleo em Java puro (lista em `build.gradle`, variavel `nucleo`).
 - [x] 3. Rede e salvamento (pacotes como payloads, `Rede.registrarTipos()`, Data Attachment). Testado.
 - [~] 4. Eventos e pericias em jogo.
-  - [x] 4a. Ciclo de vida do personagem em `EventosOrdem` (entrar, tick, sair, renascer, tecla de habilidade, status para a HUD), `Avisos`, `TesteNaTela`, `PerfilMarcado` (agora com attachment), `ReceptoresServidor` registrado.
+  - [x] 4a. Ciclo de vida do personagem em `EventosOrdem` (entrar, tick, sair, renascer, tecla de habilidade, status para a HUD), `Avisos`, `TesteNaTela`, `PerfilMarcado` (agora com attachment), `ReceptoresServidor` registrado. Testado (salvar e recarregar, status e aviso chegam ao cliente).
   - [ ] 4b. Dano e critico, resistencia a efeitos, dormir, estado mental (efeitos da sanidade baixa). Codigo atual na `main` (`EventosOrdem.java`: `aoSofrerDano`, `aoReceberEfeito`, `aoAcordar`, `aplicarEstadoMental`).
-  - [ ] 4c. Comandos `/ordem ...` (`comandos` na `main`).
+  - [~] 4c. Comandos `/ordem ...` portados para `EventosOrdem.registrarComandos` (`CommandRegistrationCallback`). Escrito, ainda nao compilado nem testado.
   - [ ] 4d. `EventosPericias`, `EventosOrigens`, `QuedaAcrobacia`, `EsquivaReflexos`, `ReceptorMarcado` (precisa do `RoteiroMarcado`).
 - [ ] 5. Entidades e sons (GeckoLib 5.x para 26.2): pasta `entidade`, `SonsOrdem`.
 - [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio.
@@ -43,3 +48,6 @@ As etapas 3 e 4a foram escritas sem compilar. Se der erro, cole aqui a saida do 
 - NBT na 1.21.5+: os getters devolvem `Optional`. Use `getIntOr`, `getStringOr`, `getBooleanOr`, `getCompoundOrEmpty`, `getListOrEmpty`. `getAllKeys()` mudou de nome. Vale para a `TelaFicha`, que le o CompoundTag do `PacoteFicha`.
 - Os receptores do Fabric ja rodam na thread certa: sem `enqueueWork` e sem `DistExecutor`.
 - `ResourceLocation` virou `Identifier` na 26.x.
+- `ChatFormatting.getColor()` nao existe mais na 26.2: use `Avisos.rgbDe(cor)`.
+- `Player.displayClientMessage(texto, true)` virou `sendOverlayMessage(texto)` (e `sendSystemMessage(texto)` para o chat).
+- `RegisterCommandsEvent` vira `CommandRegistrationCallback.EVENT` (`net.fabricmc.fabric.api.command.v2`).
