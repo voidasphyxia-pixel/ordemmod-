@@ -37,6 +37,8 @@ public class OrdemModClienteFabric implements ClientModInitializer {
             ticksDesdeEntrada = 0;
             statusVisto = false;
         });
+        // Ao sair do mundo o contador para: sem isto, sair antes dos 5 s mandava o pacote ja desconectado (crash).
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, cliente) -> ticksDesdeEntrada = -1);
         ClientTickEvents.END_CLIENT_TICK.register(cliente -> {
             if (ticksDesdeEntrada >= 0 && ++ticksDesdeEntrada == 100) {
                 System.out.println("[Ordem cliente] enviando tecla de teste (USAR) ao servidor");
