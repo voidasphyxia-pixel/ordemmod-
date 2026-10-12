@@ -8,7 +8,8 @@
   "license": "All Rights Reserved",
   "environment": "*",
   "entrypoints": {
-    "main": ["com.exemplo.ordemmod.OrdemMod"]
+    "main": ["com.exemplo.ordemmod.OrdemMod"],
+    "client": ["com.exemplo.ordemmod.cliente.OrdemModClienteFabric"]
   },
   "depends": {
     "fabricloader": ">=0.19.3",

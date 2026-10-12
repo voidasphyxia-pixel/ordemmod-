@@ -4,13 +4,12 @@ import java.util.List;
 import java.util.Random;
 
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.PacketDistributor;
 
 /**
- * A porta de entrada para "rolar um teste COM animação na tela do jogador".
- * O servidor rola (Pericias.testar), separa o bônus por fonte e manda o pacote; o cliente toca a animação.
+ * A porta de entrada para "rolar um teste COM animacao na tela do jogador".
+ * O servidor rola (Pericias.testar), separa o bonus por fonte e manda o pacote; o cliente toca a animacao.
  *
- * Use de qualquer lugar do servidor, por exemplo num ponto de investigação ou numa conversa:
+ * Use de qualquer lugar do servidor, por exemplo num ponto de investigacao ou numa conversa:
  *   TesteNaTela.rolar(jogador, Pericia.MEDICINA, 20, "Examinar o corpo");
  */
 public final class TesteNaTela {
@@ -29,7 +28,7 @@ public final class TesteNaTela {
         Personagem p = EventosOrdem.de(jogador);
         ResultadoTeste r = p.pericias.testar(pericia, dt, bonusExtra, ALEATORIO);
         List<ParteBonus> partes = p.pericias.partesDoBonus(pericia, bonusExtra, rotuloExtra);
-        Rede.CANAL.send(PacketDistributor.PLAYER.with(() -> jogador), PacoteTeste.de(r, partes, motivo));
+        Rede.paraJogador(jogador, PacoteTeste.de(r, partes, motivo));
         return r;
     }
 }

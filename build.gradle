@@ -27,21 +27,25 @@ dependencies {
 // PORTE EM ETAPAS: so compila o que ja foi portado. Os demais arquivos continuam no repo,
 // ainda em Forge, e voltam para esta lista conforme forem portados. Veja PORTE-FABRIC.md.
 //   Etapa 2: nucleo em Java puro.
-//   Etapa 3: rede (pacotes + registro) e salvamento. ReceptoresServidor, ReceptoresCliente e
-//            marcado/ReceptorMarcado ja estao escritos mas FICAM DE FORA ate suas dependencias
-//            (EventosOrdem, telas, HUD) serem portadas.
+//   Etapa 3: rede (pacotes + registro) e salvamento.
+//   Etapa 4a: ciclo de vida do personagem (EventosOrdem), Avisos, TesteNaTela, PerfilMarcado,
+//            ReceptoresServidor e um entrypoint de cliente PROVISORIO (so para testar a rede).
+//            Ainda fora: ReceptoresCliente e marcado/ReceptorMarcado (dependem de HUD/telas/RoteiroMarcado).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
     'Atributo', 'Atributos', 'ClasseOP', 'GrauTreinamento', 'ParteBonus', 'Proficiencia',
     'TipoDano', 'TipoHabilidade', 'Pericia', 'NivelExposicao', 'ResultadoTeste', 'Trilha',
     'Pericias', 'Origem', 'Beneficio', 'PontosEsforco',
     'EfeitoDano', 'EfeitoDefesa', 'EfeitoAoUsar', 'EfeitoPassivo', 'EfeitosAtivos', 'EfeitosAtributos',
-    'Habilidade', 'HabilidadesDoPersonagem', 'CatalogoHabilidades', 'Personagem',
+    'Habilidade', 'HabilidadesDoPersonagem', 'CatalogoHabilidades', 'Personagem', 'CriacaoPersonagem',
     // etapa 3
     'CodecsOrdem', 'Rede', 'AnexosOrdem', 'SalvamentoOrdem',
     'PacoteHabilidade', 'PacoteAbrirCriacao', 'PacoteAviso', 'PacoteStatus', 'PacoteRolarPericia',
     'PacoteTeste', 'PacoteRolagemHud', 'PacoteCriarPersonagem', 'PacoteArvore', 'PacoteFicha',
     'marcado/PacoteMarcado',
+    // etapa 4a
+    'Avisos', 'TesteNaTela', 'EventosOrdem', 'ReceptoresServidor', 'marcado/PerfilMarcado',
+    'cliente/OrdemModClienteFabric',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }

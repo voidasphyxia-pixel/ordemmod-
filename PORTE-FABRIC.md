@@ -5,28 +5,41 @@ Branch `fabric-26.2`. O Forge 1.20.1 continua intacto na `main`.
 ## Como testar
 1. Instale o **JDK 25**.
 2. `gradlew.bat build` (ou `./gradlew build`).
-3. `gradlew.bat runClient`: no log deve aparecer:
-   - `Ordem Mod carregado no Fabric! Nucleo OK ...`
-   - `Ordem Mod etapa 3: salvamento OK, pacote OK.`
+3. `gradlew.bat runClient`, crie um mundo novo e entre nele. Espere uns 10 segundos.
 
-A etapa 3 foi escrita sem compilar. Se der erro, cole aqui a saida do `gradlew build`.
+No log (ou no console do `runClient`) deve aparecer, nesta ordem:
+- `Ordem Mod carregado no Fabric! Nucleo OK ...`
+- `Ordem Mod etapa 3: salvamento OK, pacote OK.`
+- `[Ordem servidor] personagem NOVO para <seu nome> (criado=false)`
+- `[Ordem cliente] servidor pediu a tela de criacao (com Marcado: true)`
+- `[Ordem cliente] status recebido: PacoteStatus[...]`
+- `[Ordem cliente] enviando tecla de teste (USAR) ao servidor`
+- `[Ordem cliente] aviso recebido: ...`
+
+Para testar o salvamento: saia do mundo e entre de novo; a linha do servidor deve dizer `CARREGADO do save`.
+
+As etapas 3 e 4a foram escritas sem compilar. Se der erro, cole aqui a saida do `gradlew build`.
 
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
 - [x] 2. Nucleo em Java puro (lista em `build.gradle`, variavel `nucleo`).
-- [~] 3. Rede e salvamento.
-  - Feito e na lista de compilacao: os 11 pacotes como payloads (`TYPE` + `CODEC`), `Rede.registrarTipos()`, `SalvamentoOrdem` com Data Attachment (`AnexosOrdem`), teste de fumaca no `OrdemMod`.
-  - Escrito mas FORA da lista de compilacao (dependem de classes ainda em Forge): `ReceptoresServidor`, `ReceptoresCliente`, `marcado/ReceptorMarcado`.
-- [ ] 4. Eventos e pericias em jogo (`EventosOrdem`, `EventosPericias`, `EventosOrigens`, `QuedaAcrobacia`, `EsquivaReflexos`). Aqui entram `Avisos`, `TesteNaTela`, `CriacaoPersonagem`, `PerfilMarcado`; depois chamar `ReceptoresServidor.registrar()` e `ReceptorMarcado.registrar()` no `OrdemMod`.
+- [x] 3. Rede e salvamento (pacotes como payloads, `Rede.registrarTipos()`, Data Attachment). Testado.
+- [~] 4. Eventos e pericias em jogo.
+  - [x] 4a. Ciclo de vida do personagem em `EventosOrdem` (entrar, tick, sair, renascer, tecla de habilidade, status para a HUD), `Avisos`, `TesteNaTela`, `PerfilMarcado` (agora com attachment), `ReceptoresServidor` registrado.
+  - [ ] 4b. Dano e critico, resistencia a efeitos, dormir, estado mental (efeitos da sanidade baixa). Codigo atual na `main` (`EventosOrdem.java`: `aoSofrerDano`, `aoReceberEfeito`, `aoAcordar`, `aplicarEstadoMental`).
+  - [ ] 4c. Comandos `/ordem ...` (`comandos` na `main`).
+  - [ ] 4d. `EventosPericias`, `EventosOrigens`, `QuedaAcrobacia`, `EsquivaReflexos`, `ReceptorMarcado` (precisa do `RoteiroMarcado`).
 - [ ] 5. Entidades e sons (GeckoLib 5.x para 26.2): pasta `entidade`, `SonsOrdem`.
-- [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui criar o entrypoint `client` no `fabric.mod.json` e chamar `ReceptoresCliente.registrar()`.
+- [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio.
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`) e armas sem TACZ.
 
-## O que muda ao portar o resto (anotado na etapa 3)
+## O que muda ao portar o resto
 - `Rede.CANAL.send(PacketDistributor.PLAYER.with(() -> jogador), pacote)` vira `Rede.paraJogador(jogador, pacote)`.
 - `Rede.CANAL.sendToServer(pacote)` vira `ReceptoresCliente.enviar(pacote)`.
 - `PacoteFicha.enviar(jogador)` virou `ReceptoresServidor.enviarFicha(jogador)`.
-- `jogador.getPersistentData()` nao existe mais: usar attachments (`AnexosOrdem`). Ainda tem uso em `PerfilMarcado` e provavelmente em `EventosOrdem`/`EventosPericias`.
+- `jogador.getPersistentData()` nao existe mais: usar attachments (`AnexosOrdem`). Ainda pode haver uso em `EventosPericias`/`EventosOrigens`.
+- Eventos do Forge (`@SubscribeEvent`) viram callbacks do Fabric registrados num metodo `registrar()` (veja `EventosOrdem`). Eventos de dano/efeito do Forge nao tem equivalente identico no Fabric: a parte 4b vai precisar de mixin ou de eventos como `ServerLivingEntityEvents`.
+- `AttributeModifier` agora usa `Identifier` (nao `UUID`) e a operacao `ADD_MULTIPLIED_BASE` (era `MULTIPLY_BASE`).
 - NBT na 1.21.5+: os getters devolvem `Optional`. Use `getIntOr`, `getStringOr`, `getBooleanOr`, `getCompoundOrEmpty`, `getListOrEmpty`. `getAllKeys()` mudou de nome. Vale para a `TelaFicha`, que le o CompoundTag do `PacoteFicha`.
 - Os receptores do Fabric ja rodam na thread certa: sem `enqueueWork` e sem `DistExecutor`.
 - `ResourceLocation` virou `Identifier` na 26.x.

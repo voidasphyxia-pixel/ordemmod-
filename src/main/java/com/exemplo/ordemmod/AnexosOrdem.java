@@ -1,5 +1,7 @@
 package com.exemplo.ordemmod;
 
+import com.exemplo.ordemmod.marcado.PerfilMarcado;
+
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.resources.Identifier;
@@ -21,6 +23,13 @@ public final class AnexosOrdem {
             id("personagem"),
             builder -> builder
                     .persistent(SalvamentoOrdem.DadosSalvos.CODEC)
+                    .copyOnDeath());
+
+    /** O que a cena do Marcado guardou (respostas, tags, se terminou). Persiste e sobrevive à morte. */
+    public static final AttachmentType<PerfilMarcado.Dados> MARCADO = AttachmentRegistry.create(
+            id("marcado"),
+            builder -> builder
+                    .persistent(PerfilMarcado.Dados.CODEC)
                     .copyOnDeath());
 
     /** Anti-spam do clique de perícia na ficha (tick do jogo em que libera de novo). Não persiste. */
