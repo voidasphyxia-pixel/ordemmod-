@@ -2,6 +2,7 @@ package com.exemplo.ordemmod;
 
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -9,11 +10,11 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
-import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
@@ -39,10 +40,25 @@ public final class EventosDano {
     /** Sorteio dos criticos e das resistencias. */
     private static final Random ALEATORIO = new Random();
 
+    /** Mortos-vivos (no 26.2 nao uso EntityType.X nem a tag: comparo pelo id do registro). */
+    private static final Set<String> MORTOS_VIVOS = Set.of(
+            "zombie", "husk", "drowned", "zombie_villager", "zombified_piglin", "zoglin",
+            "skeleton", "stray", "wither_skeleton", "bogged", "skeleton_horse", "zombie_horse",
+            "phantom", "wither", "warden");
+
+    /** Criaturas que tiram 3 de SAN em vez de 1. */
+    private static final Set<String> MUITO_PARANORMAIS = Set.of(
+            "enderman", "phantom", "warden", "wither", "ender_dragon");
+
     /** Fica true enquanto o proprio mod aplica um efeito (a sanidade), para o jogador nao "resistir" a ele. */
     private static boolean aplicandoEfeitoProprio = false;
 
     private EventosDano() {
+    }
+
+    /** Id do tipo no registro, sem o namespace (ex.: "zombie"). */
+    private static String caminho(EntityType<?> tipo) {
+        return BuiltInRegistries.ENTITY_TYPE.getKey(tipo).getPath();
     }
 
     /** Liga os callbacks do Fabric. Chamar uma vez, depois de EventosOrdem.registrar(). */
@@ -123,9 +139,7 @@ public final class EventosDano {
 
     /** Mortos-vivos e criaturas do Outro Lado (alvo de Ocultismo, origem do medo de Religiao). */
     private static boolean ehDoOutroLado(Entity entidade) {
-        // O MobType.UNDEAD do Forge 1.20.1 virou a tag minecraft:undead.
-        return entidade instanceof LivingEntity vivo
-                && (vivo.getType().is(EntityTypeTags.UNDEAD) || vivo.getType() == EntityType.WARDEN);
+        return entidade instanceof LivingEntity vivo && MORTOS_VIVOS.contains(caminho(vivo.getType()));
     }
 
     /** Quanto do dano o jogador ainda recebe depois das pericias defensivas (1.0 = tudo, 0.8 = -20%). */
@@ -176,9 +190,7 @@ public final class EventosDano {
 
     /** Quanta SAN se perde ao apanhar desta criatura. */
     private static int perdaDeSanidade(Entity fonte) {
-        EntityType<?> tipo = fonte.getType();
-        if (tipo == EntityType.ENDERMAN || tipo == EntityType.PHANTOM || tipo == EntityType.WARDEN
-                || tipo == EntityType.WITHER || tipo == EntityType.ENDER_DRAGON) {
+        if (MUITO_PARANORMAIS.contains(caminho(fonte.getType()))) {
             return 3; // criaturas mais "paranormais"
         }
         return 1;
