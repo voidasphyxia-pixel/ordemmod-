@@ -158,7 +158,8 @@ public class EventosOrdem {
         String antes = ULTIMA_LINHA.getOrDefault(j.getUUID(), "");
         if (!linha.equals(antes) || (!linha.isEmpty() && j.tickCount % 40 == 0)) {
             ULTIMA_LINHA.put(j.getUUID(), linha);
-            j.displayClientMessage(Component.literal(linha), true); // true = barra de texto acima da hotbar
+            // Na 26.2 o displayClientMessage(texto, true) virou sendOverlayMessage(texto): barra de texto acima da hotbar
+            j.sendOverlayMessage(Component.literal(linha));
         }
     }
 
