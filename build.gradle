@@ -31,6 +31,7 @@ dependencies {
 //   Etapa 4a: ciclo de vida do personagem (EventosOrdem), Avisos, TesteNaTela, PerfilMarcado,
 //            ReceptoresServidor e um entrypoint de cliente PROVISORIO (so para testar a rede).
 //            Ainda fora: ReceptoresCliente e marcado/ReceptorMarcado (dependem de HUD/telas/RoteiroMarcado).
+//   Etapa 4b: EventosDano (dano, efeitos, sono, estado mental) + mixin/LivingEntityMixin.
 // ---------------------------------------------------------------------------------------
 def nucleo = [
     'Atributo', 'Atributos', 'ClasseOP', 'GrauTreinamento', 'ParteBonus', 'Proficiencia',
@@ -46,6 +47,8 @@ def nucleo = [
     // etapa 4a
     'Avisos', 'TesteNaTela', 'EventosOrdem', 'ReceptoresServidor', 'marcado/PerfilMarcado',
     'cliente/OrdemModClienteFabric',
+    // etapa 4b
+    'EventosDano', 'mixin/LivingEntityMixin',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }
