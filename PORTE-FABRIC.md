@@ -18,7 +18,7 @@ No log (ou no console do `runClient`) deve aparecer, nesta ordem:
 
 Para testar o salvamento: saia do mundo e entre de novo; a linha do servidor deve dizer `CARREGADO do save`.
 
-Para testar os comandos (etapa 4c), no mundo, abra o chat com `T` e digite (o personagem precisa estar num mundo com trapacas ligadas ou ser o dono):
+Para testar os comandos (etapa 4c), no mundo, abra o chat com `T` e digite (o `/ordem` nao tem restricao de permissao, como no original):
 - `/ordem status`, `/ordem nex` (repita ate subir de nivel), `/ordem habilidades`
 - `/ordem aprender <id>` (o chat sugere os ids com Tab), `/ordem usar <id>`
 - `/ordem san 5`, `/ordem trilha`, `/ordem resetar`
