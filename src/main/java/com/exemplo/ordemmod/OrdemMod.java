@@ -1,25 +1,21 @@
 package com.exemplo.ordemmod;
 
-import com.exemplo.ordemmod.entidade.EntidadesOrdem;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.fabricmc.api.ModInitializer;
 
-@Mod(OrdemMod.MOD_ID)
-public class OrdemMod {
+/**
+ * Ponto de entrada do mod no Fabric (26.2). No Forge era o @Mod + event bus.
+ *
+ * Ainda NAO registra entidades, sons, rede nem eventos: isso volta aqui conforme cada
+ * parte for portada (veja PORTE-FABRIC.md).
+ */
+public class OrdemMod implements ModInitializer {
     public static final String MOD_ID = "ordemmod";
 
-    public OrdemMod() {
-        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
-        bus.addListener(this::preparar);
-        EntidadesOrdem.registrar(bus);
-        SonsOrdem.registrar(bus);
-        System.out.println("Ordem Mod carregado!");
-    }
-
-    /** Roda uma vez na partida do jogo: abre o canal de mensagens. */
-    private void preparar(FMLCommonSetupEvent e) {
-        e.enqueueWork(Rede::registrar);
+    @Override
+    public void onInitialize() {
+        // Teste de fumaca do nucleo (pode apagar depois): se aparecer no log, o Java puro carregou.
+        Personagem teste = new Personagem(ClasseOP.COMBATENTE);
+        System.out.println("Ordem Mod carregado no Fabric! Nucleo OK (Combatente NEX " + teste.nex.getNex()
+                + "%, vida maxima " + teste.vidaMaxima() + ").");
     }
 }

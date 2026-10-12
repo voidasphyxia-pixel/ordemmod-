@@ -1,13 +1,17 @@
 pluginManagement {
     repositories {
-        gradlePluginPortal()
         maven {
-            name = 'MinecraftForge'
-            url = 'https://maven.minecraftforge.net/'
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
         }
+        mavenCentral()
+        gradlePluginPortal()
     }
 }
 
 plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
+    // Gradle 9 exige a versao 1.0.0 ou mais nova do foojay (a 0.7.0 quebra).
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
+
+rootProject.name = 'ordemmod'
