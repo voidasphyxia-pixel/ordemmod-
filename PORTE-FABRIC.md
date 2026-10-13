@@ -23,7 +23,9 @@ Para testar os comandos (etapa 4c), no mundo, abra o chat com `T` e digite (o `/
 - `/ordem aprender <id>` (o chat sugere os ids com Tab), `/ordem usar <id>`
 - `/ordem san 5`, `/ordem trilha`, `/ordem resetar`
 
-As etapas 3 e 4a foram compiladas e testadas no jogo. A 4c foi escrita sem compilar. Se der erro, cole aqui a saida do `gradlew build`.
+Para testar a 4b: `/ordem san 0` (avisa "Voce esta enlouquecendo!" e aplica escuridao/fraqueza/lentidao), bater em um mob (as vezes aparece CRITICO!), `/effect give @s minecraft:poison` (as vezes "Resistiu a Veneno!"), dormir uma noite (devolve a sanidade).
+
+As etapas 3, 4a, 4b e 4c foram compiladas e testadas no jogo. Se der erro, cole aqui a saida do `gradlew build`.
 
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
@@ -31,19 +33,23 @@ As etapas 3 e 4a foram compiladas e testadas no jogo. A 4c foi escrita sem compi
 - [x] 3. Rede e salvamento (pacotes como payloads, `Rede.registrarTipos()`, Data Attachment). Testado.
 - [~] 4. Eventos e pericias em jogo.
   - [x] 4a. Ciclo de vida do personagem em `EventosOrdem` (entrar, tick, sair, renascer, tecla de habilidade, status para a HUD), `Avisos`, `TesteNaTela`, `PerfilMarcado` (agora com attachment), `ReceptoresServidor` registrado. Testado (salvar e recarregar, status e aviso chegam ao cliente).
-  - [ ] 4b. Dano e critico, resistencia a efeitos, dormir, estado mental (efeitos da sanidade baixa). Codigo atual na `main` (`EventosOrdem.java`: `aoSofrerDano`, `aoReceberEfeito`, `aoAcordar`, `aplicarEstadoMental`).
-  - [~] 4c. Comandos `/ordem ...` portados para `EventosOrdem.registrarComandos` (`CommandRegistrationCallback`). Escrito, ainda nao compilado nem testado.
+  - [x] 4b. `EventosDano` + `mixin/LivingEntityMixin`: dano e critico, resistencia a efeitos, dormir, estado mental (efeitos da sanidade baixa). Testado (enlouquecendo, mente se acalma, resistiu a veneno). Obs.: no 26.2 nao existem `EntityType.WARDEN` etc. nem `EntityType.is(tag)`; mortos-vivos sao comparados pelo id do registro. O dano e alterado ANTES da armadura (no Forge era depois).
+  - [x] 4c. Comandos `/ordem ...` em `EventosOrdem.registrarComandos` (`CommandRegistrationCallback`). Testado.
   - [ ] 4d. `EventosPericias`, `EventosOrigens`, `QuedaAcrobacia`, `EsquivaReflexos`, `ReceptorMarcado` (precisa do `RoteiroMarcado`).
 - [ ] 5. Entidades e sons (GeckoLib 5.x para 26.2): pasta `entidade`, `SonsOrdem`.
 - [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio.
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`) e armas sem TACZ.
+
+## Pendencias pequenas
+- Os arquivos `font/c-OFL.txt`, `font/Tektur-OFL.txt`, `font/z-OFL.txt` e `sounds/menu/CREDITOS-MUSICA.txt` tem maiuscula e geram "Invalid path in mod resource-pack" no log (inofensivo). Renomear para minusculas ou mover para fora de `assets/`.
 
 ## O que muda ao portar o resto
 - `Rede.CANAL.send(PacketDistributor.PLAYER.with(() -> jogador), pacote)` vira `Rede.paraJogador(jogador, pacote)`.
 - `Rede.CANAL.sendToServer(pacote)` vira `ReceptoresCliente.enviar(pacote)`.
 - `PacoteFicha.enviar(jogador)` virou `ReceptoresServidor.enviarFicha(jogador)`.
 - `jogador.getPersistentData()` nao existe mais: usar attachments (`AnexosOrdem`). Ainda pode haver uso em `EventosPericias`/`EventosOrigens`.
-- Eventos do Forge (`@SubscribeEvent`) viram callbacks do Fabric registrados num metodo `registrar()` (veja `EventosOrdem`). Eventos de dano/efeito do Forge nao tem equivalente identico no Fabric: a parte 4b vai precisar de mixin ou de eventos como `ServerLivingEntityEvents`.
+- Eventos do Forge (`@SubscribeEvent`) viram callbacks do Fabric registrados num metodo `registrar()` (veja `EventosOrdem`). Eventos de dano/efeito do Forge nao tem equivalente identico no Fabric: use mixin (veja `LivingEntityMixin`) ou `ServerLivingEntityEvents`.
+- `EntityType.X` (WARDEN, ENDERMAN...) e `EntityType.is(tag)` nao existem no 26.2: comparar pelo id do registro (`BuiltInRegistries.ENTITY_TYPE.getKey(tipo).getPath()`).
 - `AttributeModifier` agora usa `Identifier` (nao `UUID`) e a operacao `ADD_MULTIPLIED_BASE` (era `MULTIPLY_BASE`).
 - NBT na 1.21.5+: os getters devolvem `Optional`. Use `getIntOr`, `getStringOr`, `getBooleanOr`, `getCompoundOrEmpty`, `getListOrEmpty`. `getAllKeys()` mudou de nome. Vale para a `TelaFicha`, que le o CompoundTag do `PacoteFicha`.
 - Os receptores do Fabric ja rodam na thread certa: sem `enqueueWork` e sem `DistExecutor`.
