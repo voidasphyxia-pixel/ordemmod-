@@ -379,7 +379,7 @@ public final class EventosPericias {
      * Chamado por mixin/LivingEntityMixin quando o jogador termina de usar um item (completeUsingItem).
      * Se o item e comida, Sobrevivencia e a origem Chef dao fome e saturacao extras.
      */
-    static void aoComer(ServerPlayer j, ItemStack item) {
+    public static void aoComer(ServerPlayer j, ItemStack item) {
         if (!item.has(DataComponents.FOOD)) {
             return;
         }
@@ -469,7 +469,7 @@ public final class EventosPericias {
      * Chamado por mixin/PlayerMixin no inicio de Player.giveExperiencePoints (era PlayerXpEvent.XpChange).
      * Devolve a quantidade de pontos ja com o bonus de Atualidades e da origem.
      */
-    static int ajustarXp(Player jogador, int pontos) {
+    public static int ajustarXp(Player jogador, int pontos) {
         if (!(jogador instanceof ServerPlayer j) || pontos <= 0) {
             return pontos;
         }
@@ -484,7 +484,7 @@ public final class EventosPericias {
      * Chamado por mixin/TamableAnimalMixin no fim de TamableAnimal.tame (era AnimalTameEvent).
      * LIMITE: so cobre lobos, gatos e papagaios (TamableAnimal). Cavalos e afins (AbstractHorse) nao passam por aqui.
      */
-    static void aoDomar(TamableAnimal bicho, Player jogador) {
+    public static void aoDomar(TamableAnimal bicho, Player jogador) {
         if (!(jogador instanceof ServerPlayer j)) {
             return;
         }
