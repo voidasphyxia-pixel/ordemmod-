@@ -1,5 +1,6 @@
 package com.exemplo.ordemmod;
 
+import com.exemplo.ordemmod.marcado.ReceptorMarcado;
 import com.mojang.serialization.JsonOps;
 
 import io.netty.buffer.Unpooled;
@@ -10,9 +11,10 @@ import net.minecraft.network.FriendlyByteBuf;
  * Ponto de entrada do mod no Fabric (26.2). No Forge era o @Mod + event bus.
  *
  * Ja registra: o attachment do personagem, os tipos de pacote (rede), os eventos de ciclo de vida do
- * personagem e os comandos (EventosOrdem), dano/efeitos/sono/estado mental (EventosDano) e os receptores
- * do servidor (ReceptoresServidor).
- * Ainda NAO registra entidades, sons, nem o ReceptorMarcado.
+ * personagem e os comandos (EventosOrdem), dano/efeitos/sono/estado mental (EventosDano), os receptores
+ * do servidor (ReceptoresServidor), as pericias (EventosPericias), as origens (EventosOrigens) e o receptor
+ * da cena do Marcado (ReceptorMarcado).
+ * Ainda NAO registra entidades nem sons.
  * Veja PORTE-FABRIC.md.
  */
 public class OrdemMod implements ModInitializer {
@@ -25,6 +27,10 @@ public class OrdemMod implements ModInitializer {
         EventosOrdem.registrar();
         EventosDano.registrar();
         ReceptoresServidor.registrar();
+        // etapa 4d
+        EventosPericias.registrar();
+        EventosOrigens.registrar();
+        ReceptorMarcado.registrar();
 
         // Teste de fumaca do nucleo (pode apagar depois): se aparecer no log, o Java puro carregou.
         Personagem teste = new Personagem(ClasseOP.COMBATENTE);

@@ -1,5 +1,9 @@
 package com.exemplo.ordemmod;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import com.exemplo.ordemmod.marcado.PerfilMarcado;
 
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -34,6 +38,17 @@ public final class AnexosOrdem {
 
     /** Anti-spam do clique de perícia na ficha (tick do jogo em que libera de novo). Não persiste. */
     public static final AttachmentType<Long> RECARGA_ROLAR = AttachmentRegistry.create(id("recarga_rolar"));
+
+    /**
+     * Furtividade (etapa 4d). Fica no MONSTRO: até que tick do jogo cada jogador (UUID) continua sem ser notado.
+     * Não persiste (no Forge era getPersistentData() do mob).
+     */
+    public static final AttachmentType<Map<UUID, Long>> FURTIVO = AttachmentRegistry.create(
+            id("furtivo"),
+            builder -> builder.initializer(HashMap::new));
+
+    /** Iniciativa (etapa 4d). Fica no JOGADOR: tick do jogo em que ele pode testar Iniciativa de novo. Não persiste. */
+    public static final AttachmentType<Long> INICIATIVA_ATE = AttachmentRegistry.create(id("iniciativa_ate"));
 
     /** Só existe para forçar o carregamento desta classe (e portanto o registro acima) na inicialização. */
     public static void registrar() {

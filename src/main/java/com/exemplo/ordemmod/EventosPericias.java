@@ -2,63 +2,63 @@ package com.exemplo.ordemmod;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.AnimalTameEvent;
-import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
-import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
-import net.minecraftforge.event.entity.living.LivingFallEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.entity.player.PlayerXpEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * Onde as perícias viram jogo. Cada perícia encontra um gancho no Minecraft:
  *
- *  Acrobacia    → rola ao cair e reduz o dano da queda
+ *  Acrobacia    → rola ao cair e reduz o dano da queda (chamado por EventosDano, que ja altera o dano)
  *  Furtividade  → agachado, monstros podem "não te notar"; o primeiro golpe vira ataque furtivo
  *  Iniciativa   → quando um monstro te percebe, você pode agir primeiro (Velocidade)
  *  Reflexos     → teste de esquiva contra todo ataque (DT 20, sobe com vários inimigos): passou, não leva o golpe
@@ -68,18 +68,91 @@ import net.minecraftforge.fml.common.Mod;
  *  Medicina     → papel vira atadura (clique direito em alguém, ou agachado em si mesmo)
  *  Crime        → pepita de ferro vira gazua para portas de ferro
  *  Adestramento → bichos domados ganham vida extra
- *  Luta/Pontaria→ dano e crítico (em Personagem / EventosOrdem)
- *  Vontade/Ocultismo/Fortitude → sanidade e resistência a efeitos (em Personagem / EventosOrdem)
+ *  Atualidades  → mais XP
+ *  Luta/Pontaria→ dano e crítico (em Personagem / EventosDano)
+ *  Vontade/Ocultismo/Fortitude → sanidade e resistência a efeitos (em Personagem / EventosDano)
  *
- * Comandos: /ordem pericias | treinar <pericia> | grau <pericia> | testar <pericia> [dt]
+ * No Forge eram metodos @SubscribeEvent; no Fabric (etapa 4d) ficam assim:
+ *  - LivingAttackEvent (Reflexos)        -> ServerLivingEntityEvents.ALLOW_DAMAGE (em {@link #registrar()})
+ *  - PlayerTickEvent                      -> ServerTickEvents.END_SERVER_TICK
+ *  - PlayerInteractEvent.*                -> UseEntityCallback / UseItemCallback / UseBlockCallback
+ *  - LivingHurtEvent (adestramento, intimidacao, furtivo) -> {@link #aoCausarDano}, chamado por EventosDano
+ *  - LivingFallEvent                      -> {@link #aoCair}, chamado por EventosDano (dano do tipo FALL)
+ *  - LivingChangeTargetEvent              -> {@link #aoMirar}, chamado por mixin/MobMixin
+ *  - LivingEntityUseItemEvent.Finish      -> {@link #aoComer}, chamado por mixin/LivingEntityMixin
+ *  - PlayerXpEvent.XpChange               -> {@link #ajustarXp}, chamado por mixin/PlayerMixin
+ *  - AnimalTameEvent                      -> {@link #aoDomar}, chamado por mixin/TamableAnimalMixin
+ *
+ * Comandos: /ordem pericias | beneficios [pericia] | treinar <pericia> | grau <pericia> | testar <pericia> [dt]
  */
-@Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID)
-public class EventosPericias {
+public final class EventosPericias {
     private static final Random ALEATORIO = new Random();
-    private static final UUID ID_ADESTRAMENTO = UUID.fromString("5d0c6f4e-2b7a-4f0e-8c1d-3a9b7e2f1c64");
-    private static final String CHAVE_FURTIVO = "ordem_furt_";
-    private static final String CHAVE_INICIATIVA = "ordem_ini_ate";
+    private static final Identifier ID_ADESTRAMENTO =
+            Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "adestramento");
     private static final List<String> IDS = Arrays.stream(Pericia.values()).map(Pericia::getId).toList();
+
+    private EventosPericias() {
+    }
+
+    /** Liga os callbacks do Fabric. Chamar uma vez, depois de EventosOrdem.registrar(). */
+    public static void registrar() {
+        // Reflexos: roda antes de o dano existir; false cancela o ataque (sem dano, sem tranco)
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register(EventosPericias::permitirDano);
+
+        ServerTickEvents.END_SERVER_TICK.register(servidor -> {
+            for (ServerPlayer jogador : List.copyOf(servidor.getPlayerList().getPlayers())) {
+                aoTick(jogador);
+            }
+        });
+
+        // Medicina em outra criatura (era PlayerInteractEvent.EntityInteract)
+        UseEntityCallback.EVENT.register((jogador, nivel, mao, alvo, hit) -> {
+            if (mao != InteractionHand.MAIN_HAND || !(jogador instanceof ServerPlayer j)
+                    || !(alvo instanceof LivingEntity vivo)) {
+                return InteractionResult.PASS;
+            }
+            ItemStack item = j.getItemInHand(mao);
+            if (!item.is(Items.PAPER) || vivo.getHealth() >= vivo.getMaxHealth()) {
+                return InteractionResult.PASS;
+            }
+            primeirosSocorros(j, vivo, item);
+            return InteractionResult.SUCCESS;
+        });
+
+        // Medicina em si mesmo, agachado (era PlayerInteractEvent.RightClickItem)
+        UseItemCallback.EVENT.register((jogador, nivel, mao) -> {
+            if (mao != InteractionHand.MAIN_HAND || !(jogador instanceof ServerPlayer j) || !j.isCrouching()) {
+                return InteractionResult.PASS;
+            }
+            ItemStack item = j.getItemInHand(mao);
+            if (!item.is(Items.PAPER) || j.getHealth() >= j.getMaxHealth()) {
+                return InteractionResult.PASS;
+            }
+            primeirosSocorros(j, j, item);
+            return InteractionResult.SUCCESS;
+        });
+
+        // Crime: gazua em porta de ferro (era PlayerInteractEvent.RightClickBlock)
+        UseBlockCallback.EVENT.register((jogador, nivel, mao, hit) -> {
+            if (mao != InteractionHand.MAIN_HAND || !(jogador instanceof ServerPlayer j)) {
+                return InteractionResult.PASS;
+            }
+            ItemStack item = j.getItemInHand(mao);
+            if (!item.is(Items.IRON_NUGGET)) {
+                return InteractionResult.PASS;
+            }
+            BlockPos posicao = hit.getBlockPos();
+            BlockState estado = nivel.getBlockState(posicao);
+            if (!estado.is(Blocks.IRON_DOOR)) {
+                return InteractionResult.PASS;
+            }
+            arrombar(j, nivel, estado, posicao, item);
+            return InteractionResult.SUCCESS;
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, acessoRegistros, ambiente) ->
+                registrarComandos(dispatcher));
+    }
 
     private static Personagem de(ServerPlayer j) {
         return EventosOrdem.de(j);
@@ -104,7 +177,7 @@ public class EventosPericias {
         return Component.literal(r.toString()).withStyle(cor);
     }
 
-    private static void faiscas(ServerPlayer j, net.minecraft.core.particles.ParticleOptions tipo, int quantidade) {
+    private static void faiscas(ServerPlayer j, ParticleOptions tipo, int quantidade) {
         if (j.level() instanceof ServerLevel nivel) {
             nivel.sendParticles(tipo, j.getX(), j.getY(0.5), j.getZ(), quantidade, 0.4, 0.4, 0.4, 0.05);
         }
@@ -112,53 +185,54 @@ public class EventosPericias {
 
     // ------------------------------------------------------------------ Acrobacia
 
-    @SubscribeEvent
-    public static void aoCair(LivingFallEvent e) {
-        if (!(e.getEntity() instanceof ServerPlayer j) || e.getDistance() < 4.0F || j.isCreative() || j.isSpectator()) {
-            return;
-        }
-        Personagem p = de(j);
-        if (!p.isCriado()) {
-            return;
+    /**
+     * Chamado por EventosDano quando o jogador vai levar dano de queda (DamageTypes.FALL). Devolve o dano novo.
+     * No Forge era o LivingFallEvent (distancia >= 4); aqui o gatilho e o dano ja calculado (>= 1, ou seja, queda
+     * acima de 3 blocos). A reducao e aplicada no dano final, nao no multiplicador antes do arredondamento.
+     */
+    static float aoCair(ServerPlayer j, Personagem p, float dano) {
+        if (dano < 1.0F || j.isCreative() || j.isSpectator()) {
+            return dano;
         }
         // o patamar de Acrobacia e a origem Atleta já reduzem o dano sozinhos (passivos)
-        float multiplicador = e.getDamageMultiplier() * (float) (1.0 - p.pericias.valor(Beneficio.ACROBACIA_QUEDA))
+        float multiplicador = (float) (1.0 - p.pericias.valor(Beneficio.ACROBACIA_QUEDA))
                 * (float) (1.0 - p.origem(Origem.Efeito.REDUCAO_QUEDA));
         // o teste: total 15+ reduz o dano (20%, 40%, 60%... de 5 em 5) e 20 natural zera (veja QuedaAcrobacia)
         ResultadoTeste r = p.pericias.testar(Pericia.ACROBACIA, QuedaAcrobacia.MINIMO, ALEATORIO);
         multiplicador *= (float) (1.0 - QuedaAcrobacia.reducao(r));
-        e.setDamageMultiplier(multiplicador);
         RolagemNaHud.mostrar(j, r, QuedaAcrobacia.reducaoPercentual(r), "Queda"); // só estética: o servidor já decidiu
         if (QuedaAcrobacia.rola(r)) {
             faiscas(j, ParticleTypes.CLOUD, 12);
-            RolamentoEpicFight.rolar(j);
+            EsquivaVisual.rolar(j);
         }
+        return dano * multiplicador;
     }
 
     // ------------------------------------------------------------------ Furtividade e Iniciativa
 
-    /** Um monstro vai te escolher como alvo: agachado você pode passar despercebido; senão, pode agir primeiro. */
-    @SubscribeEvent
-    public static void aoMirar(LivingChangeTargetEvent e) {
-        if (!(e.getNewTarget() instanceof ServerPlayer j) || !(e.getEntity() instanceof Mob mob)
-                || !(mob instanceof Enemy) || j.isCreative() || j.isSpectator()) {
-            return;
+    /**
+     * Um monstro vai te escolher como alvo (chamado por mixin/MobMixin no inicio de Mob.setTarget).
+     * Agachado você pode passar despercebido; senão, pode agir primeiro.
+     *
+     * @return true para CANCELAR a mudanca de alvo (o monstro nao te notou)
+     */
+    public static boolean aoMirar(Mob mob, LivingEntity novoAlvo) {
+        if (!(novoAlvo instanceof ServerPlayer j) || !(mob instanceof Enemy) || j.isCreative() || j.isSpectator()) {
+            return false;
         }
         Personagem p = de(j);
         long agora = mob.level().getGameTime();
-        CompoundTag dados = mob.getPersistentData();
-        String chave = CHAVE_FURTIVO + j.getUUID();
+        Map<UUID, Long> furtivo = mob.getAttachedOrCreate(AnexosOrdem.FURTIVO);
+        UUID chave = j.getUUID();
 
-        if (agora < dados.getLong(chave)) { // ainda não te notou
-            e.setCanceled(true);
-            return;
+        if (agora < furtivo.getOrDefault(chave, 0L)) { // ainda não te notou
+            return true;
         }
         double desvio = p.pericias.valor(Beneficio.ENGANACAO_DESVIO) + p.origem(Origem.Efeito.ENGANACAO_DESVIO); // Enganação: o monstro se engana sozinho
         if (desvio > 0 && ALEATORIO.nextDouble() < desvio) {
-            dados.putLong(chave, agora + 60); // 3 segundos sem te notar
-            e.setCanceled(true);
+            furtivo.put(chave, agora + 60); // 3 segundos sem te notar
             dizer(j, "Enganação: " + mob.getDisplayName().getString() + " te perdeu de vista.", ChatFormatting.GRAY);
-            return;
+            return true;
         }
         if (j.isCrouching()) {
             int luz = j.level().getMaxLocalRawBrightness(j.blockPosition());
@@ -166,41 +240,41 @@ public class EventosPericias {
             ResultadoTeste r = p.pericias.testar(Pericia.FURTIVIDADE, Pericias.DT_MEDIA + extra, ALEATORIO);
             if (r.sucesso()) {
                 double tempo = p.pericias.valor(Beneficio.FURTIVIDADE_TEMPO); // 5, 7 ou 10 s (5 se destreinada)
-                dados.putLong(chave, agora + (long) (20 * (tempo > 0 ? tempo : 5)));
-                e.setCanceled(true);
+                furtivo.put(chave, agora + (long) (20 * (tempo > 0 ? tempo : 5)));
                 dizer(j, "Furtividade: " + mob.getDisplayName().getString() + " não te notou.", ChatFormatting.GRAY);
-                return;
+                return true;
             }
         }
         double recarga = p.pericias.valor(Beneficio.INICIATIVA_RECARGA); // 30, 20 ou 10 s (30 se destreinada)
-        if (agora >= j.getPersistentData().getLong(CHAVE_INICIATIVA)) {
-            j.getPersistentData().putLong(CHAVE_INICIATIVA, agora + (long) (20 * (recarga > 0 ? recarga : 30)));
+        if (agora >= j.getAttachedOrElse(AnexosOrdem.INICIATIVA_ATE, 0L)) {
+            j.setAttached(AnexosOrdem.INICIATIVA_ATE, agora + (long) (20 * (recarga > 0 ? recarga : 30)));
             ResultadoTeste r = p.pericias.testar(Pericia.INICIATIVA, Pericias.DT_MEDIA, ALEATORIO);
             if (r.sucesso()) {
                 int duracao = 120 + p.pericias.bonus(Pericia.INICIATIVA) * 8;
                 int nivel = Math.max(1, (int) p.pericias.valor(Beneficio.INICIATIVA_NIVEL)); // Expert = Velocidade II
-                j.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, duracao, nivel - 1, false, false, true));
+                j.addEffect(new MobEffectInstance(MobEffects.SPEED, duracao, nivel - 1, false, false, true));
                 dizer(j, "Iniciativa: você agiu primeiro!", ChatFormatting.YELLOW);
             }
         }
+        return false;
     }
 
-    /** Bater num monstro que não te notou é ataque furtivo (dano extra); de qualquer forma, quebra a furtividade. */
-    @SubscribeEvent(priority = EventPriority.LOW)
-    public static void aoAtacar(LivingHurtEvent e) {
+    /**
+     * Chamado por EventosDano no fim do calculo do dano (era o LivingHurtEvent de prioridade LOW).
+     * Bichos domados batem mais forte; Intimidação assusta; bater num monstro que não te notou é ataque furtivo
+     * (dano extra) e, de qualquer forma, quebra a furtividade. Devolve o dano novo.
+     */
+    static float aoCausarDano(LivingEntity alvo, DamageSource fonte, float quantidade) {
         // bichos domados causam mais dano com o Adestramento do dono
-        if (e.getSource().getEntity() instanceof TamableAnimal bicho && bicho.getOwner() instanceof ServerPlayer dono) {
+        if (fonte.getEntity() instanceof TamableAnimal bicho && bicho.getOwner() instanceof ServerPlayer dono) {
             Personagem pd = de(dono);
             double extra = pd.pericias.valor(Beneficio.ADESTRAMENTO_DANO) + pd.origem(Origem.Efeito.DANO_BICHOS);
-            if (extra > 0) {
-                e.setAmount((float) (e.getAmount() * (1.0 + extra)));
-            }
-            return;
+            return extra > 0 ? (float) (quantidade * (1.0 + extra)) : quantidade;
         }
-        if (!(e.getSource().getEntity() instanceof ServerPlayer atacante)) {
-            return;
+        if (!(fonte.getEntity() instanceof ServerPlayer atacante)) {
+            return quantidade;
         }
-        LivingEntity alvo = e.getEntity();
+        float resultado = quantidade;
         Personagem p = de(atacante);
 
         // Intimidação: chance de o monstro ficar com medo (Fraqueza por 5 s)
@@ -209,43 +283,44 @@ public class EventosPericias {
             alvo.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 100, 0, false, true, true));
         }
 
-        CompoundTag dados = alvo.getPersistentData();
-        String chave = CHAVE_FURTIVO + atacante.getUUID();
-        if (!dados.contains(chave)) {
-            return;
+        Map<UUID, Long> furtivo = alvo.getAttached(AnexosOrdem.FURTIVO);
+        UUID chave = atacante.getUUID();
+        if (furtivo == null || !furtivo.containsKey(chave)) {
+            return resultado;
         }
-        if (dados.getLong(chave) > alvo.level().getGameTime()) {
+        if (furtivo.get(chave) > alvo.level().getGameTime()) {
             // 2 de dano fixo + % do golpe (Furtividade: +50%, +100% ou +150%)
-            float extra = 2.0F + e.getAmount() * (float) p.pericias.valor(Beneficio.FURTIVIDADE_DANO);
-            e.setAmount(e.getAmount() + extra);
+            float extra = 2.0F + resultado * (float) p.pericias.valor(Beneficio.FURTIVIDADE_DANO);
+            resultado += extra;
             dizer(atacante, "Ataque furtivo! +" + Math.round(extra) + " de dano", ChatFormatting.GOLD);
         }
-        dados.putLong(chave, 0L);
+        furtivo.put(chave, 0L);
+        return resultado;
     }
 
     // ------------------------------------------------------------------ Reflexos
 
     /**
      * Todo ataque que vai atingir o jogador faz um teste de Reflexos (DT {@link EsquivaReflexos#DT_PADRAO}, mais com vários inimigos).
-     * Passou: o ataque é cancelado (sem dano, sem tranco) e o personagem dá um passo de esquiva (Epic Fight).
-     * Roda no LivingAttackEvent, antes de o dano existir, então a esquiva também poupa a sanidade e os efeitos do golpe.
+     * Passou: o ataque é cancelado (sem dano, sem tranco) e o personagem dá um passo de esquiva (provisorio: EsquivaVisual).
+     * Roda no ALLOW_DAMAGE, antes de o dano existir, então a esquiva também poupa a sanidade e os efeitos do golpe.
+     *
+     * @return false para cancelar o ataque
      */
-    @SubscribeEvent
-    public static void aoEsquivar(LivingAttackEvent e) {
-        if (!(e.getEntity() instanceof ServerPlayer j) || j.isCreative() || j.isSpectator() || !j.isAlive()) {
-            return;
+    private static boolean permitirDano(LivingEntity entidade, DamageSource fonte, float quantidade) {
+        if (!(entidade instanceof ServerPlayer j) || j.isCreative() || j.isSpectator() || !j.isAlive()) {
+            return true;
         }
-        DamageSource fonte = e.getSource();
-        if (fonte.getEntity() == null || fonte.getEntity() == j || e.getAmount() <= 0
+        if (fonte.getEntity() == null || fonte.getEntity() == j || quantidade <= 0
                 || fonte.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-            return;
+            return true;
         }
         if (j.invulnerableTime > 10) { // ainda nos quadros de invulnerabilidade do golpe anterior: não é um ataque novo
-            return;
+            return true;
         }
         Personagem p = de(j);
         if (!p.isCriado()) {
-            return;
+            return true;
         }
         // quanto mais inimigos mirando em você (num raio curto), mais difícil esquivar de cada golpe
         int cercando = j.level().getEntitiesOfClass(Mob.class, j.getBoundingBox().inflate(EsquivaReflexos.RAIO_CERCO),
@@ -253,23 +328,22 @@ public class EventosPericias {
         ResultadoTeste r = p.pericias.testar(Pericia.REFLEXOS, EsquivaReflexos.dt(cercando), ALEATORIO);
         RolagemNaHud.mostrar(j, r, -1, "Esquiva"); // só estética: o servidor já decidiu
         if (r.sucesso()) {
-            e.setCanceled(true);
-            EsquivaEpicFight.esquivar(j, fonte);
+            EsquivaVisual.esquivar(j, fonte);
+            return false;
         }
+        return true;
     }
 
     // ------------------------------------------------------------------ passivas por segundo
 
-    @SubscribeEvent
-    public static void aoTick(TickEvent.PlayerTickEvent e) {
-        if (e.phase != TickEvent.Phase.END || !(e.player instanceof ServerPlayer j)
-                || j.isSpectator() || j.tickCount % 20 != 0) {
+    private static void aoTick(ServerPlayer j) {
+        if (j.isSpectator() || j.tickCount % 20 != 0) {
             return;
         }
         Personagem p = de(j);
         GrauTreinamento atletismo = p.pericias.getGrau(Pericia.ATLETISMO);
         if (atletismo.pelomenos(GrauTreinamento.VETERANO)) {
-            j.addEffect(new MobEffectInstance(MobEffects.JUMP, 60, 0, true, false, false));
+            j.addEffect(new MobEffectInstance(MobEffects.JUMP_BOOST, 60, 0, true, false, false));
         }
         if (atletismo == GrauTreinamento.EXPERT) {
             j.addEffect(new MobEffectInstance(MobEffects.DOLPHINS_GRACE, 60, 0, true, false, false));
@@ -301,9 +375,12 @@ public class EventosPericias {
 
     // ------------------------------------------------------------------ Sobrevivência
 
-    @SubscribeEvent
-    public static void aoComer(LivingEntityUseItemEvent.Finish e) {
-        if (!(e.getEntity() instanceof ServerPlayer j) || !e.getItem().isEdible()) {
+    /**
+     * Chamado por mixin/LivingEntityMixin quando o jogador termina de usar um item (completeUsingItem).
+     * Se o item e comida, Sobrevivencia e a origem Chef dao fome e saturacao extras.
+     */
+    static void aoComer(ServerPlayer j, ItemStack item) {
+        if (!item.has(DataComponents.FOOD)) {
             return;
         }
         Personagem p = de(j);
@@ -320,42 +397,20 @@ public class EventosPericias {
 
     // ------------------------------------------------------------------ Medicina (papel = atadura)
 
-    @SubscribeEvent
-    public static void aoCurarOutro(PlayerInteractEvent.EntityInteract e) {
-        if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer j)
-                || !e.getItemStack().is(Items.PAPER) || !(e.getTarget() instanceof LivingEntity alvo)
-                || alvo.getHealth() >= alvo.getMaxHealth()) {
-            return;
-        }
-        primeirosSocorros(j, alvo, e.getItemStack());
-        e.setCanceled(true);
-        e.setCancellationResult(InteractionResult.SUCCESS);
-    }
-
-    @SubscribeEvent
-    public static void aoCurarASiMesmo(PlayerInteractEvent.RightClickItem e) {
-        if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer j)
-                || !j.isCrouching() || !e.getItemStack().is(Items.PAPER) || j.getHealth() >= j.getMaxHealth()) {
-            return;
-        }
-        primeirosSocorros(j, j, e.getItemStack());
-        e.setCanceled(true);
-        e.setCancellationResult(InteractionResult.SUCCESS);
-    }
-
     private static void primeirosSocorros(ServerPlayer j, LivingEntity alvo, ItemStack papel) {
-        if (j.getCooldowns().isOnCooldown(Items.PAPER)) {
+        if (j.getCooldowns().isOnCooldown(papel)) {
             dizer(j, "Curativo em recarga.", ChatFormatting.GRAY);
             return;
         }
         Personagem p = de(j);
         ResultadoTeste r = p.pericias.testar(Pericia.MEDICINA, Pericias.DT_MEDIA, ALEATORIO);
         avisarTeste(j, r);
+        double recarga = p.pericias.valor(Beneficio.MEDICINA_RECARGA); // 5, 4 ou 3 s (5 se destreinada)
+        // a recarga vem ANTES do shrink: no 26.2 ela e por item (stack), e uma pilha vazia nao serve de chave
+        j.getCooldowns().addCooldown(papel, (int) (20 * (recarga > 0 ? recarga : 5)));
         if (!j.isCreative()) {
             papel.shrink(1);
         }
-        double recarga = p.pericias.valor(Beneficio.MEDICINA_RECARGA); // 5, 4 ou 3 s (5 se destreinada)
-        j.getCooldowns().addCooldown(Items.PAPER, (int) (20 * (recarga > 0 ? recarga : 5)));
         if (!r.sucesso()) {
             dizer(j, "O curativo não ficou bom.", ChatFormatting.GRAY);
             return;
@@ -385,18 +440,7 @@ public class EventosPericias {
 
     // ------------------------------------------------------------------ Crime (pepita de ferro = gazua)
 
-    @SubscribeEvent
-    public static void aoArrombar(PlayerInteractEvent.RightClickBlock e) {
-        if (e.getHand() != InteractionHand.MAIN_HAND || !(e.getEntity() instanceof ServerPlayer j)
-                || !e.getItemStack().is(Items.IRON_NUGGET)) {
-            return;
-        }
-        BlockState estado = e.getLevel().getBlockState(e.getPos());
-        if (!estado.is(Blocks.IRON_DOOR)) {
-            return;
-        }
-        e.setCanceled(true);
-        e.setCancellationResult(InteractionResult.SUCCESS);
+    private static void arrombar(ServerPlayer j, Level nivel, BlockState estado, BlockPos posicao, ItemStack pepita) {
         Personagem p = de(j);
         if (!p.pericias.estaTreinada(Pericia.CRIME)) {
             dizer(j, "Requer Crime treinada.", ChatFormatting.GRAY);
@@ -405,58 +449,59 @@ public class EventosPericias {
         ResultadoTeste r = p.pericias.testar(Pericia.CRIME, Pericias.DT_MEDIA, ALEATORIO);
         avisarTeste(j, r);
         if (r.sucesso()) {
-            ((DoorBlock) estado.getBlock()).setOpen(j, e.getLevel(), estado, e.getPos(),
-                    !estado.getValue(DoorBlock.OPEN));
+            ((DoorBlock) estado.getBlock()).setOpen(j, nivel, estado, posicao, !estado.getValue(DoorBlock.OPEN));
         } else if (ALEATORIO.nextDouble() < p.pericias.valor(Beneficio.CRIME_GAZUA)) {
             dizer(j, "A gazua escorregou.", ChatFormatting.GRAY);
         } else {
             if (!j.isCreative()) {
-                e.getItemStack().shrink(1);
+                pepita.shrink(1);
             }
-            j.level().playSound(null, j.blockPosition(), SoundEvents.ITEM_BREAK,
-                    net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 1.0F);
+            // na 1.21.5+ ITEM_BREAK e um Holder: o som em si vem de .value()
+            j.level().playSound(null, j.blockPosition(), SoundEvents.ITEM_BREAK.value(),
+                    SoundSource.PLAYERS, 1.0F, 1.0F);
             dizer(j, "A gazua quebrou.", ChatFormatting.GRAY);
         }
     }
 
     // ------------------------------------------------------------------ Atualidades (XP)
 
-    @SubscribeEvent
-    public static void aoGanharXp(PlayerXpEvent.XpChange e) {
-        if (!(e.getEntity() instanceof ServerPlayer j) || e.getAmount() <= 0) {
-            return;
+    /**
+     * Chamado por mixin/PlayerMixin no inicio de Player.giveExperiencePoints (era PlayerXpEvent.XpChange).
+     * Devolve a quantidade de pontos ja com o bonus de Atualidades e da origem.
+     */
+    static int ajustarXp(Player jogador, int pontos) {
+        if (!(jogador instanceof ServerPlayer j) || pontos <= 0) {
+            return pontos;
         }
         Personagem px = de(j);
         double extra = px.pericias.valor(Beneficio.ATUALIDADES_XP) + px.origem(Origem.Efeito.XP);
-        if (extra > 0) {
-            e.setAmount((int) Math.ceil(e.getAmount() * (1.0 + extra)));
-        }
+        return extra > 0 ? (int) Math.ceil(pontos * (1.0 + extra)) : pontos;
     }
 
     // ------------------------------------------------------------------ Adestramento
 
-    @SubscribeEvent
-    public static void aoDomar(AnimalTameEvent e) {
-        if (!(e.getTamer() instanceof ServerPlayer j)) {
+    /**
+     * Chamado por mixin/TamableAnimalMixin no fim de TamableAnimal.tame (era AnimalTameEvent).
+     * LIMITE: so cobre lobos, gatos e papagaios (TamableAnimal). Cavalos e afins (AbstractHorse) nao passam por aqui.
+     */
+    static void aoDomar(TamableAnimal bicho, Player jogador) {
+        if (!(jogador instanceof ServerPlayer j)) {
             return;
         }
         Personagem dono = de(j);
         double bonus = dono.pericias.valor(Beneficio.ADESTRAMENTO_VIDA)
                 + dono.origem(Origem.Efeito.ADESTRAMENTO_VIDA); // 4, 8 ou 12 de vida (+4 do Trabalhador Rural)
-        Animal bicho = e.getAnimal();
         AttributeInstance vida = bicho.getAttribute(Attributes.MAX_HEALTH);
         if (bonus == 0 || vida == null || vida.getModifier(ID_ADESTRAMENTO) != null) {
             return;
         }
-        vida.addPermanentModifier(new AttributeModifier(ID_ADESTRAMENTO, "ordemmod_adestramento",
-                bonus, AttributeModifier.Operation.ADDITION));
+        vida.addPermanentModifier(new AttributeModifier(ID_ADESTRAMENTO, bonus, AttributeModifier.Operation.ADD_VALUE));
         dizer(j, "Adestramento: companheiro mais forte!", ChatFormatting.GREEN);
     }
 
     // ------------------------------------------------------------------ comandos
 
-    @SubscribeEvent
-    public static void comandos(RegisterCommandsEvent e) {
+    private static void registrarComandos(CommandDispatcher<CommandSourceStack> dispatcher) {
         LiteralArgumentBuilder<CommandSourceStack> raiz = Commands.literal("ordem");
 
         raiz.then(Commands.literal("pericias").executes(EventosPericias::listar));
@@ -482,7 +527,7 @@ public class EventosPericias {
                         .executes(ctx -> testar(ctx, StringArgumentType.getString(ctx, "pericia"),
                                 IntegerArgumentType.getInteger(ctx, "dt"))))));
 
-        e.getDispatcher().register(raiz); // junta com o /ordem que já existe em EventosOrdem
+        dispatcher.register(raiz); // junta com o /ordem que já existe em EventosOrdem
     }
 
     private static int ok(CommandContext<CommandSourceStack> ctx, Component texto) {

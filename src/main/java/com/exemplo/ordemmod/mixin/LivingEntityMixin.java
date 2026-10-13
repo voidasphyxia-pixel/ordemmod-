@@ -1,24 +1,33 @@
 package com.exemplo.ordemmod.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.exemplo.ordemmod.EventosDano;
+import com.exemplo.ordemmod.EventosPericias;
 
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 
 /**
- * Os dois ganchos que o Fabric API nao tem (no Forge eram LivingHurtEvent e MobEffectEvent.Applicable).
- * Toda a logica fica em EventosDano; aqui so se liga o jogo a ela.
+ * Os ganchos que o Fabric API nao tem (no Forge eram LivingHurtEvent, MobEffectEvent.Applicable e
+ * LivingEntityUseItemEvent.Finish). Toda a logica fica em EventosDano / EventosPericias; aqui so se liga o jogo a ela.
  */
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
+    /** O item que estava em uso quando o jogador comecou a terminar de usar (completeUsingItem). */
+    @Unique
+    private ItemStack ordemmod$usado = ItemStack.EMPTY;
+
     /**
      * Altera o dano logo no inicio do actuallyHurt. ATENCAO: aqui o dano ainda NAO passou pela armadura
      * (no Forge o LivingHurtEvent vinha depois da armadura). O dano de quem ataca e o de quem apanha
@@ -35,5 +44,20 @@ public abstract class LivingEntityMixin {
         if (EventosDano.resisteAoEfeito((LivingEntity) (Object) this, efeito)) {
             retorno.setReturnValue(false);
         }
+    }
+
+    /** Guarda uma copia do item em uso: no fim de completeUsingItem a pilha ja foi consumida. */
+    @Inject(method = "completeUsingItem", at = @At("HEAD"))
+    private void ordemmod$antesDeTerminarDeUsar(CallbackInfo retorno) {
+        ordemmod$usado = ((LivingEntity) (Object) this).getUseItem().copy();
+    }
+
+    /** Sobrevivencia (etapa 4d): comida rende mais. Era o LivingEntityUseItemEvent.Finish. */
+    @Inject(method = "completeUsingItem", at = @At("TAIL"))
+    private void ordemmod$depoisDeTerminarDeUsar(CallbackInfo retorno) {
+        if ((Object) this instanceof ServerPlayer jogador && !ordemmod$usado.isEmpty()) {
+            EventosPericias.aoComer(jogador, ordemmod$usado);
+        }
+        ordemmod$usado = ItemStack.EMPTY;
     }
 }

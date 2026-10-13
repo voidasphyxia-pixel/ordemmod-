@@ -3,7 +3,10 @@
   "package": "com.exemplo.ordemmod.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "LivingEntityMixin"
+    "LivingEntityMixin",
+    "MobMixin",
+    "PlayerMixin",
+    "TamableAnimalMixin"
   ],
   "injectors": {
     "defaultRequire": 1

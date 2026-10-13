@@ -4,56 +4,65 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.entity.living.LivingDropsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * As origens no jogo. A maioria dos poderes é lida direto nos outros eventos (dano, comida, cura...).
  * Aqui ficam o comando e o que precisa de um evento só dele.
  *
+ * No Forge o drop do Criminoso era o LivingDropsEvent; o Fabric API nao tem evento de drops, entao aqui
+ * o item extra nasce no AFTER_DEATH (ServerLivingEntityEvents), na posicao do monstro morto.
+ *
  * Comandos: /ordem origem            (lista, ou mostra a sua)
  *           /ordem origem info <id>  (detalhes de uma origem)
  *           /ordem origem <id>       (escolhe; só dá para escolher uma vez)
  */
-@Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID)
-public class EventosOrigens {
+public final class EventosOrigens {
     private static final Random ALEATORIO = new Random();
     private static final List<String> IDS = Arrays.stream(Origem.values()).map(Origem::getId).toList();
 
-    // ------------------------------------------------------------------ Criminoso: o crime compensa
+    private EventosOrigens() {
+    }
 
-    @SubscribeEvent
-    public static void aoMatarMonstro(LivingDropsEvent e) {
-        if (!(e.getSource().getEntity() instanceof ServerPlayer j) || !(e.getEntity() instanceof Enemy)) {
-            return;
-        }
-        double chance = EventosOrdem.de(j).origem(Origem.Efeito.DROP_OURO);
-        if (chance > 0 && ALEATORIO.nextDouble() < chance) {
-            e.getDrops().add(new ItemEntity(e.getEntity().level(), e.getEntity().getX(), e.getEntity().getY(),
-                    e.getEntity().getZ(), new ItemStack(Items.GOLD_NUGGET, 1 + ALEATORIO.nextInt(3))));
-        }
+    /** Liga os callbacks do Fabric. Chamar uma vez, depois de EventosOrdem.registrar(). */
+    public static void registrar() {
+        // Criminoso: o crime compensa (era LivingDropsEvent)
+        ServerLivingEntityEvents.AFTER_DEATH.register((entidade, fonte) -> {
+            if (!(fonte.getEntity() instanceof ServerPlayer j) || !(entidade instanceof Enemy)
+                    || !(entidade.level() instanceof ServerLevel nivel)) {
+                return;
+            }
+            double chance = EventosOrdem.de(j).origem(Origem.Efeito.DROP_OURO);
+            if (chance > 0 && ALEATORIO.nextDouble() < chance) {
+                nivel.addFreshEntity(new ItemEntity(nivel, entidade.getX(), entidade.getY(), entidade.getZ(),
+                        new ItemStack(Items.GOLD_NUGGET, 1 + ALEATORIO.nextInt(3))));
+            }
+        });
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, acessoRegistros, ambiente) ->
+                registrarComandos(dispatcher));
     }
 
     // ------------------------------------------------------------------ comandos
 
-    @SubscribeEvent
-    public static void comandos(RegisterCommandsEvent e) {
+    private static void registrarComandos(CommandDispatcher<CommandSourceStack> dispatcher) {
         LiteralArgumentBuilder<CommandSourceStack> raiz = Commands.literal("ordem");
 
         raiz.then(Commands.literal("origem")
@@ -66,7 +75,7 @@ public class EventosOrigens {
                         .suggests((ctx, b) -> SharedSuggestionProvider.suggest(IDS, b))
                         .executes(ctx -> escolher(ctx, StringArgumentType.getString(ctx, "id")))));
 
-        e.getDispatcher().register(raiz); // junta com o /ordem que já existe
+        dispatcher.register(raiz); // junta com o /ordem que já existe
     }
 
     private static int ok(CommandContext<CommandSourceStack> ctx, String texto) {

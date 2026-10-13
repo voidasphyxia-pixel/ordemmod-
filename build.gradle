@@ -30,8 +30,11 @@ dependencies {
 //   Etapa 3: rede (pacotes + registro) e salvamento.
 //   Etapa 4a: ciclo de vida do personagem (EventosOrdem), Avisos, TesteNaTela, PerfilMarcado,
 //            ReceptoresServidor e um entrypoint de cliente PROVISORIO (so para testar a rede).
-//            Ainda fora: ReceptoresCliente e marcado/ReceptorMarcado (dependem de HUD/telas/RoteiroMarcado).
+//            Ainda fora: ReceptoresCliente (depende de HUD/telas).
 //   Etapa 4b: EventosDano (dano, efeitos, sono, estado mental) + mixin/LivingEntityMixin.
+//   Etapa 4d: EventosPericias, EventosOrigens, ReceptorMarcado (+ RoteiroMarcado), RolagemNaHud,
+//            QuedaAcrobacia, EsquivaReflexos, EsquivaVisual (provisorio, no lugar do Epic Fight)
+//            e os mixins MobMixin, PlayerMixin e TamableAnimalMixin.
 // ---------------------------------------------------------------------------------------
 def nucleo = [
     'Atributo', 'Atributos', 'ClasseOP', 'GrauTreinamento', 'ParteBonus', 'Proficiencia',
@@ -49,6 +52,10 @@ def nucleo = [
     'cliente/OrdemModClienteFabric',
     // etapa 4b
     'EventosDano', 'mixin/LivingEntityMixin',
+    // etapa 4d
+    'EventosPericias', 'EventosOrigens', 'RolagemNaHud', 'QuedaAcrobacia', 'EsquivaReflexos', 'EsquivaVisual',
+    'marcado/RoteiroMarcado', 'marcado/ReceptorMarcado',
+    'mixin/MobMixin', 'mixin/PlayerMixin', 'mixin/TamableAnimalMixin',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }

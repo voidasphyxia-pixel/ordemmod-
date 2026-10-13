@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -32,6 +33,9 @@ import net.minecraft.world.entity.monster.Enemy;
  * O Fabric so deixa CANCELAR dano (ALLOW_DAMAGE) ou observar (AFTER_DAMAGE); nao deixa ALTERAR. Por isso
  * {@link #aoSofrerDano} e {@link #resisteAoEfeito} sao chamados por um mixin em LivingEntity
  * (veja mixin/LivingEntityMixin). O resto usa eventos do Fabric API.
+ *
+ * Etapa 4d: {@link #aoSofrerDano} tambem chama o que no Forge eram o LivingFallEvent (Acrobacia, quando o dano e
+ * do tipo FALL) e o LivingHurtEvent das pericias (adestramento, intimidacao, ataque furtivo), em EventosPericias.
  */
 public final class EventosDano {
     /** O acerto critico multiplica o dano final por isso. */
@@ -97,6 +101,9 @@ public final class EventosDano {
         if (alvo instanceof ServerPlayer vitima) {
             Personagem p = EventosOrdem.de(vitima);
             if (p.isCriado()) {
+                if (fonte.is(DamageTypes.FALL)) { // Acrobacia: teste ao cair (era o LivingFallEvent)
+                    resultado = EventosPericias.aoCair(vitima, p, resultado);
+                }
                 double recebido = p.habilidades.danoRecebidoFinal(resultado, false);
                 recebido *= reducaoDePericias(vitima, p, fonte); // Fortitude, Ciencias, Religiao, Pilotagem
                 resultado = (float) recebido;
@@ -134,6 +141,9 @@ public final class EventosDano {
             }
             resultado = (float) dano;
         }
+
+        // Pericias de combate: adestramento, intimidacao e ataque furtivo (era o LivingHurtEvent LOW do EventosPericias)
+        resultado = EventosPericias.aoCausarDano(alvo, fonte, resultado);
         return resultado;
     }
 

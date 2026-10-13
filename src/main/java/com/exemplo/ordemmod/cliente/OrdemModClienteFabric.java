@@ -3,6 +3,7 @@ package com.exemplo.ordemmod.cliente;
 import com.exemplo.ordemmod.PacoteAbrirCriacao;
 import com.exemplo.ordemmod.PacoteAviso;
 import com.exemplo.ordemmod.PacoteHabilidade;
+import com.exemplo.ordemmod.PacoteRolagemHud;
 import com.exemplo.ordemmod.PacoteStatus;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -32,6 +33,11 @@ public class OrdemModClienteFabric implements ClientModInitializer {
         });
         ClientPlayNetworking.registerGlobalReceiver(PacoteAviso.TYPE, (m, contexto) ->
                 System.out.println("[Ordem cliente] aviso recebido: " + m.texto()));
+        // etapa 4d: o painel da rolagem (queda, esquiva) so aparece no log ate a HUD ser portada
+        ClientPlayNetworking.registerGlobalReceiver(PacoteRolagemHud.TYPE, (m, contexto) ->
+                System.out.println("[Ordem cliente] rolagem recebida: " + m.motivo() + " " + m.total() + "/" + m.dt()
+                        + (m.sucesso() ? " sucesso" : " falha") + (m.critico() ? " CRITICO" : "")
+                        + (m.reducao() >= 0 ? " (-" + m.reducao() + "% de dano)" : "")));
 
         ClientPlayConnectionEvents.JOIN.register((handler, enviador, cliente) -> {
             ticksDesdeEntrada = 0;

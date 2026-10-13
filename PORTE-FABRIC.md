@@ -27,6 +27,21 @@ Para testar a 4b: `/ordem san 0` (avisa "Voce esta enlouquecendo!" e aplica escu
 
 As etapas 3, 4a, 4b e 4c foram compiladas e testadas no jogo. Se der erro, cole aqui a saida do `gradlew build`.
 
+### Para testar a 4d (NAO compilada ainda)
+Primeiro `gradlew build`; se der erro de compilacao ou de mixin, cole a saida aqui. Como a HUD ainda nao existe, os paineis de rolagem aparecem no log como `[Ordem cliente] rolagem recebida: ...`, e esquiva/rolada no chao aparecem como uma nuvem de fumaca (EsquivaVisual, provisorio).
+- Origem e pericias (comandos): `/ordem origem`, `/ordem origem info <id>`, `/ordem origem <id>`, `/ordem pericias`, `/ordem beneficios`, `/ordem treinar <pericia>`, `/ordem grau <pericia>`, `/ordem testar <pericia> [dt]`.
+- Acrobacia: caia de mais de 3 blocos (`/ordem treinar acrobacia` ajuda); no log aparece `rolagem recebida: Queda ...` e o dano reduz conforme o total.
+- Reflexos: leve um golpe de um mob; no log aparece `rolagem recebida: Esquiva ...` e, se passar, nao ha dano nem sanidade perdida (fumaca no personagem).
+- Furtividade e Iniciativa: treine as pericias, fique agachado perto de um zumbi (`Furtividade: ... nao te notou.` / `Iniciativa: voce agiu primeiro!`); bater num mob que nao te notou da `Ataque furtivo!`.
+- Medicina: papel na mao, clique direito em um mob ferido (ou agachado em si mesmo ferido).
+- Crime: pepita de ferro na mao, clique direito numa porta de ferro.
+- Sobrevivencia: treine a pericia e coma algo; a barra de comida sobe mais.
+- Atualidades: treine a pericia e pegue orbes de XP (ou `/xp add @s 10 points`).
+- Adestramento: treine a pericia e domestique um lobo (`Adestramento: companheiro mais forte!`).
+- Criminoso (origem): mate monstros; as vezes cai pepita de ouro.
+- Atletismo e Percepcao: passivas por segundo (Salto/Graca do Golfinho; a cada 10 s os monstros por perto brilham).
+- Marcado: a cena grava o resultado no servidor quando termina (so da para ver com a tela, etapa 6).
+
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
 - [x] 2. Nucleo em Java puro (lista em `build.gradle`, variavel `nucleo`).
@@ -35,22 +50,28 @@ As etapas 3, 4a, 4b e 4c foram compiladas e testadas no jogo. Se der erro, cole 
   - [x] 4a. Ciclo de vida do personagem em `EventosOrdem` (entrar, tick, sair, renascer, tecla de habilidade, status para a HUD), `Avisos`, `TesteNaTela`, `PerfilMarcado` (agora com attachment), `ReceptoresServidor` registrado. Testado (salvar e recarregar, status e aviso chegam ao cliente).
   - [x] 4b. `EventosDano` + `mixin/LivingEntityMixin`: dano e critico, resistencia a efeitos, dormir, estado mental (efeitos da sanidade baixa). Testado (enlouquecendo, mente se acalma, resistiu a veneno). Obs.: no 26.2 nao existem `EntityType.WARDEN` etc. nem `EntityType.is(tag)`; mortos-vivos sao comparados pelo id do registro. O dano e alterado ANTES da armadura (no Forge era depois).
   - [x] 4c. Comandos `/ordem ...` em `EventosOrdem.registrarComandos` (`CommandRegistrationCallback`). Testado.
-  - [ ] 4d. `EventosPericias`, `EventosOrigens`, `QuedaAcrobacia`, `EsquivaReflexos`, `ReceptorMarcado` (precisa do `RoteiroMarcado`).
+  - [~] 4d. Escrita, NAO compilada nem testada: `EventosPericias`, `EventosOrigens`, `ReceptorMarcado` (+ `RoteiroMarcado`, `QuedaAcrobacia`, `EsquivaReflexos`, que ja eram Java puro), `RolagemNaHud`, `EsquivaVisual` (provisorio) e os mixins `MobMixin`, `PlayerMixin`, `TamableAnimalMixin` (mais dois ganchos novos no `LivingEntityMixin`). Veja "O que muda" abaixo para o que virou o que.
 - [ ] 5. Entidades e sons (GeckoLib 5.x para 26.2): pasta `entidade`, `SonsOrdem`.
 - [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio.
-- [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`) e armas sem TACZ.
+- [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
 
 ## Pendencias pequenas
 - Os arquivos `font/c-OFL.txt`, `font/Tektur-OFL.txt`, `font/z-OFL.txt` e `sounds/menu/CREDITOS-MUSICA.txt` tem maiuscula e geram "Invalid path in mod resource-pack" no log (inofensivo). Renomear para minusculas ou mover para fora de `assets/`.
+- 4d: `TamableAnimalMixin` so cobre lobo, gato e papagaio; cavalos e afins ainda nao ganham o bonus de Adestramento.
+- 4d: a queda (Acrobacia) agora testa quando o dano da queda e >= 1 (queda acima de 3 blocos); no Forge o gatilho era distancia >= 4.
 
 ## O que muda ao portar o resto
 - `Rede.CANAL.send(PacketDistributor.PLAYER.with(() -> jogador), pacote)` vira `Rede.paraJogador(jogador, pacote)`.
 - `Rede.CANAL.sendToServer(pacote)` vira `ReceptoresCliente.enviar(pacote)`.
 - `PacoteFicha.enviar(jogador)` virou `ReceptoresServidor.enviarFicha(jogador)`.
-- `jogador.getPersistentData()` nao existe mais: usar attachments (`AnexosOrdem`). Ainda pode haver uso em `EventosPericias`/`EventosOrigens`.
+- `jogador.getPersistentData()` nao existe mais: usar attachments (`AnexosOrdem`). Na 4d: `AnexosOrdem.FURTIVO` (no monstro, mapa jogador->tick) e `AnexosOrdem.INICIATIVA_ATE` (no jogador), ambos sem persistir.
 - Eventos do Forge (`@SubscribeEvent`) viram callbacks do Fabric registrados num metodo `registrar()` (veja `EventosOrdem`). Eventos de dano/efeito do Forge nao tem equivalente identico no Fabric: use mixin (veja `LivingEntityMixin`) ou `ServerLivingEntityEvents`.
+- Eventos que viraram mixin na 4d: `LivingChangeTargetEvent` -> `MobMixin` (`Mob.setTarget`); `PlayerXpEvent.XpChange` -> `PlayerMixin` (`Player.giveExperiencePoints`); `AnimalTameEvent` -> `TamableAnimalMixin` (`TamableAnimal.tame`); `LivingEntityUseItemEvent.Finish` -> `LivingEntityMixin` (`completeUsingItem`). Eventos que viraram callbacks do Fabric: `LivingAttackEvent` -> `ALLOW_DAMAGE`; `LivingDropsEvent` -> `AFTER_DEATH` (o drop extra nasce na mao); `PlayerInteractEvent.*` -> `UseEntityCallback`/`UseItemCallback`/`UseBlockCallback`; `PlayerTickEvent` -> `END_SERVER_TICK`. `LivingFallEvent` e `LivingHurtEvent` das pericias foram para dentro de `EventosDano.aoSofrerDano`.
 - `EntityType.X` (WARDEN, ENDERMAN...) e `EntityType.is(tag)` nao existem no 26.2: comparar pelo id do registro (`BuiltInRegistries.ENTITY_TYPE.getKey(tipo).getPath()`).
-- `AttributeModifier` agora usa `Identifier` (nao `UUID`) e a operacao `ADD_MULTIPLIED_BASE` (era `MULTIPLY_BASE`).
+- `AttributeModifier` agora usa `Identifier` (nao `UUID`) e a operacao `ADD_MULTIPLIED_BASE` (era `MULTIPLY_BASE`); `ADDITION` virou `ADD_VALUE`.
+- Efeitos: `MOVEMENT_SPEED` virou `SPEED` e `JUMP` virou `JUMP_BOOST` (alem de `CONFUSION` -> `NAUSEA` e `MOVEMENT_SLOWDOWN` -> `SLOWNESS`).
+- `ItemStack.isEdible()` nao existe mais: comida e `stack.has(DataComponents.FOOD)`.
+- `Player.getCooldowns()` trabalha com `ItemStack` (nao `Item`), e o som `SoundEvents.ITEM_BREAK` e um `Holder` (usar `.value()`).
 - NBT na 1.21.5+: os getters devolvem `Optional`. Use `getIntOr`, `getStringOr`, `getBooleanOr`, `getCompoundOrEmpty`, `getListOrEmpty`. `getAllKeys()` mudou de nome. Vale para a `TelaFicha`, que le o CompoundTag do `PacoteFicha`.
 - Os receptores do Fabric ja rodam na thread certa: sem `enqueueWork` e sem `DistExecutor`.
 - `ResourceLocation` virou `Identifier` na 26.x.
