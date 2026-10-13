@@ -5,6 +5,7 @@ import com.mojang.serialization.JsonOps;
 
 import io.netty.buffer.Unpooled;
 import net.fabricmc.api.ModInitializer;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
 
 /**
@@ -12,9 +13,9 @@ import net.minecraft.network.FriendlyByteBuf;
  *
  * Ja registra: o attachment do personagem, os tipos de pacote (rede), os eventos de ciclo de vida do
  * personagem e os comandos (EventosOrdem), dano/efeitos/sono/estado mental (EventosDano), os receptores
- * do servidor (ReceptoresServidor), as pericias (EventosPericias), as origens (EventosOrigens) e o receptor
- * da cena do Marcado (ReceptorMarcado).
- * Ainda NAO registra entidades nem sons.
+ * do servidor (ReceptoresServidor), as pericias (EventosPericias), as origens (EventosOrigens), o receptor
+ * da cena do Marcado (ReceptorMarcado) e os sons (SonsOrdem).
+ * Ainda NAO registra entidades.
  * Veja PORTE-FABRIC.md.
  */
 public class OrdemMod implements ModInitializer {
@@ -31,12 +32,15 @@ public class OrdemMod implements ModInitializer {
         EventosPericias.registrar();
         EventosOrigens.registrar();
         ReceptorMarcado.registrar();
+        // etapa 5a
+        SonsOrdem.registrar();
 
         // Teste de fumaca do nucleo (pode apagar depois): se aparecer no log, o Java puro carregou.
         Personagem teste = new Personagem(ClasseOP.COMBATENTE);
         System.out.println("Ordem Mod carregado no Fabric! Nucleo OK (Combatente NEX " + teste.nex.getNex()
                 + "%, vida maxima " + teste.vidaMaxima() + ").");
         testarSalvamentoEPacote(teste);
+        testarSons();
     }
 
     /**
@@ -59,6 +63,22 @@ public class OrdemMod implements ModInitializer {
                     + ", pacote " + (pacoteOk ? "OK" : "FALHOU") + ".");
         } catch (Throwable erro) {
             System.out.println("Ordem Mod etapa 3: FALHOU com excecao (cole o erro abaixo no chat).");
+            erro.printStackTrace();
+        }
+    }
+
+    /**
+     * Teste de fumaca da etapa 5a (pode apagar depois): os sons entraram no registro do jogo com o id certo?
+     * Mostra OK ou FALHOU no log.
+     */
+    private static void testarSons() {
+        try {
+            var chave = BuiltInRegistries.SOUND_EVENT.getKey(SonsOrdem.DADO_ROLANDO);
+            boolean ok = chave != null && SonsOrdem.MARCADO.size() == SonsOrdem.NOMES_MARCADO.length;
+            System.out.println("Ordem Mod etapa 5a: sons " + (ok ? "OK" : "FALHOU") + " (dado_rolando = " + chave
+                    + ", " + SonsOrdem.MARCADO.size() + " sons do Marcado).");
+        } catch (Throwable erro) {
+            System.out.println("Ordem Mod etapa 5a: FALHOU com excecao (cole o erro abaixo no chat).");
             erro.printStackTrace();
         }
     }

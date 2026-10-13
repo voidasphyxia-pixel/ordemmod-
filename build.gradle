@@ -12,8 +12,16 @@ base {
 }
 
 repositories {
-    // Quando for portar as entidades (Zumbi de Sangue etc.), entra o GeckoLib 5.x para a 26.2:
-    //   maven { url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
+    // GeckoLib 5.x (entidades animadas, etapa 5). So o grupo com.geckolib vem deste repositorio.
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'GeckoLib'
+                url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+            }
+        }
+        filter { includeGroupAndSubgroups('com.geckolib') }
+    }
 }
 
 dependencies {
@@ -21,6 +29,8 @@ dependencies {
     // Sem 'mappings' e sem 'modImplementation': na 26.x vale 'implementation' normal.
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    // Etapa 5a: so a dependencia (nenhum codigo usa o GeckoLib ainda; a 5b usa).
+    implementation "com.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
 }
 
 // ---------------------------------------------------------------------------------------
@@ -35,6 +45,7 @@ dependencies {
 //   Etapa 4d: EventosPericias, EventosOrigens, ReceptorMarcado (+ RoteiroMarcado), RolagemNaHud,
 //            QuedaAcrobacia, EsquivaReflexos, EsquivaVisual (provisorio, no lugar do Epic Fight)
 //            e os mixins MobMixin, PlayerMixin e TamableAnimalMixin.
+//   Etapa 5a: SonsOrdem (registro direto, sem GeckoLib).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
     'Atributo', 'Atributos', 'ClasseOP', 'GrauTreinamento', 'ParteBonus', 'Proficiencia',
@@ -56,6 +67,8 @@ def nucleo = [
     'EventosPericias', 'EventosOrigens', 'RolagemNaHud', 'QuedaAcrobacia', 'EsquivaReflexos', 'EsquivaVisual',
     'marcado/RoteiroMarcado', 'marcado/ReceptorMarcado',
     'mixin/MobMixin', 'mixin/PlayerMixin', 'mixin/TamableAnimalMixin',
+    // etapa 5a
+    'SonsOrdem',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }
