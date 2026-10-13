@@ -207,7 +207,7 @@ public class EventosOrdem {
     // ------------------------------------------------------------------ comandos
 
     /**
-     * /ordem status | nex | san <valor> | trilha [nome] | habilidades | aprender <id> | usar <id> | resetar
+     * /ordem status | nex | san <valor> | trilha [nome] | habilidades | aprender <id> | usar <id> | resetar | criar
      */
     private static void registrarComandos(CommandDispatcher<CommandSourceStack> dispatcher) {
         LiteralArgumentBuilder<CommandSourceStack> raiz = Commands.literal("ordem");
@@ -283,6 +283,16 @@ public class EventosOrdem {
             PerfilMarcado.resetar(j); // a cena do Marcado tambem repete
             abrirCriacao(j); // recomecar = passar pela criacao de novo
             return ok(ctx, "Personagem reiniciado. Crie o novo personagem na tela que abriu.");
+        }));
+
+        // PROVISORIO (ate a etapa 6): sem a tela de criacao, nada marca o personagem como criado, e Reflexos,
+        // Acrobacia e o dano das regras so rodam para personagem criado. Isto faz o que a tela faria.
+        raiz.then(Commands.literal("criar").executes(ctx -> {
+            ServerPlayer j = ctx.getSource().getPlayerOrException();
+            Personagem p = de(j);
+            p.setCriado(true);
+            SalvamentoOrdem.salvar(j, p);
+            return ok(ctx, "Personagem marcado como criado (provisorio, ate a tela de criacao da etapa 6).");
         }));
 
         dispatcher.register(raiz);
