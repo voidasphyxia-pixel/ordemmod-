@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -32,9 +33,15 @@ public abstract class LivingEntityMixin {
      * Altera o dano logo no inicio do actuallyHurt. ATENCAO: aqui o dano ainda NAO passou pela armadura
      * (no Forge o LivingHurtEvent vinha depois da armadura). O dano de quem ataca e o de quem apanha
      * passam por aqui; veja EventosDano.aoSofrerDano.
+     *
+     * Jogadores NAO passam por aqui: Player sobrescreve actuallyHurt, e o gancho deles esta no PlayerMixin.
+     * O teste abaixo evita calcular o dano duas vezes se o Player um dia chamar o super.
      */
     @ModifyVariable(method = "actuallyHurt", at = @At("HEAD"), argsOnly = true)
     private float ordemmod$ajustarDano(float quantidade, ServerLevel nivel, DamageSource fonte) {
+        if ((Object) this instanceof Player) {
+            return quantidade;
+        }
         return EventosDano.aoSofrerDano((LivingEntity) (Object) this, fonte, quantidade);
     }
 
