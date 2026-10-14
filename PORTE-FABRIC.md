@@ -11,10 +11,9 @@ No log (ou no console do `runClient`) deve aparecer, nesta ordem:
 - `Ordem Mod carregado no Fabric! Nucleo OK ...`
 - `Ordem Mod etapa 3: salvamento OK, pacote OK.`
 - `[Ordem servidor] personagem NOVO para <seu nome> (criado=false)`
-- `[Ordem cliente] servidor pediu a tela de criacao (com Marcado: true)`
-- `[Ordem cliente] status recebido: PacoteStatus[...]`
-- `[Ordem cliente] enviando tecla de teste (USAR) ao servidor`
-- `[Ordem cliente] aviso recebido: ...`
+- `[Ordem cliente] servidor pediu a tela de criacao (com Marcado: true) - a tela ainda nao foi portada (etapa 6b)`
+
+(Desde a etapa 6a o cliente provisorio da etapa 4 foi apagado: o status, os avisos e as rolagens nao sao mais escritos no log, eles aparecem de verdade na HUD. A tecla de teste automatica tambem acabou: use R, G e K.)
 
 Para testar o salvamento: saia do mundo e entre de novo; a linha do servidor deve dizer `CARREGADO do save`.
 
@@ -77,6 +76,21 @@ So tem 3 arquivos novos/alterados: `ItensOrdem.java` (registro do ovo e da aba c
 4. Clique direito no chao com o ovo: o zumbi nasce deitado, como no `/summon`.
 5. Dispenser com o ovo dentro tambem deve gerar o zumbi (comportamento padrao do `SpawnEggItem`).
 
+### Para testar a 6a (NAO compilada ainda)
+So a parte do CLIENTE que nao e tela: entrypoint, teclas, HUD, avisos e painel da rolagem. `gradlew build` primeiro; se der erro de compilacao, cole aqui (os pontos de maior risco estao em "Pontos de risco da 6a", abaixo).
+1. `gradlew runClient`, crie um mundo novo em **sobrevivencia**, entre e espere uns segundos. No log, a linha `[Ordem cliente] servidor pediu a tela de criacao ... (etapa 6b)` e esperada (a tela ainda nao existe) e o jogo continua normal.
+2. **HUD**: depois que o servidor mandar o status (1 a 2 s), os coracoes, a fome, a armadura, a barra de XP e a hotbar do jogo devem sumir e dar lugar as barras do mod: SAN (azul), PE (amarelo) + DEF (cinza), PV (vermelho) + FOME (marrom), NEX (branco, 20 celulas), XP (verde, fina) e a hotbar de vidro escuro com os itens. Cantos dourados em volta do bloco, vinheta escura no pe da tela e o simbolo ciano do medo no vao entre as colunas.
+   - Troque de slot (rolagem do mouse / teclas 1 a 9): a casa selecionada ganha borda clara e cantos dourados. Segure algo na mao secundaria (F): a casa extra aparece ao lado.
+   - Tome dano e perca fome: o pedaco perdido da barra fica um instante em branco e some devagar. Com `/ordem san 5` a barra de sanidade pisca (abaixo de 25%).
+   - Modo criativo ou espectador: a HUD do mod NAO aparece e a do jogo volta (de proposito, como no Forge).
+   - Debaixo d'agua: as bolhas de ar devem aparecer acima da pilha de barras, nao atras delas. Em um cavalo: a barra de pulo do jogo aparece no lugar da de XP, e os coracoes do cavalo ficam acima da pilha.
+   - Pegue um item com nome: o nome (e a mensagem da barra de acao, ex.: `/title @s actionbar "oi"`) aparecem acima das barras.
+3. **Avisos** embaixo da mira: `/ordem san 0` ("Voce esta enlouquecendo!"), `/ordem nex`, `/ordem aprender <id>`: o texto entra com fade, fica um instante e sai (ate 3 linhas).
+4. **Painel da rolagem** (acima da barra de sanidade): `/ordem treinar acrobacia`, caia de mais de 3 blocos, ou leve um golpe de um mob (Reflexos): os numeros embaralham por ~0,75 s, param no resultado e somem; ao mesmo tempo o dano da queda/golpe e reduzido como na 4d.
+5. **Teclas**: em Controles > Ordem Mod devem existir **Usar habilidade (R)**, **Trocar habilidade (G)** e **Abrir ficha do personagem (K)**. R e G funcionam (aviso/efeito da habilidade selecionada); K, por enquanto, so manda o pedido ao servidor e o log mostra `[Ordem cliente] ficha recebida (...)` (a tela da ficha e a 6b).
+6. **Sair do mundo e entrar de novo**: a HUD some ao sair e so volta quando o servidor mandar o status de novo.
+7. Se o texto da HUD sair torto, a fonte nao carregou, ou as letras estiverem altas/baixas demais na barra, ajuste `CENTRO_GLIFO` (e `CENTRO_GLIFO_TITULO` para os rotulos em Cinzel) no topo de `HudOrdem`.
+
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
 - [x] 2. Nucleo em Java puro (lista em `build.gradle`, variavel `nucleo`).
@@ -90,7 +104,13 @@ So tem 3 arquivos novos/alterados: `ItensOrdem.java` (registro do ovo e da aba c
   - [~] 5a. `SonsOrdem` (sem GeckoLib: cada campo e o proprio `SoundEvent`, registrado em `BuiltInRegistries.SOUND_EVENT`) e a dependencia `com.geckolib:geckolib-fabric-26.2:5.5.5` no build (repositorio Cloudsmith do GeckoLib, `geckolib_version` no `gradle.properties`). NAO compilada nem testada.
   - [~] 5b. Zumbi de Sangue: `EntidadesOrdem` (tipo registrado direto + atributos via `FabricDefaultAttributeRegistry`), `ZumbiSangueEntity` (GeckoLib 5, `hurtServer`, NBT com `ValueInput/ValueOutput`), `ZumbiSangueAtaqueGoal` (`doHurtTarget(ServerLevel, alvo)`), e o cliente: `ZumbiSangueRenderer` (faz o papel do antigo `ZumbiSangueModel`: modelo criado pelo id do tipo, cabeca via `adjustModelBonesForRender`, sem tombar na morte, culling inflado) e `ClienteEntidades.registrar()` (chamado por `OrdemModClienteFabric`). `fabric.mod.json` agora exige `geckolib >= 5.5.3`. NAO compilada nem testada. Exige mover 2 arquivos de assets (veja "Para testar a 5b"). Ja houve uma correcao de compilacao (`getDimensions` -> `getDefaultDimensions`).
   - [~] 5c. Ovo de spawn do zumbi: `ItensOrdem` (registro com `Item.Properties().spawnEgg(tipo)` + `setId`, entrada na aba criativa de ovos via `CreativeModeTabEvents`) e `assets/ordemmod/items/zumbi_sangue_spawn_egg.json` (definicao de modelo do 26.x; as cores 0x4A0808 / 0xC41E1E ficam aqui, em `tints`, e nao mais no item). NAO compilada nem testada.
-- [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio (mantendo a chamada `ClienteEntidades.registrar()`).
+- [~] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`).
+  - [~] 6a. Cliente que nao e tela: entrypoint `OrdemModClienteFabric` agora liga `ReceptoresCliente.registrar()`, `TeclasOrdem.registrar()`, `HudOrdem.registrar()` e `ClienteEntidades.registrar()` (o provisorio da etapa 4 foi apagado); `FonteOP`, `TeclasOrdem` (`KeyMappingHelper`), `AvisoOrdem`, `RolagemHud` e `HudOrdem` (HUD com `HudElementRegistry`, geometria com `fill`/`fillGradient`). `ClienteCriacao`, `ClienteFicha` e `ClienteTeste` entram como PROVISORIOS (so escrevem no log). NAO compilada nem testada.
+  - [ ] 6b. Tela do dado (`TelaTeste`) e a ficha (`TelaFicha`, `IconesOP`, `InventarioOrdem`); troca os provisorios `ClienteTeste` e `ClienteFicha`.
+  - [ ] 6c. Criacao de personagem (`TelaCriacao`); troca o provisorio `ClienteCriacao` (sem Marcado).
+  - [ ] 6d. Cena do Marcado (`TelaMarcado`, `AudioMarcado`, `VfxMarcado`, `EventosMarcado`); `ClienteCriacao.abrir(true)` passa a abrir ela.
+  - [ ] 6e. Tela inicial e menus (`titulo/*`: `TelaInicial`, `EstiloMenu`, `EstiloTexturas`, `TemaInicial`, `EventosTitulo`). Fica por ultimo: e so visual.
+  - Depois da 6e: apagar `cliente/ZumbiSangueModel.java` e conferir os avisos de "Pendencias pequenas".
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
 
 ## Pendencias pequenas
@@ -102,6 +122,21 @@ So tem 3 arquivos novos/alterados: `ItensOrdem.java` (registro do ovo e da aba c
 - 5b: os arquivos antigos em `assets/ordemmod/geo/` e `animations/` (caminho do GeckoLib 4) so servem para a `main` (Forge); neste branch eles saem de la pelo `git mv`.
 - 5b: o arquivo `zumbi_sangue.animation.json` e do formato do GeckoLib 4; o GeckoLib 5 le o mesmo formato Bedrock, mas se alguma animacao nao tocar, o log do GeckoLib avisa o nome. Os nomes usados no codigo sao `animation.zumbi.` + deitado, levantar, idle, andar, correr, ataque_garra, ataque_arrasto, ataque, morte, dano.
 - 5c: o ovo nao tem textura propria: usa as texturas padrao do jogo (`item/spawn_egg` e `item/spawn_egg_overlay`) pintadas pelas cores do `tints`, igual ao ovo de qualquer mob de vanilla.
+
+- 6a: `HudOrdem` perdeu o corte inclinado das barras (a constante `INCLINACAO` ja era 0F) e o halo do simbolo do medo deixou de ser aditivo. Se quiser a inclinacao de volta, e preciso um `RenderPipeline` proprio (o `fill` so faz retangulos).
+- 6a: a barra de informacao do jogo (`INFO_BAR`) tambem mostra a barra do localizador (waypoints) do 26.x; ela some junto com a de XP enquanto a HUD do mod esta ativa.
+
+## Pontos de risco da 6a (escrita sem compilar)
+Fontes: `docs.fabricmc.net` 26.1.2 (rendering/gui-graphics, hud, key-mappings, custom-screens), o codigo do Fabric API (`HudElement`, `HudElementRegistry`, `VanillaHudElements`, `KeyMappingHelper`, `ScreenMouseEvents`, `ScreenKeyboardEvents`) e o primer do NeoForge 26.1 -> 26.2. As assinaturas abaixo NAO foram conferidas no jogo:
+- `GuiGraphicsExtractor.text(Font, FormattedCharSequence, int, int, int, boolean)` (so as versoes `String`/`Component` aparecem na documentacao), `item(LivingEntity, ItemStack, int, int, int)` e `itemDecorations(Font, ItemStack, int, int)` (nomes por analogia com o 1.21.x: `renderItem`/`renderItemDecorations`).
+- `blit(RenderPipelines.GUI_TEXTURED, textura, x, y, u, v, largura, altura, regionW, regionH, texW, texH, int cor)`: a variante com o ultimo `int` de cor (tinta ARGB) e a que mais pode nao existir; se faltar, tirar a cor (a transparencia do halo/simbolo some) ou usar `blitSprite`.
+- `g.pose()` como `Matrix3x2fStack` (`pushMatrix`, `popMatrix`, `translate(float, float)`, `scale(float, float)`), `g.fill` e `g.fillGradient` com `int`.
+- `FontDescription.Resource(Identifier)` e `Style.withFont(FontDescription)` (a fonte do mod; se der erro, o jogo mostra os textos na fonte padrao).
+- `KeyMapping.Category.register(Identifier)`, o construtor `KeyMapping(String, InputConstants.Type, int, KeyMapping.Category)` e `KeyMappingHelper.registerKeyMapping`: vem da pagina de key mappings do Fabric (26.1.2).
+- `Minecraft.gui.screen()` (no 26.2 a tela aberta saiu de `Minecraft` e foi para `Gui`; o primer so diz isso de passagem).
+- `Player.getInventory().getSelectedSlot()` e `getItem(int)` (o campo `selected` ficou privado no 1.21.5).
+- Ar/montaria: o deslocamento (`ALTURA_PILHA - 49`) supoe que o ar do jogo fica 49 px acima do fim da tela; se as bolhas ficarem coladas na pilha ou longe, ajuste `ALTURA_AR_NO_JOGO`.
+- `RenderPipelines` esta em `net.minecraft.client.renderer` (se o import falhar, procurar em `...client.renderer.RenderPipelines` ou `...client.gui.render`).
 
 ## Pontos de risco da 5b (escrita sem compilar)
 Usei como referencia o codigo-fonte do GeckoLib 5 (`bernie-g/geckolib`, pacotes `com.geckolib.*`) e mods 26.x reais que o usam, mas as assinaturas do Minecraft 26.2 abaixo vieram desses mods e nao do jogo em si:
@@ -139,4 +174,9 @@ Usei como referencia o codigo-fonte do GeckoLib 5 (`bernie-g/geckolib`, pacotes 
 - `Player.displayClientMessage(texto, true)` virou `sendOverlayMessage(texto)` (e `sendSystemMessage(texto)` para o chat).
 - `RegisterCommandsEvent` vira `CommandRegistrationCallback.EVENT` (`net.fabricmc.fabric.api.command.v2`).
 - Sons: `DeferredRegister<SoundEvent>` + `RegistryObject` viram `Registry.register(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id))` e o campo e o proprio `SoundEvent` (sem `.get()`). Veja `SonsOrdem`.
+- GUI (6a): `GuiGraphics` virou `GuiGraphicsExtractor` e as telas desenham em `extractRenderState(GuiGraphicsExtractor, int mouseX, int mouseY, float delta)` (nao mais `render`); sempre chame o `super`. `drawString` virou `text(font, texto, x, y, corARGB, sombra)` com x/y INTEIROS e a cor precisa de alfa diferente de 0 (OR com `0xFF000000`). A pilha de matrizes e `Matrix3x2fStack`: `pushPose/popPose` viram `pushMatrix/popMatrix`, `translate(x, y, z)` vira `translate(x, y)` e `scale(x, y, z)` vira `scale(x, y)`. `flush()` e `setColor(...)` nao existem mais (cor/tinta vai como argumento do `blit`). `blit` pede o pipeline: `g.blit(RenderPipelines.GUI_TEXTURED, textura, x, y, u, v, largura, altura, texLargura, texAltura)`. Nao ha mais `RenderSystem`/`Tesselator` para desenhar "na mao": use `fill`, `fillGradient`, `outline` e `blit`.
+- Telas (6a, para as proximas etapas): eventos de entrada recebem objetos (`net.minecraft.client.input`): `mouseClicked(MouseButtonEvent, boolean doubleClick)`, `mouseReleased(MouseButtonEvent)`, `mouseDragged(MouseButtonEvent, double dx, double dy)`, `mouseScrolled(double x, double y, double scrollX, double scrollY)`, `keyPressed(KeyEvent)`, `charTyped(CharacterEvent)`. A tela aberta e `minecraft.gui.screen()` e se abre com `minecraft.gui.setScreen(...)`.
+- HUD (6a): `RegisterGuiOverlaysEvent`/`RenderGuiOverlayEvent` viram `HudElementRegistry` (Fabric API): `attachElementBefore/After(id, novoId, elemento)`, `replaceElement(id, anterior -> novo)` e `removeElement(id)`; os ids do jogo estao em `VanillaHudElements` (`HEALTH_BAR`, `ARMOR_BAR`, `FOOD_BAR`, `HOTBAR`, `INFO_BAR`, `EXPERIENCE_LEVEL`, `HELD_ITEM_TOOLTIP`, `OVERLAY_MESSAGE`, `AIR_BAR`, `MOUNT_HEALTH`, `CROSSHAIR`...). Um `HudElement` e `(GuiGraphicsExtractor g, DeltaTracker delta) -> ...`.
+- Teclas (6a): `RegisterKeyMappingsEvent` vira `KeyMappingHelper.registerKeyMapping(new KeyMapping(chave, InputConstants.Type.KEYSYM, tecla, categoria))` com a categoria criada por `KeyMapping.Category.register(Identifier)` (traducao `key.category.<mod>.<nome>`); `TickEvent.ClientTickEvent` vira `ClientTickEvents.END_CLIENT_TICK`.
+- Saiu do mundo no cliente (6a): `ClientPlayerNetworkEvent.LoggingOut` vira `ClientPlayConnectionEvents.DISCONNECT`.
 - Registro de renderer: o `EntityRenderersEvent.RegisterRenderers` do Forge vira `EntityRendererRegistry.register(tipo, Renderer::new)` (Fabric API, cliente), chamado de `ClienteEntidades.registrar()`.

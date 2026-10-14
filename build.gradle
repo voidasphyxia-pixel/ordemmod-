@@ -77,6 +77,10 @@ if (taczJars.files.isEmpty()) {
 //            (ClienteEntidades, ZumbiSangueRenderer). ZumbiSangueModel.java ficou obsoleto (o renderer cria
 //            o modelo sozinho) e NAO entra aqui.
 //   Etapa 5c: ItensOrdem (ovo de spawn do Zumbi de Sangue).
+//   Etapa 6a: cliente de verdade: FonteOP, TeclasOrdem, AvisoOrdem, RolagemHud, HudOrdem (HUD com HudElementRegistry),
+//            ReceptoresCliente e o entrypoint OrdemModClienteFabric. ClienteCriacao/ClienteFicha/ClienteTeste entram
+//            como PROVISORIOS (so escrevem no log); as telas (TelaCriacao, TelaFicha, TelaTeste, TelaMarcado,
+//            titulo/*) ficam para a 6b em diante.
 //   Etapa 7a: dependencia do TACZ (so build + fabric.mod.json, sem codigo novo).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
@@ -106,6 +110,9 @@ def nucleo = [
     'cliente/ClienteEntidades', 'cliente/ZumbiSangueRenderer',
     // etapa 5c
     'ItensOrdem',
+    // etapa 6a
+    'FonteOP', 'TeclasOrdem', 'AvisoOrdem', 'RolagemHud', 'HudOrdem',
+    'ReceptoresCliente', 'ClienteCriacao', 'ClienteFicha', 'ClienteTeste',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }

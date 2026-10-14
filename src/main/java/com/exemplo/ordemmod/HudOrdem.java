@@ -3,35 +3,19 @@ package com.exemplo.ordemmod;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.joml.Matrix4f;
-
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
-
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.Util;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * A HUD do mod, no mesmo visual dos menus e da cena do Marcado (TelaCriacao, TelaFicha): formas desenhadas "na mão",
@@ -42,8 +26,16 @@ import net.minecraftforge.fml.common.Mod;
  * PE (amarelo) + armadura (cinza) / sanidade (azul). No meio das duas colunas (PE/DEF e PV/FOME) fica o símbolo do medo.
  * Os corações, a fome, a armadura, a barra de XP e a hotbar do jogo não são mais desenhados (a hotbar é refeita aqui). Só existe no cliente.
  *
- * Como desenha: primeiro TODA a geometria num lote só ({@link Pincel}); depois todos os textos.
- * Cada barra é um paralelogramo descrito por {@link Forma}, com coordenadas (u, v) de 0 a 1.
+ * ---- Fabric 26.2 (etapa 6a) ----
+ * No Forge a HUD usava RegisterGuiOverlaysEvent + RenderGuiOverlayEvent.Pre (para cancelar os elementos do jogo) e
+ * desenhava as barras com Tesselator/RenderSystem. Aqui:
+ *  - os elementos do jogo são trocados por HudElementRegistry.replaceElement (só desenham se a nossa HUD não está ativa);
+ *  - as barras são HudElements nossos (attachElementAfter) que desenham com GuiGraphicsExtractor;
+ *  - o antigo "Pincel" (um lote de quadrados coloridos por vértice) virou chamadas de fill/fillGradient. Isso exige que
+ *    as formas sejam retângulos alinhados aos eixos, o que já era o caso (INCLINACAO era 0). O degradê horizontal
+ *    (que o fillGradient não faz) é desenhado em faixas verticais de cor interpolada;
+ *  - o brilho aditivo (halo do símbolo do medo) agora usa a mistura normal: ficou mais fraco. Se quiser o aditivo de volta,
+ *    é preciso um RenderPipeline próprio.
  */
 public final class HudOrdem {
     private HudOrdem() {
@@ -59,12 +51,12 @@ public final class HudOrdem {
     private static final int BASE = 43;          // a barra de NEX fica 43 acima do fim da tela
     /** Espaço que a pilha ocupa acima da base da tela; o que o jogo desenha em cima (ar) sobe para cá. */
     private static final int ALTURA_PILHA = BASE + 3 * PASSO + 11;
+    /** Onde o ar (bolhas) e a vida da montaria ficam no jogo: 49 acima do fim da tela. Eles sobem (ALTURA_PILHA - 49). */
+    private static final int ALTURA_AR_NO_JOGO = 49;
     /** O nome do item e a mensagem da barra de ação sobem para não ficar atrás das barras. */
     private static final int DESLOCAMENTO_TEXTOS = 22;
 
-    private static final float INCLINACAO = 0F;      // barras retas, como os painéis dos menus (3F devolve o corte inclinado)
     private static final int ALTURA_XP = 7;
-    private static final float INCLINACAO_XP = 0F;
     private static final int Y_XP = 31;              // a barra de XP fica 31 acima do fim da tela
     /** Escala dos números dentro das barras (Tektur). */
     private static final float ESCALA_TEXTO = 0.72F;
@@ -93,9 +85,9 @@ public final class HudOrdem {
     private static final int COR_VIDRO_BASE = 0xDC050508;
 
     // símbolo do medo: ciano, o mesmo tom da cena do Marcado (0.50, 0.90, 1.00)
-    private static final ResourceLocation SIMBOLO_MEDO = new ResourceLocation(OrdemMod.MOD_ID,
+    private static final Identifier SIMBOLO_MEDO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
             "textures/gui/hud_simbolo_medo.png");
-    private static final ResourceLocation HALO_TEX = new ResourceLocation(OrdemMod.MOD_ID,
+    private static final Identifier HALO_TEX = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
             "textures/gui/marcado/halo.png");
     private static final int SIMBOLO_L = 11;         // tamanho desenhado (a textura tem 22x34, o dobro, para suavizar)
     private static final int SIMBOLO_A = 17;         // 2 barras (7+1+7) + 1 px de vão em cima e embaixo
@@ -116,6 +108,8 @@ public final class HudOrdem {
     private static final int PARTES_NEX = 20;
     /** Abaixo disso (25%) a borda da barra pisca e o brilho pulsa, avisando que está acabando. */
     private static final float LIMITE_ALERTA = 0.25F;
+    /** Um degradê horizontal é feito de no máximo tantas faixas verticais (mais que isso não muda nada a olho nu). */
+    private static final int MAX_FAIXAS = 40;
 
     // índices do "rastro" de cada barra (o pedaço que acabou de ser perdido e vai sumindo devagar)
     private static final int B_SANIDADE = 0;
@@ -129,10 +123,14 @@ public final class HudOrdem {
 
     /** Último estado mandado pelo servidor (null = ainda não chegou, a HUD não aparece). */
     private static PacoteStatus status;
-    private static boolean textosDeslocados;
 
     public static void receber(PacoteStatus novo) {
         status = novo;
+    }
+
+    /** Ao sair do mundo, esquece o que o servidor mandou (a HUD só volta quando chegar de novo). */
+    public static void limpar() {
+        status = null;
     }
 
     /** A HUD só aparece para quem vê os elementos de sobrevivência (não no criativo nem no espectador). */
@@ -147,6 +145,64 @@ public final class HudOrdem {
         return altura - BASE - 3 * PASSO;
     }
 
+    // ================================================================== registro (entrypoint do cliente)
+
+    /**
+     * Liga a HUD ao Fabric: troca os elementos do jogo que as barras substituem, desloca os que precisam subir e
+     * anexa os nossos (barras, painel da rolagem e avisos). Chamar uma vez, de OrdemModClienteFabric.
+     */
+    public static void registrar() {
+        // o que as nossas barras substituem: só some quando a HUD do mod está ativa
+        for (Identifier id : new Identifier[] { VanillaHudElements.HEALTH_BAR, VanillaHudElements.ARMOR_BAR,
+                VanillaHudElements.FOOD_BAR, VanillaHudElements.HOTBAR, VanillaHudElements.EXPERIENCE_LEVEL }) {
+            HudElementRegistry.replaceElement(id, anterior -> (g, delta) -> {
+                if (!ativo()) {
+                    anterior.extractRenderState(g, delta);
+                }
+            });
+        }
+        // a barra de XP (e a de pulo do cavalo, e a de localizador) ocupa o mesmo lugar: só some se NÓS a desenhamos
+        HudElementRegistry.replaceElement(VanillaHudElements.INFO_BAR, anterior -> (g, delta) -> {
+            if (!(ativo() && desenhaXpProprio())) {
+                anterior.extractRenderState(g, delta);
+            }
+        });
+
+        // o que o jogo desenha por cima das barras sobe para não ficar atrás delas
+        deslocarParaCima(VanillaHudElements.HELD_ITEM_TOOLTIP, DESLOCAMENTO_TEXTOS);
+        deslocarParaCima(VanillaHudElements.OVERLAY_MESSAGE, DESLOCAMENTO_TEXTOS);
+        deslocarParaCima(VanillaHudElements.AIR_BAR, ALTURA_PILHA - ALTURA_AR_NO_JOGO);
+        deslocarParaCima(VanillaHudElements.MOUNT_HEALTH, ALTURA_PILHA - ALTURA_AR_NO_JOGO);
+
+        Identifier barras = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "barras");
+        Identifier rolagem = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "rolagem");
+        Identifier avisos = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "avisos");
+        HudElementRegistry.attachElementAfter(VanillaHudElements.INFO_BAR, barras, HudOrdem::desenhar);
+        // o painel da rolagem (acima da barra de sanidade) vem logo depois das barras
+        HudElementRegistry.attachElementAfter(barras, rolagem, RolagemHud::desenhar);
+        // os avisos embaixo da mira
+        HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, avisos, AvisoOrdem::desenhar);
+    }
+
+    /** No cavalo o jogo mostra a barra de pulo no lugar da de XP; nós só desenhamos a nossa fora disso. */
+    private static boolean desenhaXpProprio() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player != null && mc.player.jumpableVehicle() == null;
+    }
+
+    private static void deslocarParaCima(Identifier id, float pixels) {
+        HudElementRegistry.replaceElement(id, anterior -> (g, delta) -> {
+            if (!ativo()) {
+                anterior.extractRenderState(g, delta);
+                return;
+            }
+            g.pose().pushMatrix();
+            g.pose().translate(0F, -pixels);
+            anterior.extractRenderState(g, delta);
+            g.pose().popMatrix();
+        });
+    }
+
     // ================================================================== desenho
 
     /** Um texto para escrever depois da geometria. alinhamento: 0 esquerda, 1 centro, 2 direita. titulo = Cinzel. */
@@ -158,13 +214,15 @@ public final class HudOrdem {
             {-0.9F, 0F}, {0.9F, 0F}, {0F, -0.9F}, {0F, 0.9F},
             {-0.65F, -0.65F}, {0.65F, -0.65F}, {-0.65F, 0.65F}, {0.65F, 0.65F}};
 
-    public static void desenhar(ForgeGui gui, GuiGraphics g, float parcial, int largura, int altura) {
+    public static void desenhar(GuiGraphicsExtractor g, DeltaTracker delta) {
         if (!ativo()) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
         Player jogador = mc.player;
         PacoteStatus s = status;
+        int largura = mc.getWindow().getGuiScaledWidth();
+        int altura = mc.getWindow().getGuiScaledHeight();
 
         long agora = Util.getMillis();
         msDoQuadro = ultimoQuadro == 0L ? 0F : Math.min(100L, agora - ultimoQuadro);
@@ -178,7 +236,6 @@ public final class HudOrdem {
         int ySanidade = yEsforco - PASSO;
 
         TEXTOS.clear();
-        g.flush(); // termina o que já foi pedido antes de desenhar "na mão"
         Pincel p = new Pincel(g);
 
         // vinheta no pé da tela (a mesma ideia dos menus: o fundo escurece perto da borda), por trás de tudo
@@ -198,7 +255,7 @@ public final class HudOrdem {
         // NEX: 20 células, uma a cada 5%
         desenharNex(p, x, yNex, s);
         // XP (a do jogo não é mais desenhada); no cavalo o jogo mostra a barra de pulo no lugar
-        if (mc.player.jumpableVehicle() == null) {
+        if (desenhaXpProprio()) {
             desenharXp(p, x, altura - Y_XP, largura / 2F, jogador);
         }
 
@@ -208,45 +265,40 @@ public final class HudOrdem {
         // cantos de ritual dourados em volta de todo o bloco de barras (de SAN até NEX), como nos painéis dos menus
         cantos(p, x, ySanidade, LARGURA, yNex + ALTURA - ySanidade, 0xCCC2B48C, 4F);
 
-        p.fim();
         // símbolo do medo no vão entre as colunas (PE/DEF e PV/FOME)
         desenharSimboloMedo(g, x + METADE + VAO_CENTRAL / 2F, yEsforco + (2 * ALTURA + 1) / 2F);
         for (Texto t : TEXTOS) {
             escrever(g, mc.font, t);
         }
-        g.flush();
         desenharItensHotbar(g, mc, largura, altura, jogador);
     }
 
     /** Escurece de leve o pé da tela (transparente em cima, ~40% de preto embaixo), como a vinheta dos menus. */
     private static void vinheta(Pincel p, int largura, int altura) {
         float topo = altura - 100F;
-        p.quad(0F, topo, 0x00000000, largura, topo, 0x00000000, largura, altura, 0x66000000, 0F, altura, 0x66000000);
+        p.retangulo(0F, topo, largura, altura, 0x00000000, 0x00000000, 0x66000000, 0x66000000);
     }
 
     /**
      * O símbolo do medo (ciano) no centro do vão entre as colunas: um brilho suave por trás e o desenho por cima, os
-     * dois respirando devagar, igual ao halo da silhueta nos menus. A textura é desenhada com filtro suave, senão o
-     * desenho (fino) fica serrilhado nesse tamanho.
+     * dois respirando devagar, igual ao halo da silhueta nos menus. O desenho (fino) fica suave porque a textura tem
+     * o arquivo hud_simbolo_medo.png.mcmeta com "blur": true. O brilho de trás já não é aditivo (veja a nota no topo).
      */
-    private static void desenharSimboloMedo(GuiGraphics g, float cx, float cy) {
-        Minecraft mc = Minecraft.getInstance();
+    private static void desenharSimboloMedo(GuiGraphicsExtractor g, float cx, float cy) {
         float respira = 0.5F + 0.5F * (float) Math.sin(Util.getMillis() / 900.0);
-        g.flush();
-        RenderSystem.enableBlend();
-        // brilho: textura radial branca somada ao fundo
+        // brilho: textura radial por trás
         int raio = 15;
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        g.setColor(MEDO_R, MEDO_G, MEDO_B, 0.28F + 0.17F * respira);
-        g.blit(HALO_TEX, Math.round(cx) - raio, Math.round(cy) - raio, raio * 2, raio * 2, 0F, 0F, 128, 128, 128, 128);
+        g.blit(RenderPipelines.GUI_TEXTURED, HALO_TEX, Math.round(cx) - raio, Math.round(cy) - raio, 0F, 0F,
+                raio * 2, raio * 2, 128, 128, 128, 128, argb(0.28F + 0.17F * respira, MEDO_R, MEDO_G, MEDO_B));
         // o desenho
-        RenderSystem.defaultBlendFunc();
-        mc.getTextureManager().getTexture(SIMBOLO_MEDO).setFilter(true, false);
-        g.setColor(MEDO_R, MEDO_G, MEDO_B, 0.80F + 0.20F * respira);
-        g.blit(SIMBOLO_MEDO, Math.round(cx - SIMBOLO_L / 2F), Math.round(cy - SIMBOLO_A / 2F), SIMBOLO_L, SIMBOLO_A,
-                0F, 0F, 22, 34, 22, 34);
-        g.setColor(1F, 1F, 1F, 1F);
-        g.flush();
+        g.blit(RenderPipelines.GUI_TEXTURED, SIMBOLO_MEDO, Math.round(cx - SIMBOLO_L / 2F),
+                Math.round(cy - SIMBOLO_A / 2F), 0F, 0F, SIMBOLO_L, SIMBOLO_A, 22, 34, 22, 34,
+                argb(0.80F + 0.20F * respira, MEDO_R, MEDO_G, MEDO_B));
+    }
+
+    private static int argb(float a, float r, float gr, float b) {
+        return (Mth.clamp(Math.round(a * 255F), 1, 255) << 24) | (Mth.clamp(Math.round(r * 255F), 0, 255) << 16)
+                | (Mth.clamp(Math.round(gr * 255F), 0, 255) << 8) | Mth.clamp(Math.round(b * 255F), 0, 255);
     }
 
     // ---------------------------------------------------------------- hotbar
@@ -263,7 +315,7 @@ public final class HudOrdem {
 
     /** Casas de vidro escuro com borda fina; a selecionada ganha borda clara e brilho. */
     private static void desenharHotbar(Pincel p, int largura, int altura, Player jogador) {
-        int sel = jogador.getInventory().selected;
+        int sel = jogador.getInventory().getSelectedSlot();
         float x0 = largura / 2F - 89F;
         float y0 = altura - Y_SLOT_OFFSET;
         for (int i = 0; i < 9; i++) {
@@ -278,7 +330,7 @@ public final class HudOrdem {
     }
 
     private static void casa(Pincel p, float x, float y, boolean selecionada) {
-        Forma f = new Forma(x, y, SLOT, SLOT, 0F);
+        Forma f = new Forma(x, y, SLOT, SLOT);
         painel(p, f);
         if (selecionada) {
             float pulso = 0.5F + 0.5F * (float) Math.sin(Util.getMillis() / 350.0);
@@ -292,24 +344,24 @@ public final class HudOrdem {
     }
 
     /** Os itens (e a quantidade) por cima das casas, depois de todo o resto. */
-    private static void desenharItensHotbar(GuiGraphics g, Minecraft mc, int largura, int altura, Player jogador) {
+    private static void desenharItensHotbar(GuiGraphicsExtractor g, Minecraft mc, int largura, int altura,
+            Player jogador) {
         float x0 = largura / 2F - 89F;
         int iy = Math.round(altura - Y_SLOT_OFFSET + 1F);
         for (int i = 0; i < 9; i++) {
-            ItemStack item = jogador.getInventory().items.get(i);
+            ItemStack item = jogador.getInventory().getItem(i);
             if (!item.isEmpty()) {
                 int ix = Math.round(x0 + 1F + i * PASSO_SLOT);
-                g.renderItem(jogador, item, ix, iy, i);
-                g.renderItemDecorations(mc.font, item, ix, iy);
+                g.item(jogador, item, ix, iy, i);
+                g.itemDecorations(mc.font, item, ix, iy);
             }
         }
         ItemStack mao = jogador.getOffhandItem();
         if (!mao.isEmpty()) {
             int ix = Math.round(xMaoSecundaria(largura) + 1F);
-            g.renderItem(jogador, mao, ix, iy, 10);
-            g.renderItemDecorations(mc.font, mao, ix, iy);
+            g.item(jogador, mao, ix, iy, 10);
+            g.itemDecorations(mc.font, mao, ix, iy);
         }
-        g.flush();
     }
 
     /**
@@ -318,13 +370,13 @@ public final class HudOrdem {
      */
     private static void barra(Pincel p, int indice, float x, float y, float w, int atual, int maximo, int cor,
             String rotulo, boolean avisaBaixo) {
-        Forma f = new Forma(x, y, w, ALTURA, INCLINACAO);
+        Forma f = new Forma(x, y, w, ALTURA);
         float fracao = maximo > 0 ? Mth.clamp(atual / (float) maximo, 0F, 1F) : 0F;
         float rastro = rastro(indice, fracao);
         boolean alerta = avisaBaixo && maximo > 0 && fracao <= LIMITE_ALERTA;
         float pulso = alerta ? 0.5F + 0.5F * (float) Math.sin(Util.getMillis() / 170.0) : 0F;
 
-        float uI = 1.3F / f.bw;
+        float uI = 1.3F / f.w;
         float vI = 1.3F / f.h;
         float util = 1F - 2F * uI;
         float uCheio = uI + util * fracao;
@@ -344,10 +396,10 @@ public final class HudOrdem {
         moldura(p, f, cor, pulso);
 
         // rótulo (bem claro, para ler sobre qualquer cor de barra) e o "atual/máximo" em Tektur
-        TEXTOS.add(new Texto(rotulo, x + INCLINACAO / 2F + 4F,
+        TEXTOS.add(new Texto(rotulo, x + 4F,
                 ROTULO_CINZEL ? yTextoTituloCentrado(y, ALTURA) : yTextoCentrado(y, ALTURA),
                 ROTULO_CINZEL ? ESCALA_ROTULO : ESCALA_TEXTO, misturar(cor, 0xFFFFFFFF, 0.8F), 0, ROTULO_CINZEL));
-        TEXTOS.add(new Texto(atual + "/" + maximo, x + w - INCLINACAO / 2F - 4F, yTextoCentrado(y, ALTURA),
+        TEXTOS.add(new Texto(atual + "/" + maximo, x + w - 4F, yTextoCentrado(y, ALTURA),
                 ESCALA_TEXTO, COR_OSSO, 2, false));
     }
 
@@ -356,18 +408,18 @@ public final class HudOrdem {
         float util = 1F - 2F * uI;
         for (int k = 1; k <= 3; k++) {
             float u = uI + util * k / 4F;
-            f.traco(p, u, vI, u, 1F - vI, 0.8F, 0x30000000);
+            p.coluna(f.px(u), f.py(vI), f.py(1F - vI), 0x30000000);
         }
     }
 
-    /** NEX: 20 células inclinadas com um vão entre elas. Cada 5% de NEX acende mais uma. */
+    /** NEX: 20 células com um vão entre elas. Cada 5% de NEX acende mais uma. */
     private static void desenharNex(Pincel p, float x, float y, PacoteStatus s) {
-        Forma f = new Forma(x, y, LARGURA, ALTURA, INCLINACAO);
+        Forma f = new Forma(x, y, LARGURA, ALTURA);
         int partes = Mth.clamp(s.nivel(), 0, PARTES_NEX); // nível = NEX / 5 (99% = 20)
-        float uI = 1.3F / f.bw;
+        float uI = 1.3F / f.w;
         float vI = 1.3F / f.h;
         float passo = (1F - 2F * uI) / PARTES_NEX;
-        float vao = 1.2F / f.bw;
+        float vao = 1.2F / f.w;
 
         painel(p, f);
         if (partes > 0) {
@@ -383,7 +435,7 @@ public final class HudOrdem {
             }
         }
         moldura(p, f, COR_NEX, 0F);
-        TEXTOS.add(new Texto(s.nex() + "%", f.px(0.5F, 0.5F), yTextoCentrado(y, ALTURA),
+        TEXTOS.add(new Texto(s.nex() + "%", f.px(0.5F), yTextoCentrado(y, ALTURA),
                 ESCALA_TEXTO, 0xFFFFFFFF, 1, false));
     }
 
@@ -399,9 +451,9 @@ public final class HudOrdem {
 
     /** XP: uma linha fina e luminosa no mesmo estilo, com o número do nível centralizado dentro dela. */
     private static void desenharXp(Pincel p, float x, float y, float centroX, Player jogador) {
-        Forma f = new Forma(x, y, LARGURA, ALTURA_XP, INCLINACAO_XP);
+        Forma f = new Forma(x, y, LARGURA, ALTURA_XP);
         float fracao = Mth.clamp(jogador.experienceProgress, 0F, 1F);
-        float uI = 1F / f.bw;
+        float uI = 1F / f.w;
         float vI = 1F / f.h;
         float uCheio = uI + (1F - 2F * uI) * fracao;
 
@@ -429,14 +481,14 @@ public final class HudOrdem {
      * dourados dos painéis da TelaCriacao/TelaFicha. {@code t} é o comprimento de cada braço.
      */
     private static void cantos(Pincel p, float x, float y, float w, float h, int cor, float t) {
-        p.ret(x - 1F, y - 1F, x + t, y, cor);
-        p.ret(x - 1F, y - 1F, x, y + t, cor);
-        p.ret(x + w - t, y - 1F, x + w + 1F, y, cor);
-        p.ret(x + w, y - 1F, x + w + 1F, y + t, cor);
-        p.ret(x - 1F, y + h, x + t, y + h + 1F, cor);
-        p.ret(x - 1F, y + h - t, x, y + h + 1F, cor);
-        p.ret(x + w - t, y + h, x + w + 1F, y + h + 1F, cor);
-        p.ret(x + w, y + h - t, x + w + 1F, y + h + 1F, cor);
+        p.retangulo(x - 1F, y - 1F, x + t, y, cor);
+        p.retangulo(x - 1F, y - 1F, x, y + t, cor);
+        p.retangulo(x + w - t, y - 1F, x + w + 1F, y, cor);
+        p.retangulo(x + w, y - 1F, x + w + 1F, y + t, cor);
+        p.retangulo(x - 1F, y + h, x + t, y + h + 1F, cor);
+        p.retangulo(x - 1F, y + h - t, x, y + h + 1F, cor);
+        p.retangulo(x + w - t, y + h, x + w + 1F, y + h + 1F, cor);
+        p.retangulo(x + w, y + h - t, x + w + 1F, y + h + 1F, cor);
     }
 
     /** A parte cheia: degradê da cor, reflexo de vidro na metade de cima e um fio de luz na ponta. */
@@ -448,19 +500,21 @@ public final class HudOrdem {
         f.celula(p, u0, u1, vI, 1F - vI, topoEsq, topoDir, baseDir, baseEsq);
         f.celula(p, u0, u1, vI, 0.5F, 0x3CFFFFFF, 0x3CFFFFFF, 0x08FFFFFF, 0x08FFFFFF); // reflexo
         if (comPonta) {
-            f.traco(p, u1, vI, u1, 1F - vI, 1F, 0xC8FFFFFF);
+            p.coluna(f.px(u1) - 0.5F, f.py(vI), f.py(1F - vI), 0xC8FFFFFF);
         }
     }
 
-    /** Borda fina: mais clara em cima, mais escura embaixo. Em alerta, pulsa na cor da barra. */
+    /** Borda fina (1 px, por dentro do retângulo): mais clara em cima, mais escura embaixo. Em alerta, pulsa na cor da barra. */
     private static void moldura(Pincel p, Forma f, int cor, float pulso) {
         int topo = misturar(0xFF42424E, cor, 0.9F * pulso);
         int lados = misturar(0xFF2A2A33, cor, 0.9F * pulso);
         int base = misturar(0xFF17171D, cor, 0.9F * pulso);
-        f.traco(p, 0F, 0F, 1F, 0F, 1F, topo);
-        f.traco(p, 1F, 0F, 1F, 1F, 1F, lados);
-        f.traco(p, 1F, 1F, 0F, 1F, 1F, base);
-        f.traco(p, 0F, 1F, 0F, 0F, 1F, lados);
+        float x1 = f.x + f.w;
+        float y1 = f.y + f.h;
+        p.retangulo(f.x, f.y, x1, f.y + 1F, topo);
+        p.retangulo(f.x, y1 - 1F, x1, y1, base);
+        p.retangulo(f.x, f.y + 1F, f.x + 1F, y1 - 1F, lados);
+        p.retangulo(x1 - 1F, f.y + 1F, x1, y1 - 1F, lados);
     }
 
     /** Brilho neon em volta da região [u0, u1]: quatro faixas que vão de "cor" até transparente. */
@@ -468,7 +522,7 @@ public final class HudOrdem {
         int dentro = (Mth.clamp(alfa, 0, 255) << 24) | (cor & 0xFFFFFF);
         int fora = cor & 0xFFFFFF; // alfa 0
         float dv = raio / f.h;
-        float du = raio / f.bw;
+        float du = raio / f.w;
         f.celula(p, u0, u1, -dv, 0F, fora, fora, dentro, dentro);
         f.celula(p, u0, u1, 1F, 1F + dv, dentro, dentro, fora, fora);
         f.celula(p, u0 - du, u0, 0F, 1F, fora, dentro, dentro, fora);
@@ -494,8 +548,17 @@ public final class HudOrdem {
         return 0xFF000000 | (r << 16) | (gr << 8) | b;
     }
 
+    /** Mistura dois ARGB canal a canal (alfa inclusive), de 0 (só {@code a}) a 1 (só {@code b}). */
+    private static int interpolar(int a, int b, float t) {
+        int aa = Math.round((a >>> 24) * (1 - t) + (b >>> 24) * t);
+        int r = Math.round(((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t);
+        int gr = Math.round(((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t);
+        int bl = Math.round((a & 255) * (1 - t) + (b & 255) * t);
+        return (aa << 24) | (r << 16) | (gr << 8) | bl;
+    }
+
     /** Escreve um texto pequeno com um halo escuro em volta (legível sobre qualquer cor de barra). */
-    private static void escrever(GuiGraphics g, Font fonte, Texto t) {
+    private static void escrever(GuiGraphicsExtractor g, Font fonte, Texto t) {
         float largura = (t.titulo() ? FonteOP.larguraRotulo(fonte, t.conteudo()) : FonteOP.largura(fonte, t.conteudo()))
                 * t.escala();
         float x = switch (t.alinhamento()) {
@@ -503,9 +566,9 @@ public final class HudOrdem {
             case 2 -> t.x() - largura;
             default -> t.x();
         };
-        g.pose().pushPose();
-        g.pose().translate(x, t.y(), 0F);
-        g.pose().scale(t.escala(), t.escala(), 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(x, t.y());
+        g.pose().scale(t.escala(), t.escala());
         for (float[] o : HALO) {
             if (t.titulo()) {
                 FonteOP.desenharRotulo(g, fonte, t.conteudo(), o[0], o[1], COR_HALO, false);
@@ -518,30 +581,27 @@ public final class HudOrdem {
         } else {
             FonteOP.desenhar(g, fonte, t.conteudo(), 0F, 0F, t.cor(), false);
         }
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     // ---------------------------------------------------------------- geometria
 
     /**
-     * Um paralelogramo (topo deslocado para a direita em {@code s}) com coordenadas (u, v) de 0 a 1:
-     * u = posição ao longo da largura, v = de cima (0) para baixo (1). Valores fora de 0..1 saem da forma
-     * mantendo a inclinação, o que é útil para o brilho.
+     * Um retângulo com coordenadas (u, v) de 0 a 1: u = posição ao longo da largura, v = de cima (0) para baixo (1).
+     * Valores fora de 0..1 saem da forma, o que é útil para o brilho. (No Forge era um paralelogramo inclinado.)
      */
     private static final class Forma {
-        final float x, y, w, h, s, bw;
+        final float x, y, w, h;
 
-        Forma(float x, float y, float w, float h, float s) {
+        Forma(float x, float y, float w, float h) {
             this.x = x;
             this.y = y;
             this.w = w;
             this.h = h;
-            this.s = s;
-            this.bw = w - s;
         }
 
-        float px(float u, float v) {
-            return x + s * (1F - v) + bw * u;
+        float px(float u) {
+            return x + w * u;
         }
 
         float py(float v) {
@@ -551,151 +611,65 @@ public final class HudOrdem {
         /** Um retângulo no espaço (u, v), com uma cor em cada canto (topo-esq, topo-dir, base-dir, base-esq). */
         void celula(Pincel p, float u0, float u1, float v0, float v1, int cTopoEsq, int cTopoDir, int cBaseDir,
                 int cBaseEsq) {
-            p.quad(px(u0, v0), py(v0), cTopoEsq, px(u1, v0), py(v0), cTopoDir,
-                    px(u1, v1), py(v1), cBaseDir, px(u0, v1), py(v1), cBaseEsq);
-        }
-
-        void traco(Pincel p, float u0, float v0, float u1, float v1, float espessura, int cor) {
-            p.linha(px(u0, v0), py(v0), px(u1, v1), py(v1), espessura, cor);
+            p.retangulo(px(u0), py(v0), px(u1), py(v1), cTopoEsq, cTopoDir, cBaseDir, cBaseEsq);
         }
     }
 
-    /** Junta todos os quadrados coloridos num lote só e desenha de uma vez no fim. */
+    /** Desenha retângulos coloridos (cor por canto) com fill/fillGradient, em coordenadas de tela. */
     private static final class Pincel {
-        private final BufferBuilder buffer;
-        private final Matrix4f matriz;
+        private final GuiGraphicsExtractor g;
 
-        Pincel(GuiGraphics g) {
-            matriz = g.pose().last().pose();
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.disableCull();
-            RenderSystem.setShader(GameRenderer::getPositionColorShader);
-            buffer = Tesselator.getInstance().getBuilder();
-            buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        Pincel(GuiGraphicsExtractor g) {
+            this.g = g;
         }
 
-        private void vertice(float x, float y, int argb) {
-            buffer.vertex(matriz, x, y, 0F)
-                    .color((argb >> 16) & 255, (argb >> 8) & 255, argb & 255, (argb >>> 24) & 255)
-                    .endVertex();
+        /** Retângulo de uma cor só. */
+        void retangulo(float x0, float y0, float x1, float y1, int argb) {
+            retangulo(x0, y0, x1, y1, argb, argb, argb, argb);
         }
 
-        void quad(float x1, float y1, int c1, float x2, float y2, int c2, float x3, float y3, int c3,
-                float x4, float y4, int c4) {
-            vertice(x1, y1, c1);
-            vertice(x2, y2, c2);
-            vertice(x3, y3, c3);
-            vertice(x4, y4, c4);
+        /** Uma coluna de 1 px de largura centrada em {@code xCentro}, de y0 a y1. */
+        void coluna(float xCentro, float y0, float y1, int argb) {
+            int xi = Math.round(xCentro - 0.5F);
+            retangulo(xi, y0, xi + 1F, y1, argb);
         }
 
-        /** Retângulo de uma cor só, em coordenadas de tela. */
-        void ret(float x0, float y0, float x1, float y1, int argb) {
-            quad(x0, y0, argb, x1, y0, argb, x1, y1, argb, x0, y1, argb);
-        }
-
-        /** Linha com espessura; estica meia espessura nas pontas para os cantos não ficarem com buraco. */
-        void linha(float x1, float y1, float x2, float y2, float espessura, int argb) {
-            float dx = x2 - x1;
-            float dy = y2 - y1;
-            float comprimento = (float) Math.sqrt(dx * dx + dy * dy);
-            if (comprimento < 0.001F) {
+        /**
+         * Retângulo com uma cor em cada canto (topo-esq, topo-dir, base-dir, base-esq). A variação vertical é um
+         * fillGradient; a horizontal vira faixas verticais, cada uma com a cor interpolada no meio dela.
+         */
+        void retangulo(float fx0, float fy0, float fx1, float fy1, int cTopoEsq, int cTopoDir, int cBaseDir,
+                int cBaseEsq) {
+            int x0 = Math.round(fx0);
+            int y0 = Math.round(fy0);
+            int x1 = Math.round(fx1);
+            int y1 = Math.round(fy1);
+            if (x1 <= x0 || y1 <= y0) {
                 return;
             }
-            float ux = dx / comprimento;
-            float uy = dy / comprimento;
-            float ext = espessura / 2F;
-            x1 -= ux * ext;
-            y1 -= uy * ext;
-            x2 += ux * ext;
-            y2 += uy * ext;
-            float nx = -uy * espessura / 2F;
-            float ny = ux * espessura / 2F;
-            quad(x1 - nx, y1 - ny, argb, x1 + nx, y1 + ny, argb, x2 + nx, y2 + ny, argb, x2 - nx, y2 - ny, argb);
-        }
-
-        void fim() {
-            BufferUploader.drawWithShader(buffer.end());
-            RenderSystem.enableCull();
-        }
-    }
-
-    // ================================================================== eventos (só no cliente)
-
-    /** Registra a HUD no Forge (barramento do mod). */
-    @Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static final class Registro {
-        @SubscribeEvent
-        public static void aoRegistrar(RegisterGuiOverlaysEvent e) {
-            e.registerAbove(VanillaGuiOverlay.EXPERIENCE_BAR.id(), "barras", HudOrdem::desenhar);
-            // o painel da rolagem (acima da barra de sanidade) vem logo depois das barras
-            e.registerAbove(new ResourceLocation(OrdemMod.MOD_ID, "barras"), "rolagem", RolagemHud::desenhar);
-            // os avisos embaixo da mira (AvisoOrdem) são registrados aqui também, num lugar só
-            try {
-                e.registerAbove(VanillaGuiOverlay.CROSSHAIR.id(), "avisos", AvisoOrdem::desenhar);
-            } catch (IllegalArgumentException jaRegistrado) {
-                System.err.println("[OrdemMod] overlay 'avisos' já estava registrado (há uma cópia duplicada de AvisoOrdem?)");
-            }
-        }
-    }
-
-    /** Tira da tela o que as barras substituem e abre espaço para elas. */
-    @Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, value = Dist.CLIENT)
-    public static final class Eventos {
-        @SubscribeEvent
-        public static void antes(RenderGuiOverlayEvent.Pre e) {
-            if (!ativo()) {
+            if (cTopoEsq == cTopoDir && cBaseEsq == cBaseDir) {
+                faixa(x0, y0, x1, y1, cTopoEsq, cBaseEsq);
                 return;
             }
-            ResourceLocation id = e.getOverlay().id();
-            if (id.equals(VanillaGuiOverlay.PLAYER_HEALTH.id())) {
-                e.setCanceled(true); // corações
-                // o que o jogo empilha depois (bolhas de ar) começa acima das barras
-                if (Minecraft.getInstance().gui instanceof ForgeGui gui) {
-                    gui.leftHeight = ALTURA_PILHA;
-                    gui.rightHeight = ALTURA_PILHA;
+            int largura = x1 - x0;
+            int faixas = Math.min(largura, MAX_FAIXAS);
+            for (int i = 0; i < faixas; i++) {
+                int xa = x0 + Math.round(largura * (float) i / faixas);
+                int xb = x0 + Math.round(largura * (float) (i + 1) / faixas);
+                if (xb <= xa) {
+                    continue;
                 }
-            } else if (id.equals(VanillaGuiOverlay.HOTBAR.id())) {
-                e.setCanceled(true); // hotbar do jogo (a nossa é desenhada junto com as barras)
-            } else if (id.equals(VanillaGuiOverlay.ARMOR_LEVEL.id()) || id.equals(VanillaGuiOverlay.FOOD_LEVEL.id())) {
-                e.setCanceled(true); // armadura e fome
-            } else if (id.equals(VanillaGuiOverlay.EXPERIENCE_BAR.id())
-                    && Minecraft.getInstance().player.jumpableVehicle() == null) {
-                e.setCanceled(true); // barra de XP (e o número do nível): agora é desenhada por nós
+                float t = (i + 0.5F) / faixas;
+                faixa(xa, y0, xb, y1, interpolar(cTopoEsq, cTopoDir, t), interpolar(cBaseEsq, cBaseDir, t));
             }
         }
 
-        /** Por último, depois de todo mundo: sobe o nome do item e a barra de ação para cima das barras. */
-        @SubscribeEvent(priority = EventPriority.LOWEST)
-        public static void subirTextos(RenderGuiOverlayEvent.Pre e) {
-            if (e.isCanceled() || !ativo()) {
-                return;
+        private void faixa(int x0, int y0, int x1, int y1, int cima, int baixo) {
+            if (cima == baixo) {
+                g.fill(x0, y0, x1, y1, cima);
+            } else {
+                g.fillGradient(x0, y0, x1, y1, cima, baixo);
             }
-            ResourceLocation id = e.getOverlay().id();
-            if (id.equals(VanillaGuiOverlay.ITEM_NAME.id()) || id.equals(VanillaGuiOverlay.RECORD_OVERLAY.id())) {
-                e.getGuiGraphics().pose().pushPose();
-                e.getGuiGraphics().pose().translate(0F, -DESLOCAMENTO_TEXTOS, 0F);
-                textosDeslocados = true;
-            }
-        }
-
-        @SubscribeEvent
-        public static void depois(RenderGuiOverlayEvent.Post e) {
-            if (!textosDeslocados) {
-                return;
-            }
-            ResourceLocation id = e.getOverlay().id();
-            if (id.equals(VanillaGuiOverlay.ITEM_NAME.id()) || id.equals(VanillaGuiOverlay.RECORD_OVERLAY.id())) {
-                e.getGuiGraphics().pose().popPose();
-                textosDeslocados = false;
-            }
-        }
-
-        /** Ao sair do mundo, esquece o que o servidor mandou (a HUD só volta quando chegar de novo). */
-        @SubscribeEvent
-        public static void aoSair(ClientPlayerNetworkEvent.LoggingOut e) {
-            status = null;
-            textosDeslocados = false;
         }
     }
 }

@@ -1,59 +1,39 @@
 package com.exemplo.ordemmod.cliente;
 
-import com.exemplo.ordemmod.PacoteAbrirCriacao;
-import com.exemplo.ordemmod.PacoteAviso;
-import com.exemplo.ordemmod.PacoteHabilidade;
-import com.exemplo.ordemmod.PacoteRolagemHud;
-import com.exemplo.ordemmod.PacoteStatus;
+import com.exemplo.ordemmod.AvisoOrdem;
+import com.exemplo.ordemmod.HudOrdem;
+import com.exemplo.ordemmod.ReceptoresCliente;
+import com.exemplo.ordemmod.RolagemHud;
+import com.exemplo.ordemmod.TeclasOrdem;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 /**
- * Entrypoint do CLIENTE, PROVISORIO (etapa 4). So serve para provar que a rede funciona nos dois sentidos:
- * escreve no log o que chega do servidor e, 5 segundos depois de entrar no mundo, manda uma tecla de teste.
- * Na etapa 6 isto e trocado por ReceptoresCliente.registrar() (HUD, telas, teclas de verdade).
- * A linha ClienteEntidades.registrar() (etapa 5b) deve continuar existindo quando isso acontecer.
+ * Entrypoint do CLIENTE (entrypoint "client" do fabric.mod.json). Etapa 6a: no lugar do provisorio da etapa 4
+ * (que so escrevia a rede no log) agora liga o que e de verdade:
+ *  - ReceptoresCliente: o que fazer quando chega cada pacote do servidor (HUD, avisos, painel da rolagem; as telas
+ *    ainda sao provisorias ate a 6b);
+ *  - TeclasOrdem: as teclas R, G e K (Controles > Ordem Mod);
+ *  - HudOrdem.registrar(): as barras, a hotbar nova, o painel da rolagem e os avisos;
+ *  - ClienteEntidades: o renderer do Zumbi de Sangue (etapa 5b).
  */
 public class OrdemModClienteFabric implements ClientModInitializer {
-    private static int ticksDesdeEntrada = -1;
-    private static boolean statusVisto = false;
-
     @Override
     public void onInitializeClient() {
         // etapa 5b: renderer do Zumbi de Sangue
         ClienteEntidades.registrar();
 
-        ClientPlayNetworking.registerGlobalReceiver(PacoteAbrirCriacao.TYPE, (m, contexto) ->
-                System.out.println("[Ordem cliente] servidor pediu a tela de criacao (com Marcado: "
-                        + m.comMarcado() + ")"));
-        ClientPlayNetworking.registerGlobalReceiver(PacoteStatus.TYPE, (m, contexto) -> {
-            if (!statusVisto) { // so o primeiro, para nao encher o log
-                statusVisto = true;
-                System.out.println("[Ordem cliente] status recebido: " + m);
-            }
-        });
-        ClientPlayNetworking.registerGlobalReceiver(PacoteAviso.TYPE, (m, contexto) ->
-                System.out.println("[Ordem cliente] aviso recebido: " + m.texto()));
-        // etapa 4d: o painel da rolagem (queda, esquiva) so aparece no log ate a HUD ser portada
-        ClientPlayNetworking.registerGlobalReceiver(PacoteRolagemHud.TYPE, (m, contexto) ->
-                System.out.println("[Ordem cliente] rolagem recebida: " + m.motivo() + " " + m.total() + "/" + m.dt()
-                        + (m.sucesso() ? " sucesso" : " falha") + (m.critico() ? " CRITICO" : "")
-                        + (m.reducao() >= 0 ? " (-" + m.reducao() + "% de dano)" : "")));
+        // etapa 6a
+        ReceptoresCliente.registrar();
+        TeclasOrdem.registrar();
+        HudOrdem.registrar();
 
-        ClientPlayConnectionEvents.JOIN.register((handler, enviador, cliente) -> {
-            ticksDesdeEntrada = 0;
-            statusVisto = false;
-        });
-        // Ao sair do mundo o contador para: sem isto, sair antes dos 5 s mandava o pacote ja desconectado (crash).
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, cliente) -> ticksDesdeEntrada = -1);
-        ClientTickEvents.END_CLIENT_TICK.register(cliente -> {
-            if (ticksDesdeEntrada >= 0 && ++ticksDesdeEntrada == 100) {
-                System.out.println("[Ordem cliente] enviando tecla de teste (USAR) ao servidor");
-                ClientPlayNetworking.send(new PacoteHabilidade(PacoteHabilidade.USAR));
-            }
+        // Ao sair do mundo (ou cair a conexao), a HUD esquece o que o servidor mandou e os paineis somem.
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, cliente) -> {
+            HudOrdem.limpar();
+            AvisoOrdem.limpar();
+            RolagemHud.limpar();
         });
     }
 }

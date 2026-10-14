@@ -4,19 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.Util;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * Avisos curtos embaixo da mira, sutis: entram com fade, ficam um instante e saem com fade, na fonte do mod.
  * Até {@link #MAXIMO} linhas ao mesmo tempo (a mais antiga some quando chega uma nova além disso). Só existe no cliente.
+ *
+ * Fabric 26.2: desenhar() é um HudElement (registrado em HudOrdem.registrar, depois da mira); o evento de
+ * "saiu do mundo" virou limpar(), chamado pelo entrypoint do cliente.
  */
 public final class AvisoOrdem {
     private AvisoOrdem() {
@@ -54,6 +53,11 @@ public final class AvisoOrdem {
         }
     }
 
+    /** Ao sair do mundo, os avisos pendentes somem. */
+    public static void limpar() {
+        AVISOS.clear();
+    }
+
     private static float opacidade(Aviso a, long agora) {
         float t = agora - a.inicio();
         if (t < FADE_ENTRADA) {
@@ -66,20 +70,23 @@ public final class AvisoOrdem {
         return 1F;
     }
 
-    public static void desenhar(ForgeGui gui, GuiGraphics g, float parcial, int largura, int altura) {
+    public static void desenhar(GuiGraphicsExtractor g, DeltaTracker delta) {
         if (AVISOS.isEmpty()) {
             return;
         }
+        Minecraft mc = Minecraft.getInstance();
+        int largura = mc.getWindow().getGuiScaledWidth();
+        int altura = mc.getWindow().getGuiScaledHeight();
         long agora = Util.getMillis();
         AVISOS.removeIf(a -> agora - a.inicio() >= a.duracao());
-        Font fonte = Minecraft.getInstance().font;
+        Font fonte = mc.font;
         float larguraMaxima = largura * 0.6F;
 
         int linha = 0;
         for (Aviso a : AVISOS) {
             float o = Mth.clamp(opacidade(a, agora), 0F, 1F) * TRANSPARENCIA_GERAL;
             int alfa = Math.round(255F * o);
-            if (alfa < 8) { // o jogo trata alfa muito baixo como opaco, então nem desenha
+            if (alfa < 8) { // alfa muito baixo vira "opaco" ou some, então nem desenha
                 linha++;
                 continue;
             }
@@ -92,26 +99,16 @@ public final class AvisoOrdem {
             float centroY = altura / 2F + DESCE_DA_MIRA + linha * PASSO_LINHA + fonte.lineHeight * ESCALA / 2F;
             float y = centroY - ESCALA * CENTRO_GLIFO;
 
-            g.pose().pushPose();
-            g.pose().translate(x, y, 0F);
-            g.pose().scale(ESCALA, ESCALA, 1F);
-            int halo = (Math.round(alfa * 0.6F) << 24);
+            g.pose().pushMatrix();
+            g.pose().translate(x, y);
+            g.pose().scale(ESCALA, ESCALA);
+            int halo = (Math.max(1, Math.round(alfa * 0.6F)) << 24);
             for (float[] d : HALO) {
                 FonteOP.desenhar(g, fonte, texto, d[0], d[1], halo, false);
             }
             FonteOP.desenhar(g, fonte, texto, 0F, 0F, (alfa << 24) | a.rgb(), false);
-            g.pose().popPose();
+            g.pose().popMatrix();
             linha++;
-        }
-        g.flush();
-    }
-
-    @Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, value = Dist.CLIENT)
-    public static final class Eventos {
-        /** Ao sair do mundo, os avisos pendentes somem. */
-        @SubscribeEvent
-        public static void aoSair(ClientPlayerNetworkEvent.LoggingOut e) {
-            AVISOS.clear();
         }
     }
 }

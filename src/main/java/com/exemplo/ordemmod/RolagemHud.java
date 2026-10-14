@@ -4,20 +4,19 @@ import java.util.List;
 import java.util.Random;
 
 import net.minecraft.Util;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 
 /**
  * O painel da rolagem, logo acima da barra de sanidade: os números embaralham um instante (como um dado rolando),
  * param no resultado real que o servidor mandou, ficam um tempo na tela e somem com fade.
  * É só estética: o servidor já decidiu tudo. Só existe no cliente.
+ *
+ * Fabric 26.2: desenhar() é um HudElement (registrado em HudOrdem.registrar, logo depois das barras) e o evento
+ * de "saiu do mundo" virou limpar(), chamado pelo entrypoint do cliente.
  */
 public final class RolagemHud {
     private RolagemHud() {
@@ -54,7 +53,15 @@ public final class RolagemHud {
         inicio = Util.getMillis();
     }
 
-    public static void desenhar(ForgeGui gui, GuiGraphics g, float parcial, int largura, int altura) {
+    /** Ao sair do mundo, a rolagem na tela some. */
+    public static void limpar() {
+        atual = null;
+    }
+
+    public static void desenhar(GuiGraphicsExtractor g, DeltaTracker delta) {
+        Minecraft mc = Minecraft.getInstance();
+        int largura = mc.getWindow().getGuiScaledWidth();
+        int altura = mc.getWindow().getGuiScaledHeight();
         PacoteRolagemHud m = atual;
         if (m == null || !HudOrdem.ativo()) {
             return;
@@ -70,11 +77,11 @@ public final class RolagemHud {
             opacidade = Math.min(opacidade, (duracao - t) / FADE_SAIDA);
         }
         int alfa = Math.round(255F * Mth.clamp(opacidade, 0F, 1F) * TRANSPARENCIA);
-        if (alfa < 8) { // o jogo trata alfa muito baixo como opaco, então nem desenha
+        if (alfa < 8) { // alfa muito baixo vira "opaco" ou some, então nem desenha
             return;
         }
 
-        Font fonte = Minecraft.getInstance().font;
+        Font fonte = mc.font;
         boolean rolando = t < ROLANDO;
         int x = largura / 2 - LARGURA / 2;
         int y = HudOrdem.yTopoDasBarras(altura) - FOLGA - ALTURA;
@@ -134,7 +141,6 @@ public final class RolagemHud {
         }
         texto(g, fonte, String.valueOf(totalMostrado), x + LARGURA - INCLINACAO / 2F - 22F, centroY, escala,
                 rolando ? COR_OSSO : corResultado, alfa, 1);
-        g.flush();
     }
 
     /** Só o primeiro dado com o valor escolhido fica em destaque (se dois saírem iguais, não acender os dois). */
@@ -143,7 +149,7 @@ public final class RolagemHud {
     }
 
     /** Painel de vidro escuro inclinado, com borda fina na cor do estado. */
-    private static void painel(GuiGraphics g, int x, int y, int alfa, int corBorda) {
+    private static void painel(GuiGraphicsExtractor g, int x, int y, int alfa, int corBorda) {
         int fundo = (Math.round(alfa * 0.78F) << 24) | 0x0B0D12;
         int borda = (alfa << 24) | corBorda;
         int w = LARGURA - INCLINACAO;
@@ -164,7 +170,7 @@ public final class RolagemHud {
      * Escreve um texto com o CENTRO vertical em {@code centroY}. alinhamento: 0 esquerda, 1 centro, 2 direita.
      * Retorna a largura escrita (em pixels da interface).
      */
-    private static float texto(GuiGraphics g, Font fonte, String conteudo, float x, float centroY, float escala, int rgb,
+    private static float texto(GuiGraphicsExtractor g, Font fonte, String conteudo, float x, float centroY, float escala, int rgb,
             int alfa, int alinhamento) {
         float w = FonteOP.largura(fonte, conteudo) * escala;
         float px = switch (alinhamento) {
@@ -173,20 +179,11 @@ public final class RolagemHud {
             default -> x;
         };
         float py = centroY - escala * CENTRO_GLIFO - escala * fonte.lineHeight / 2F;
-        g.pose().pushPose();
-        g.pose().translate(px, py, 0F);
-        g.pose().scale(escala, escala, 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(px, py);
+        g.pose().scale(escala, escala);
         FonteOP.desenhar(g, fonte, conteudo, 0F, 0F, (alfa << 24) | rgb, false);
-        g.pose().popPose();
+        g.pose().popMatrix();
         return w;
-    }
-
-    @Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, value = Dist.CLIENT)
-    public static final class Eventos {
-        /** Ao sair do mundo, a rolagem na tela some. */
-        @SubscribeEvent
-        public static void aoSair(ClientPlayerNetworkEvent.LoggingOut e) {
-            atual = null;
-        }
     }
 }

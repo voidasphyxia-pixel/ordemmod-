@@ -2,57 +2,52 @@ package com.exemplo.ordemmod;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraft.resources.Identifier;
 
-/** As teclas do mod. Só existe no cliente (no computador do jogador). */
+/**
+ * As teclas do mod. Só existe no cliente (no computador do jogador).
+ *
+ * Fabric 26.2: no Forge o RegisterKeyMappingsEvent registrava as teclas e um TickEvent.ClientTickEvent as lia.
+ * Aqui {@link KeyMappingHelper#registerKeyMapping} registra (e cria a categoria nos Controles) e um
+ * ClientTickEvents.END_CLIENT_TICK lê. A tradução da categoria é "key.category.ordemmod.principal" (veja o lang).
+ */
 public final class TeclasOrdem {
-    public static final KeyMapping USAR = new KeyMapping(
-            "key.ordemmod.usar_habilidade", InputConstants.KEY_R, "key.categories.ordemmod");
-    public static final KeyMapping TROCAR = new KeyMapping(
-            "key.ordemmod.trocar_habilidade", InputConstants.KEY_G, "key.categories.ordemmod");
+    private static final KeyMapping.Category CATEGORIA = KeyMapping.Category.register(
+            Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "principal"));
 
-    public static final KeyMapping MENU = new KeyMapping(
-            "key.ordemmod.menu", InputConstants.KEY_K, "key.categories.ordemmod");
+    public static final KeyMapping USAR = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+            "key.ordemmod.usar_habilidade", InputConstants.Type.KEYSYM, InputConstants.KEY_R, CATEGORIA));
+    public static final KeyMapping TROCAR = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+            "key.ordemmod.trocar_habilidade", InputConstants.Type.KEYSYM, InputConstants.KEY_G, CATEGORIA));
+    public static final KeyMapping MENU = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+            "key.ordemmod.menu", InputConstants.Type.KEYSYM, InputConstants.KEY_K, CATEGORIA));
 
     private TeclasOrdem() {
     }
 
-    /** Avisa o Minecraft que essas teclas existem (elas aparecem em Controles). */
-    @Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, value = Dist.CLIENT,
-            bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static class Registro {
-        @SubscribeEvent
-        public static void registrar(RegisterKeyMappingsEvent e) {
-            e.register(USAR);
-            e.register(TROCAR);
-            e.register(MENU);
-        }
+    /** Chamar do entrypoint do cliente: o carregamento da classe registra as teclas, e aqui liga a leitura. */
+    public static void registrar() {
+        ClientTickEvents.END_CLIENT_TICK.register(TeclasOrdem::aoTick);
     }
 
     /** A cada tick do cliente, vê se a tecla foi apertada e manda a mensagem ao servidor. */
-    @Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, value = Dist.CLIENT)
-    public static class Uso {
-        @SubscribeEvent
-        public static void aoTick(TickEvent.ClientTickEvent e) {
-            if (e.phase != TickEvent.Phase.END || Minecraft.getInstance().player == null) {
-                return;
-            }
-            while (USAR.consumeClick()) {
-                Rede.CANAL.sendToServer(new PacoteHabilidade(PacoteHabilidade.USAR));
-            }
-            while (TROCAR.consumeClick()) {
-                Rede.CANAL.sendToServer(new PacoteHabilidade(PacoteHabilidade.TROCAR));
-            }
-            while (MENU.consumeClick()) {
-                if (Minecraft.getInstance().screen == null) {
-                    Rede.CANAL.sendToServer(new PacoteHabilidade(PacoteHabilidade.ABRIR_FICHA));
-                }
+    private static void aoTick(Minecraft cliente) {
+        if (cliente.player == null) {
+            return;
+        }
+        while (USAR.consumeClick()) {
+            ReceptoresCliente.enviar(new PacoteHabilidade(PacoteHabilidade.USAR));
+        }
+        while (TROCAR.consumeClick()) {
+            ReceptoresCliente.enviar(new PacoteHabilidade(PacoteHabilidade.TROCAR));
+        }
+        while (MENU.consumeClick()) {
+            if (cliente.gui.screen() == null) { // 26.2: a tela aberta agora fica em Gui, nao em Minecraft
+                ReceptoresCliente.enviar(new PacoteHabilidade(PacoteHabilidade.ABRIR_FICHA));
             }
         }
     }

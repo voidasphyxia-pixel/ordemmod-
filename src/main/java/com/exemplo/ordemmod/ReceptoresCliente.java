@@ -7,10 +7,10 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  * O que o CLIENTE faz quando chega cada pacote do servidor (antes era o metodo tratar() de cada Pacote*).
  * No Fabric o receptor do cliente ja roda na thread do jogo, entao nao existe enqueueWork nem DistExecutor.
  *
- * So pode ser carregada no cliente: registrar() deve ser chamado de um ClientModInitializer
- * (entrypoint "client" do fabric.mod.json, criado na etapa 6).
- * AINDA NAO esta na lista de compilacao: depende de HudOrdem, AvisoOrdem, RolagemHud, ClienteCriacao,
- * ClienteFicha e ClienteTeste, que sao portados na etapa 6.
+ * So pode ser carregada no cliente: registrar() e chamado de OrdemModClienteFabric (entrypoint "client").
+ *
+ * Etapa 6a: status (HUD), aviso e rolagem (painel da HUD) ja sao de verdade. As tres telas (criacao, ficha e dado)
+ * ainda sao PROVISORIAS: ClienteCriacao, ClienteFicha e ClienteTeste so escrevem no log ate a etapa 6b portar as telas.
  */
 public final class ReceptoresCliente {
     private ReceptoresCliente() {

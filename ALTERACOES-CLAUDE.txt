@@ -5,6 +5,31 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 14/10/2026 (porte Fabric: etapa 6a, cliente: HUD, teclas, avisos) ---------
+Primeira parte da etapa 6: entrypoint do cliente de verdade, teclas, HUD, avisos e painel da rolagem no Fabric 26.2
+  Arquivos: FonteOP, TeclasOrdem, AvisoOrdem, RolagemHud, HudOrdem, ReceptoresCliente, ClienteCriacao, ClienteFicha,
+            ClienteTeste (os tres ultimos PROVISORIOS), cliente/OrdemModClienteFabric, build.gradle (lista 6a),
+            lang/pt_br.json e en_us.json (key.category.ordemmod.principal), textures/gui/hud_simbolo_medo.png.mcmeta (novo),
+            PORTE-FABRIC.md. Branch fabric-26.2 (a main/Forge nao mudou).
+  - O entrypoint provisorio da etapa 4 (que so escrevia a rede no log e mandava uma tecla de teste) foi trocado por:
+    ClienteEntidades.registrar(), ReceptoresCliente.registrar(), TeclasOrdem.registrar(), HudOrdem.registrar() e a limpeza
+    do estado ao sair do mundo.
+  - API de GUI do 26.2: GuiGraphics virou GuiGraphicsExtractor (drawString -> text so com x/y inteiros; pose() e uma
+    Matrix3x2fStack: pushMatrix/popMatrix/translate(x,y)/scale(x,y)); ResourceLocation virou Identifier; Style.withFont
+    recebe FontDescription.Resource; Minecraft.screen/setScreen foram para Minecraft.gui.screen()/setScreen().
+  - HudOrdem: os overlays do Forge (RegisterGuiOverlaysEvent + RenderGuiOverlayEvent.Pre) viraram HudElementRegistry
+    (replaceElement esconde vida/armadura/fome/hotbar/nivel de XP/barra de info do jogo quando a nossa HUD esta ativa e
+    desloca nome do item, mensagem de acao, ar e vida da montaria; attachElementAfter coloca barras, rolagem e avisos).
+    O antigo Pincel (Tesselator + RenderSystem por vertice) virou fill/fillGradient: so funciona com retangulos alinhados
+    aos eixos (INCLINACAO ja era 0). Degrade horizontal = faixas verticais (ate 40 por retangulo).
+  - Mudanca visual conhecida: o brilho (halo) do simbolo do medo era aditivo (blendFunc SRC_ALPHA, ONE) e agora e mistura
+    normal, entao fica mais fraco. A suavizacao do simbolo passou do setFilter(true) para o .png.mcmeta com blur.
+  - TeclasOrdem: KeyMapping.Category.register + KeyMappingHelper.registerKeyMapping; a leitura e um ClientTickEvents.
+  - As telas (criacao, ficha, dado, Marcado, titulo/*) NAO foram portadas: ClienteCriacao/Ficha/Teste so escrevem no log.
+  - Como testar: PORTE-FABRIC.md, secao "Para testar a 6a". NAO compilado nem testado (a sandbox do Claude nao alcanca os
+    repositorios do Mojang/Fabric); as assinaturas vieram de docs.fabricmc.net (26.1.2) e do codigo do Fabric API.
+
+
 --- 10/10/2026 (otimizacao do tamanho dos assets) -----------------------------
 Imagens e musica menores, sem mudar nome, dimensao nem codigo
   Arquivos: textures/gui/marcado/vfx/{nevoa,poeira,tinta_sangue,correntes,titulo}/*.png (270 quadros),

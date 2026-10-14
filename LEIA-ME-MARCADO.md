@@ -2,6 +2,8 @@
 
 Última atualização: 08/10/2026. Projeto: mod `ordemmod` (Forge 1.20.1, package `com.exemplo.ordemmod`).
 
+**Porte para Fabric 26.2 (branch `fabric-26.2`, desde 14/10/2026):** a cena do Marcado (`TelaMarcado`, `AudioMarcado`, `VfxMarcado`) e as telas de criação/ficha/dado ainda NÃO foram portadas; elas são as etapas 6b em diante (veja `PORTE-FABRIC.md`). A 6a portou só a HUD do jogo, as teclas e os avisos. Enquanto isso, no Fabric o servidor ainda manda `PacoteAbrirCriacao`/`PacoteMarcado` normalmente (rede e `ReceptorMarcado` já portados), mas o cliente só escreve no log. O texto abaixo continua descrevendo a `main` (Forge 1.20.1).
+
 ## Onde parou
 
 **Pronto (escrito, mas NUNCA compilado nem testado no jogo — ainda não rodei `gradlew build`):**

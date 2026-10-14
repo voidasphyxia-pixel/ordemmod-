@@ -1,16 +1,15 @@
 package com.exemplo.ordemmod;
 
-import net.minecraft.client.Minecraft;
-
-/** Só existe no cliente: abre a tela de criação. Fica separado para o servidor nunca carregá-lo. */
+/**
+ * PROVISORIO (etapa 6a): so escreve no log. Na 6b isto volta a abrir a tela de criacao
+ * (TelaMarcado quando comMarcado, senao TelaCriacao), como no Forge. So existe no cliente.
+ */
 public final class ClienteCriacao {
     private ClienteCriacao() {
     }
 
     public static void abrir(boolean comMarcado) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) {
-            mc.setScreen(comMarcado ? new com.exemplo.ordemmod.marcado.TelaMarcado() : new TelaCriacao());
-        }
+        System.out.println("[Ordem cliente] servidor pediu a tela de criacao (com Marcado: " + comMarcado
+                + ") - a tela ainda nao foi portada (etapa 6b)");
     }
 }

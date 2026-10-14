@@ -1,22 +1,16 @@
 package com.exemplo.ordemmod;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
 
-/** Só existe no cliente: abre o menu da ficha. Fica separado para o servidor nunca carregá-lo. */
+/**
+ * PROVISORIO (etapa 6a): so escreve no log. Na 6b isto volta a abrir/atualizar a TelaFicha, como no Forge.
+ * So existe no cliente.
+ */
 public final class ClienteFicha {
     private ClienteFicha() {
     }
 
     public static void abrir(CompoundTag dados) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) {
-            return;
-        }
-        if (mc.screen instanceof TelaFicha aberta) {
-            aberta.atualizar(dados); // depois de aprender algo: mantém a aba e a rolagem onde estavam
-        } else {
-            mc.setScreen(new TelaFicha(dados));
-        }
+        System.out.println("[Ordem cliente] ficha recebida (" + dados.size() + " campos) - a tela ainda nao foi portada (etapa 6b)");
     }
 }
