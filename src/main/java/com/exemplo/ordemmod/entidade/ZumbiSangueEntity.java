@@ -48,7 +48,8 @@ import net.minecraft.world.level.storage.ValueOutput;
  * impacto da animacao (ver constantes de tempo abaixo), entao nunca vem antes do golpe.
  *
  * Mudancas em relacao ao Forge 1.20.1: hurt -> hurtServer(ServerLevel, ...), defineSynchedData com Builder,
- * NBT com ValueInput/ValueOutput, GeckoLib 5 (pacotes com.geckolib.*, controladores sem o parametro da entidade,
+ * NBT com ValueInput/ValueOutput, getDimensions -> getDefaultDimensions (o primeiro e final no LivingEntity),
+ * GeckoLib 5 (pacotes com.geckolib.*, controladores sem o parametro da entidade,
  * velocidade da animacao definida dentro do predicado) e o culling da hitbox foi para o renderer.
  */
 public class ZumbiSangueEntity extends Monster implements GeoEntity {
@@ -118,7 +119,7 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
-    /** copia local do estado (evita ler o entityData dentro de getDimensions durante a construcao) */
+    /** copia local do estado (evita ler o entityData dentro de getDefaultDimensions durante a construcao) */
     private int estadoLocal = DEITADO;
     /** ticks desde que o estado atual comecou (contado no cliente e no servidor) */
     private int tempoEstado = 0;
@@ -277,11 +278,15 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
         }
     }
 
+    /**
+     * No 26.2 o LivingEntity.getDimensions(Pose) e final: ele chama este metodo e depois aplica a escala.
+     * Deitado (ou ainda levantando, antes do corpo ficar de pe) usa a hitbox baixa.
+     */
     @Override
-    public EntityDimensions getDimensions(Pose pose) {
+    public EntityDimensions getDefaultDimensions(Pose pose) {
         boolean deitado = this.estadoLocal == DEITADO
                 || (this.estadoLocal == LEVANTANDO && this.tempoEstado < LEVANTAR_EM_PE);
-        return deitado ? DIMENSOES_DEITADO : super.getDimensions(pose);
+        return deitado ? DIMENSOES_DEITADO : super.getDefaultDimensions(pose);
     }
 
     // O culling (modelo deitado se estende ~2 blocos alem da hitbox) agora e feito no ZumbiSangueRenderer.
