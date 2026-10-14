@@ -48,7 +48,8 @@ dependencies {
 //   Etapa 5a: SonsOrdem (registro direto, sem GeckoLib).
 //   Etapa 5b: Zumbi de Sangue (EntidadesOrdem, ZumbiSangueEntity, ZumbiSangueAtaqueGoal) e o cliente dele
 //            (ClienteEntidades, ZumbiSangueRenderer). ZumbiSangueModel.java ficou obsoleto (o renderer cria
-//            o modelo sozinho) e NAO entra aqui. Ovo de spawn: etapa 5c.
+//            o modelo sozinho) e NAO entra aqui.
+//   Etapa 5c: ItensOrdem (ovo de spawn do Zumbi de Sangue).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
     'Atributo', 'Atributos', 'ClasseOP', 'GrauTreinamento', 'ParteBonus', 'Proficiencia',
@@ -75,6 +76,8 @@ def nucleo = [
     // etapa 5b
     'entidade/EntidadesOrdem', 'entidade/ZumbiSangueEntity', 'entidade/ZumbiSangueAtaqueGoal',
     'cliente/ClienteEntidades', 'cliente/ZumbiSangueRenderer',
+    // etapa 5c
+    'ItensOrdem',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }
