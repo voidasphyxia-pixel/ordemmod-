@@ -35,6 +35,10 @@ repositories {
     }
 }
 
+// TACZ (armas de fogo), versao Fabric 26.2: qualquer jar libs/TACZ-Refabricated*.jar (o nome exato nao importa).
+// Os jars antigos do Forge (libs/tacz-1_20_1-...) nao casam com este padrao.
+def taczJars = fileTree(dir: 'libs', include: 'TACZ-Refabricated*.jar')
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     // Sem 'mappings' e sem 'modImplementation': na 26.x vale 'implementation' normal.
@@ -42,16 +46,18 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     // GeckoLib 5 (usado a partir da etapa 5b: entidade animada do Zumbi de Sangue).
     implementation "com.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
-    // TACZ (armas de fogo), versao Fabric 26.2. O jar fica em libs/ e traz jars proprios dentro (bcel, luaj,
-    // commons-math3...), que o Fabric Loader carrega sozinho. Nenhum codigo do mod chama a API dele ainda:
-    // as balas do TACZ entram na logica de dano/pericias pelo mixin em LivingEntity (veja PORTE-TACZ.md).
-    implementation files("libs/${project.tacz_jar}")
+    // TACZ: traz jars proprios dentro (bcel, luaj, commons-math3...), que o Fabric Loader carrega sozinho.
+    // Nenhum codigo do mod chama a API dele ainda: as balas entram na logica de dano/pericias pelo mixin
+    // em LivingEntity (veja PORTE-TACZ.md).
+    implementation taczJars
     implementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.forge_config_api_port_version}"
 }
 
-if (!file("libs/${project.tacz_jar}").exists()) {
-    logger.warn("AVISO: libs/${project.tacz_jar} nao existe. Copie o jar do TACZ para a pasta libs/ "
-            + "(ou o jogo vai reclamar que o mod tacz esta faltando). Veja PORTE-TACZ.md.")
+if (taczJars.files.isEmpty()) {
+    logger.warn("AVISO: nenhum libs/TACZ-Refabricated*.jar encontrado. Copie o jar do TACZ para a pasta libs/ "
+            + "(confira com 'dir libs' se o nome nao ficou com .jar.jar). Veja PORTE-TACZ.md.")
+} else {
+    logger.lifecycle("TACZ: usando " + taczJars.files.collect { it.name }.join(', '))
 }
 
 // ---------------------------------------------------------------------------------------
