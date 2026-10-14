@@ -15,7 +15,7 @@ import net.minecraft.network.FriendlyByteBuf;
  * Ja registra: o attachment do personagem, os tipos de pacote (rede), os eventos de ciclo de vida do
  * personagem e os comandos (EventosOrdem), dano/efeitos/sono/estado mental (EventosDano), os receptores
  * do servidor (ReceptoresServidor), as pericias (EventosPericias), as origens (EventosOrigens), o receptor
- * da cena do Marcado (ReceptorMarcado), os sons (SonsOrdem) e as entidades (EntidadesOrdem).
+ * da cena do Marcado (ReceptorMarcado), os sons (SonsOrdem), as entidades (EntidadesOrdem) e os itens (ItensOrdem).
  * Veja PORTE-FABRIC.md.
  */
 public class OrdemMod implements ModInitializer {
@@ -36,6 +36,8 @@ public class OrdemMod implements ModInitializer {
         SonsOrdem.registrar();
         // etapa 5b
         EntidadesOrdem.registrar();
+        // etapa 5c (precisa vir depois de EntidadesOrdem: o ovo usa o tipo da entidade)
+        ItensOrdem.registrar();
 
         // Teste de fumaca do nucleo (pode apagar depois): se aparecer no log, o Java puro carregou.
         Personagem teste = new Personagem(ClasseOP.COMBATENTE);
@@ -44,6 +46,7 @@ public class OrdemMod implements ModInitializer {
         testarSalvamentoEPacote(teste);
         testarSons();
         testarEntidades();
+        testarItens();
     }
 
     /**
@@ -97,6 +100,22 @@ public class OrdemMod implements ModInitializer {
                     + " (zumbi_sangue = " + chave + ").");
         } catch (Throwable erro) {
             System.out.println("Ordem Mod etapa 5b: FALHOU com excecao (cole o erro abaixo no chat).");
+            erro.printStackTrace();
+        }
+    }
+
+    /**
+     * Teste de fumaca da etapa 5c (pode apagar depois): o ovo de spawn entrou no registro de itens com o id certo?
+     * Mostra OK ou FALHOU no log.
+     */
+    private static void testarItens() {
+        try {
+            var chave = BuiltInRegistries.ITEM.getKey(ItensOrdem.ZUMBI_SANGUE_SPAWN_EGG);
+            boolean ok = chave != null && chave.getPath().equals("zumbi_sangue_spawn_egg");
+            System.out.println("Ordem Mod etapa 5c: item " + (ok ? "OK" : "FALHOU")
+                    + " (zumbi_sangue_spawn_egg = " + chave + ").");
+        } catch (Throwable erro) {
+            System.out.println("Ordem Mod etapa 5c: FALHOU com excecao (cole o erro abaixo no chat).");
             erro.printStackTrace();
         }
     }
