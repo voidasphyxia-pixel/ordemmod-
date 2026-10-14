@@ -26,6 +26,7 @@ Primeira parte da etapa 6: entrypoint do cliente de verdade, teclas, HUD, avisos
     normal, entao fica mais fraco. A suavizacao do simbolo passou do setFilter(true) para o .png.mcmeta com blur.
   - TeclasOrdem: KeyMapping.Category.register + KeyMappingHelper.registerKeyMapping; a leitura e um ClientTickEvents.
   - As telas (criacao, ficha, dado, Marcado, titulo/*) NAO foram portadas: ClienteCriacao/Ficha/Teste so escrevem no log.
+  - Correcao pos-build: net.minecraft.Util -> net.minecraft.util.Util em AvisoOrdem, HudOrdem e RolagemHud (unico erro do primeiro gradlew build).
   - Como testar: PORTE-FABRIC.md, secao "Para testar a 6a". NAO compilado nem testado (a sandbox do Claude nao alcanca os
     repositorios do Mojang/Fabric); as assinaturas vieram de docs.fabricmc.net (26.1.2) e do codigo do Fabric API.
 

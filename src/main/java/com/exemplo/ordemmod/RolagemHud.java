@@ -3,7 +3,7 @@ package com.exemplo.ordemmod;
 import java.util.List;
 import java.util.Random;
 
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
