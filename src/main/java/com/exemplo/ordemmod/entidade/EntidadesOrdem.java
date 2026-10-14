@@ -18,8 +18,8 @@ import net.minecraft.world.entity.MobCategory;
  * quando a classe carrega (campo ZUMBI_SANGUE) e os atributos sao registrados em registrar(), chamado pelo
  * OrdemMod.onInitialize.
  *
- * PENDENTE (etapa 5c): o ovo de spawn (zumbi_sangue_spawn_egg, cores 0x4A0808 / 0xC41E1E) e a entrada dele na aba
- * criativa. Ate la, para testar use: /summon ordemmod:zumbi_sangue
+ * O ovo de spawn (zumbi_sangue_spawn_egg, cores 0x4A0808 / 0xC41E1E) fica em ItensOrdem (etapa 5c).
+ * Tambem da para testar com: /summon ordemmod:zumbi_sangue
  */
 public final class EntidadesOrdem {
     private EntidadesOrdem() {
