@@ -17,6 +17,7 @@
     "minecraft": ">=26.2",
     "java": ">=25",
     "fabric-api": "*",
-    "geckolib": ">=5.5.3"
+    "geckolib": ">=5.5.3",
+    "tacz": ">=1.1.8"
   }
 }

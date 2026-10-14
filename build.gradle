@@ -22,6 +22,17 @@ repositories {
         }
         filter { includeGroupAndSubgroups('com.geckolib') }
     }
+    // Forge Config API Port (o TACZ 26.2 exige forgeconfigapiport >= 26.2.1). So o grupo
+    // fuzs.forgeconfigapiport vem deste repositorio (maven oficial do autor, no GitHub).
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'FuzsModResources'
+                url = 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven/'
+            }
+        }
+        filter { includeGroupAndSubgroups('fuzs.forgeconfigapiport') }
+    }
 }
 
 dependencies {
@@ -31,6 +42,16 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     // GeckoLib 5 (usado a partir da etapa 5b: entidade animada do Zumbi de Sangue).
     implementation "com.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
+    // TACZ (armas de fogo), versao Fabric 26.2. O jar fica em libs/ e traz jars proprios dentro (bcel, luaj,
+    // commons-math3...), que o Fabric Loader carrega sozinho. Nenhum codigo do mod chama a API dele ainda:
+    // as balas do TACZ entram na logica de dano/pericias pelo mixin em LivingEntity (veja PORTE-TACZ.md).
+    implementation files("libs/${project.tacz_jar}")
+    implementation "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.forge_config_api_port_version}"
+}
+
+if (!file("libs/${project.tacz_jar}").exists()) {
+    logger.warn("AVISO: libs/${project.tacz_jar} nao existe. Copie o jar do TACZ para a pasta libs/ "
+            + "(ou o jogo vai reclamar que o mod tacz esta faltando). Veja PORTE-TACZ.md.")
 }
 
 // ---------------------------------------------------------------------------------------
@@ -50,6 +71,7 @@ dependencies {
 //            (ClienteEntidades, ZumbiSangueRenderer). ZumbiSangueModel.java ficou obsoleto (o renderer cria
 //            o modelo sozinho) e NAO entra aqui.
 //   Etapa 5c: ItensOrdem (ovo de spawn do Zumbi de Sangue).
+//   Etapa 7a: dependencia do TACZ (so build + fabric.mod.json, sem codigo novo).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
     'Atributo', 'Atributos', 'ClasseOP', 'GrauTreinamento', 'ParteBonus', 'Proficiencia',
