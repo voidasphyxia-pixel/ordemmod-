@@ -43,10 +43,29 @@ Primeiro `gradlew build`; se der erro de compilacao ou de mixin, cole a saida aq
 - Marcado: a cena grava o resultado no servidor quando termina (so da para ver com a tela, etapa 6).
 
 ### Para testar a 5a (NAO compilada ainda)
-A 5a so tem duas coisas: os sons (`SonsOrdem`) e a dependencia do GeckoLib no build. Nenhum codigo usa o GeckoLib ainda; o objetivo e ver se a dependencia resolve e se o jogo abre com ela.
+A 5a so tem duas coisas: os sons (`SonsOrdem`) e a dependencia do GeckoLib no build.
 1. `gradlew build`. Se o Gradle nao achar `com.geckolib:geckolib-fabric-26.2:5.5.5`, cole o erro aqui (pode ser a versao, o repositorio ou o nome do artefato).
-2. `gradlew runClient`. No log deve aparecer `Ordem Mod etapa 5a: sons OK (dado_rolando = ordemmod:dado_rolando, 19 sons do Marcado).` e, procurando por `geckolib` no log, o GeckoLib carregando como mod. Se o jogo reclamar de mod duplicado ou de dependencia, cole o trecho aqui.
+2. `gradlew runClient`. No log deve aparecer `Ordem Mod etapa 5a: sons OK (dado_rolando = ordemmod:dado_rolando, 19 sons do Marcado).`
 3. Dentro do mundo: `/playsound ordemmod:sucesso master @s`, `/playsound ordemmod:marcado.tum master @s` e `/playsound ordemmod:menu.tema_inicial master @s` (o tema e longo; pare saindo do mundo).
+
+### Para testar a 5b (NAO compilada ainda)
+**Antes de tudo, mova 2 arquivos** (o GeckoLib 5 procura os assets em `geckolib/`; sem isto o zumbi aparece como o modelo "faltando"/roxo-preto). Na raiz do projeto, no PowerShell:
+```
+New-Item -ItemType Directory -Force src/main/resources/assets/ordemmod/geckolib/models/entity, src/main/resources/assets/ordemmod/geckolib/animations/entity
+git mv src/main/resources/assets/ordemmod/geo/entity/zumbi_sangue.geo.json src/main/resources/assets/ordemmod/geckolib/models/entity/zumbi_sangue.geo.json
+git mv src/main/resources/assets/ordemmod/animations/entity/zumbi_sangue.animation.json src/main/resources/assets/ordemmod/geckolib/animations/entity/zumbi_sangue.animation.json
+```
+(A textura continua em `textures/entity/zumbi_sangue.png`. Nao mexa na `main`, que e Forge e usa os caminhos antigos.)
+
+Depois: `gradlew build` (cole aqui os erros de compilacao, se houver; os mais provaveis estao listados em "Pontos de risco da 5b" abaixo) e `gradlew runClient`.
+- No log: `Ordem Mod etapa 5b: entidade OK (zumbi_sangue = ordemmod:zumbi_sangue).` e o GeckoLib carregando como mod. Se o jogo reclamar de dependencia `geckolib`, cole o trecho.
+- No mundo (o ovo de spawn so volta na 5c): `/summon ordemmod:zumbi_sangue ~ ~ ~`. Ele deve nascer DEITADO e imovel, intocavel.
+- Chegue a menos de 8 blocos (em sobrevivencia): ele se levanta (animacao de 5,4 s) e ganha a hitbox normal depois de ~3,6 s.
+- Em pe: persegue correndo, ataca com 3 golpes diferentes (garra, arrasto, ataque), a 1,5x; o dano so aparece no momento do impacto da animacao; se voce se afastar antes, o golpe pega no ar.
+- Ao leva-lo a dano: tranco de dano (animacao `dano`) e o som de zumbi.
+- Ao mata-lo: animacao de morte completa (~2,2 s) e o corpo NAO tomba 90 graus; some so depois.
+- Cabeca: em pe, ela acompanha o olhar. Se girar ao contrario (olha para onde voce NAO esta), troque `-` por `+` nas duas linhas do `adjustModelBonesForRender` em `ZumbiSangueRenderer`.
+- Sair do mundo e entrar de novo: ele volta como estava (levantando volta a deitado; atacando volta a normal).
 
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
@@ -56,11 +75,12 @@ A 5a so tem duas coisas: os sons (`SonsOrdem`) e a dependencia do GeckoLib no bu
   - [x] 4a. Ciclo de vida do personagem em `EventosOrdem` (entrar, tick, sair, renascer, tecla de habilidade, status para a HUD), `Avisos`, `TesteNaTela`, `PerfilMarcado` (agora com attachment), `ReceptoresServidor` registrado. Testado (salvar e recarregar, status e aviso chegam ao cliente).
   - [x] 4b. `EventosDano` + `mixin/LivingEntityMixin`: dano e critico, resistencia a efeitos, dormir, estado mental (efeitos da sanidade baixa). Testado (enlouquecendo, mente se acalma, resistiu a veneno). Obs.: no 26.2 nao existem `EntityType.WARDEN` etc. nem `EntityType.is(tag)`; mortos-vivos sao comparados pelo id do registro. O dano e alterado ANTES da armadura (no Forge era depois).
   - [x] 4c. Comandos `/ordem ...` em `EventosOrdem.registrarComandos` (`CommandRegistrationCallback`). Testado.
-  - [~] 4d. Escrita, NAO compilada nem testada: `EventosPericias`, `EventosOrigens`, `ReceptorMarcado` (+ `RoteiroMarcado`, `QuedaAcrobacia`, `EsquivaReflexos`, que ja eram Java puro), `RolagemNaHud`, `EsquivaVisual` (provisorio) e os mixins `MobMixin`, `PlayerMixin`, `TamableAnimalMixin` (mais dois ganchos novos no `LivingEntityMixin`). Veja "O que muda" abaixo para o que virou o que.
+  - [~] 4d. Escrita, NAO compilada nem testada: `EventosPericias`, `EventosOrigens`, `ReceptorMarcado` (+ `RoteiroMarcado`, `QuedaAcrobacia`, `EsquivaReflexos`, que ja eram Java puro), `RolagemNaHud`, `EsquivaVisual` (provisorio) e os mixins `MobMixin`, `PlayerMixin`, `TamableAnimalMixin` (mais dois ganchos novos no `LivingEntityMixin`). Veja "O que muda" abaixo para o que virou o que. (Ha commits posteriores corrigindo `PlayerMixin` e metodos publicos, o que sugere que ja foi compilada; confirmar e marcar como [x] depois de testar.)
 - [~] 5. Entidades e sons (GeckoLib 5.x para 26.2).
-  - [~] 5a. `SonsOrdem` (sem GeckoLib: cada campo e o proprio `SoundEvent`, registrado em `BuiltInRegistries.SOUND_EVENT`) e a dependencia `com.geckolib:geckolib-fabric-26.2:5.5.5` no build (repositorio Cloudsmith do GeckoLib, `geckolib_version` no `gradle.properties`). NAO compilada nem testada. Ainda sem `depends` do GeckoLib no `fabric.mod.json`: entra na 5b, quando o codigo passar a usar a biblioteca e o id do mod (`geckolib`, a confirmar no log) estiver confirmado.
-  - [ ] 5b. Entidade: `EntidadesOrdem` (tipo da entidade, ovo de spawn, atributos, aba criativa), `ZumbiSangueEntity`, `ZumbiSangueAtaqueGoal` e o cliente (`ZumbiSangueRenderer`, `ZumbiSangueModel`, `ClienteEntidades`). Veja "GeckoLib 5" abaixo.
-- [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio.
+  - [~] 5a. `SonsOrdem` (sem GeckoLib: cada campo e o proprio `SoundEvent`, registrado em `BuiltInRegistries.SOUND_EVENT`) e a dependencia `com.geckolib:geckolib-fabric-26.2:5.5.5` no build (repositorio Cloudsmith do GeckoLib, `geckolib_version` no `gradle.properties`). NAO compilada nem testada.
+  - [~] 5b. Zumbi de Sangue: `EntidadesOrdem` (tipo registrado direto + atributos via `FabricDefaultAttributeRegistry`), `ZumbiSangueEntity` (GeckoLib 5, `hurtServer`, NBT com `ValueInput/ValueOutput`), `ZumbiSangueAtaqueGoal` (`doHurtTarget(ServerLevel, alvo)`), e o cliente: `ZumbiSangueRenderer` (faz o papel do antigo `ZumbiSangueModel`: modelo criado pelo id do tipo, cabeca via `adjustModelBonesForRender`, sem tombar na morte, culling inflado) e `ClienteEntidades.registrar()` (chamado por `OrdemModClienteFabric`). `fabric.mod.json` agora exige `geckolib >= 5.5.3`. NAO compilada nem testada. Exige mover 2 arquivos de assets (veja "Para testar a 5b").
+  - [ ] 5c. Ovo de spawn do zumbi (`zumbi_sangue_spawn_egg`, cores 0x4A0808 / 0xC41E1E) e entrada na aba criativa de ovos. No 26.x o item precisa de id nas propriedades e de uma definicao de modelo de item (`assets/ordemmod/items/...json`); sera feito depois que a entidade funcionar.
+- [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio (mantendo a chamada `ClienteEntidades.registrar()`).
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
 
 ## Pendencias pequenas
@@ -68,15 +88,24 @@ A 5a so tem duas coisas: os sons (`SonsOrdem`) e a dependencia do GeckoLib no bu
 - 4d: `TamableAnimalMixin` so cobre lobo, gato e papagaio; cavalos e afins ainda nao ganham o bonus de Adestramento.
 - 4d: a queda (Acrobacia) agora testa quando o dano da queda e >= 1 (queda acima de 3 blocos); no Forge o gatilho era distancia >= 4.
 - 5a: o codigo ainda nao portado que usa `SonsOrdem.X.get()` (telas, `RolagemHud`, cena do Marcado) precisa trocar para `SonsOrdem.X` quando for portado na etapa 6.
+- 5b: `cliente/ZumbiSangueModel.java` ficou obsoleto (Forge/GeckoLib 4) e fora do build; pode ser apagado quando voce quiser. `ZumbiSangueRenderer` o substitui.
+- 5b: os arquivos antigos em `assets/ordemmod/geo/` e `animations/` (caminho do GeckoLib 4) so servem para a `main` (Forge); neste branch eles saem de la pelo `git mv`.
+- 5b: o arquivo `zumbi_sangue.animation.json` e do formato do GeckoLib 4; o GeckoLib 5 le o mesmo formato Bedrock, mas se alguma animacao nao tocar, o log do GeckoLib avisa o nome. Os nomes usados no codigo sao `animation.zumbi.` + deitado, levantar, idle, andar, correr, ataque_garra, ataque_arrasto, ataque, morte, dano.
 
-## GeckoLib 5 (notas para a 5b)
-Lidas na wiki oficial (wiki.geckolib.com, secao GeckoLib5) e no Cloudsmith/mvnrepository. NADA disto foi compilado aqui; confirmar na 5b.
-- Artefato: `com.geckolib:geckolib-fabric-26.2`; versoes 5.5.1 a 5.5.5 (a 5.5.5 e de 06/09/2026). O grupo do Maven mudou de `software.bernie.geckolib` para `com.geckolib`; os nomes dos pacotes das classes (`GeoEntity`, `AnimationController`, `GeoEntityRenderer`...) tambem podem ter mudado, entao os `import software.bernie.geckolib...` do codigo antigo nao servem de referencia.
-- Arquivos de assets mudaram de lugar: o modelo vai para `assets/ordemmod/geckolib/models/entity/zumbi_sangue.geo.json` e as animacoes para `assets/ordemmod/geckolib/animations/entity/zumbi_sangue.animation.json` (hoje estao em `geo/entity/` e `animations/entity/`). A textura continua em `textures/entity/zumbi_sangue.png`. Isto exige mover 2 arquivos.
-- Renderer: o GeckoLib 5 trabalha com RenderState (a entidade nao existe na hora de renderizar). Um renderer simples e `context -> new GeoEntityRenderer<>(context, EntidadesOrdem.ZUMBI_SANGUE)`, que monta o modelo sozinho a partir do id do tipo (`zumbi_sangue`). Renderer proprio vira `GeoEntityRenderer<ZumbiSangueEntity, R extends EntityRenderState & GeoRenderState>`.
-- `setCustomAnimations` (cabeca seguindo o olhar no `ZumbiSangueModel`) nao existe mais; o gancho novo e `adjustModelBonesForRender(RenderPassInfo<R>, BoneSnapshots)` com `snapshots.ifPresent("head", osso -> osso.setRotX(...))`. O `getDeathMaxRotation` do renderer tambem muda por causa do RenderState.
-- Controladores: o predicado recebe um `AnimationTest` e usa `test.setAndContinue(RawAnimation)`; os exemplos da wiki criam `new AnimationController<>(test -> ...)` sem passar a entidade. Falta confirmar na 5b: velocidade da animacao (o `setAnimationSpeedHandler` do ataque 1.5x), a transicao de 4 ticks e o `triggerableAnim`/`triggerAnim` do tranco de dano.
-- Do lado do Minecraft (nao e GeckoLib): a `ZumbiSangueEntity` usa APIs que mudaram desde a 1.20.1 (`hurt`, `defineSynchedData`, salvar/ler NBT, `EntityType.Builder`, atributos e spawn egg no Fabric). Isso sera conferido na compilacao.
+## Pontos de risco da 5b (escrita sem compilar)
+Usei como referencia o codigo-fonte do GeckoLib 5 (`bernie-g/geckolib`, pacotes `com.geckolib.*`) e mods 26.x reais que o usam, mas as assinaturas do Minecraft 26.2 abaixo vieram desses mods e nao do jogo em si:
+- `Mob.xpReward` (campo) e `Monster.createMonsterAttributes()` no construtor/atributos da entidade.
+- `getDimensions(Pose)` e `isImmobile()` sobrescritos como no 1.21; `tickDeath()` com `broadcastEntityEvent(this, (byte) 60)`.
+- `getBoundingBoxForCulling(ZumbiSangueEntity)` no renderer (o metodo da entidade nao existe mais; no renderer e `protected AABB`).
+- `EntityType.Builder.build(ResourceKey)` e `FabricDefaultAttributeRegistry.register`.
+- `EntityRendererRegistry.register(tipo, ZumbiSangueRenderer::new)` com o renderer parametrizado por `LivingEntityRenderState`.
+- GeckoLib: `AnimationController<ZumbiSangueEntity>("nome", ticksDeTransicao, predicado)`, `AnimationTest.setControllerSpeed(float)` (a velocidade 1,5x dos golpes passou a ser definida no predicado, a cada quadro; no GeckoLib 4 era um handler separado), `triggerableAnim`, `triggerAnim("dano", "dano")`.
+
+## GeckoLib 5 (o que a 5b usou)
+- Artefato `com.geckolib:geckolib-fabric-26.2` (5.5.1 a 5.5.5; usamos 5.5.5), id do mod `geckolib`. Classes: `com.geckolib.animatable.GeoEntity`, `...animatable.instance.AnimatableInstanceCache`, `...animatable.manager.AnimatableManager`, `...animation.AnimationController`, `...animation.RawAnimation`, `...animation.object.{LoopType,PlayState}`, `...animation.state.AnimationTest`, `...util.GeckoLibUtil`, `...renderer.GeoEntityRenderer<T, R extends EntityRenderState>`, `...renderer.base.{BoneSnapshots,GeoRenderState,RenderPassInfo}`, `...constant.DataTickets`, `...constant.dataticket.DataTicket`.
+- Assets: `assets/ordemmod/geckolib/models/entity/<id>.geo.json`, `assets/ordemmod/geckolib/animations/entity/<id>.animation.json` e `textures/entity/<id>.png`, onde `<id>` e o id do tipo da entidade (`zumbi_sangue`).
+- O renderer nao enxerga a entidade na hora de desenhar (RenderState): o que precisa vem de `addRenderData`, que copia dados para o estado via `DataTicket`.
+- `setCustomAnimations` nao existe; ossos sao ajustados em `adjustModelBonesForRender(RenderPassInfo, BoneSnapshots)` com `ossos.ifPresent("head", osso -> osso.setRotX(...))`.
 
 ## O que muda ao portar o resto
 - `Rede.CANAL.send(PacketDistributor.PLAYER.with(() -> jogador), pacote)` vira `Rede.paraJogador(jogador, pacote)`.
@@ -90,10 +119,12 @@ Lidas na wiki oficial (wiki.geckolib.com, secao GeckoLib5) e no Cloudsmith/mvnre
 - Efeitos: `MOVEMENT_SPEED` virou `SPEED` e `JUMP` virou `JUMP_BOOST` (alem de `CONFUSION` -> `NAUSEA` e `MOVEMENT_SLOWDOWN` -> `SLOWNESS`).
 - `ItemStack.isEdible()` nao existe mais: comida e `stack.has(DataComponents.FOOD)`.
 - `Player.getCooldowns()` trabalha com `ItemStack` (nao `Item`), e o som `SoundEvents.ITEM_BREAK` e um `Holder` (usar `.value()`).
-- NBT na 1.21.5+: os getters devolvem `Optional`. Use `getIntOr`, `getStringOr`, `getBooleanOr`, `getCompoundOrEmpty`, `getListOrEmpty`. `getAllKeys()` mudou de nome. Vale para a `TelaFicha`, que le o CompoundTag do `PacoteFicha`.
+- NBT na 1.21.5+: os getters devolvem `Optional`. Use `getIntOr`, `getStringOr`, `getBooleanOr`, `getCompoundOrEmpty`, `getListOrEmpty`. `getAllKeys()` mudou de nome. Vale para a `TelaFicha`, que le o CompoundTag do `PacoteFicha`. Em entidades, salvar/ler e por `ValueOutput`/`ValueInput` (`putInt`, `getIntOr`).
+- Entidades (5b): `hurt(DamageSource, float)` virou `hurtServer(ServerLevel, DamageSource, float)` (so roda no servidor); `defineSynchedData()` recebe um `SynchedEntityData.Builder` e usa `builder.define(...)`; `doHurtTarget` recebe `(ServerLevel, Entity)`; `level().isClientSide` virou o metodo `isClientSide()`; `EntityType.Builder.build(...)` recebe um `ResourceKey`.
 - Os receptores do Fabric ja rodam na thread certa: sem `enqueueWork` e sem `DistExecutor`.
 - `ResourceLocation` virou `Identifier` na 26.x.
 - `ChatFormatting.getColor()` nao existe mais na 26.2: use `Avisos.rgbDe(cor)`.
 - `Player.displayClientMessage(texto, true)` virou `sendOverlayMessage(texto)` (e `sendSystemMessage(texto)` para o chat).
 - `RegisterCommandsEvent` vira `CommandRegistrationCallback.EVENT` (`net.fabricmc.fabric.api.command.v2`).
 - Sons: `DeferredRegister<SoundEvent>` + `RegistryObject` viram `Registry.register(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id))` e o campo e o proprio `SoundEvent` (sem `.get()`). Veja `SonsOrdem`.
+- Registro de renderer: o `EntityRenderersEvent.RegisterRenderers` do Forge vira `EntityRendererRegistry.register(tipo, Renderer::new)` (Fabric API, cliente), chamado de `ClienteEntidades.registrar()`.
