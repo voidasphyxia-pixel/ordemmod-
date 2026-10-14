@@ -81,6 +81,9 @@ if (taczJars.files.isEmpty()) {
 //            ReceptoresCliente e o entrypoint OrdemModClienteFabric. ClienteCriacao/ClienteFicha/ClienteTeste entram
 //            como PROVISORIOS (so escrevem no log); as telas (TelaCriacao, TelaFicha, TelaTeste, TelaMarcado,
 //            titulo/*) ficam para a 6b em diante.
+//   Etapa 6b: TelaTeste (o dado) e TelaFicha (menu K) com DesenhoOP (poligono/linha/halo), IconesOP, DescricoesOP e
+//            marcado/VfxMarcado; ClienteFicha e ClienteTeste passam a abrir as telas de verdade. Ainda provisorio:
+//            ClienteCriacao. InventarioOrdem (o inventario em vidro escuro) fica de fora: usava um evento do Forge.
 //   Etapa 7a: dependencia do TACZ (so build + fabric.mod.json, sem codigo novo).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
@@ -113,6 +116,8 @@ def nucleo = [
     // etapa 6a
     'FonteOP', 'TeclasOrdem', 'AvisoOrdem', 'RolagemHud', 'HudOrdem',
     'ReceptoresCliente', 'ClienteCriacao', 'ClienteFicha', 'ClienteTeste',
+    // etapa 6b: tela do dado e ficha (+ DesenhoOP, IconesOP, DescricoesOP e o VfxMarcado do fundo)
+    'DesenhoOP', 'IconesOP', 'DescricoesOP', 'marcado/VfxMarcado', 'TelaTeste', 'TelaFicha',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }

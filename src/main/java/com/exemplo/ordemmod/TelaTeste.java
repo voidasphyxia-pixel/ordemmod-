@@ -4,14 +4,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-import net.minecraft.Util;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
 
 /**
  * A tela do teste de perícia (estilo Baldur's Gate 3). Abre por cima da ficha (ou do jogo) quando o servidor manda
@@ -25,6 +26,10 @@ import net.minecraft.util.Mth;
  * Clique ou Espaço/Enter: pula direto para o veredito; depois do veredito, fecha. Esc ou K fecham na hora.
  * Fecha sozinha alguns segundos depois do veredito e devolve a tela que estava aberta antes.
  * Só existe no cliente. Os tempos e as cores estão nas constantes logo abaixo, é só mexer.
+ *
+ * Fabric 26.2 (6b): render() virou extractRenderState(GuiGraphicsExtractor, ...), os eventos de entrada recebem
+ * MouseButtonEvent/KeyEvent, a tela se abre/fecha por minecraft.gui.setScreen e os sons são campos (SonsOrdem.X, sem .get()).
+ * Removido o resize() que redimensionava a tela de trás (a assinatura mudou); ao fechar, setScreen refaz o layout dela.
  */
 public class TelaTeste extends Screen {
     // ---------------------------------------------------------------- tempos (milissegundos)
@@ -107,14 +112,6 @@ public class TelaTeste extends Screen {
     }
 
     @Override
-    public void resize(Minecraft mc, int largura, int altura) {
-        if (anterior != null) {
-            anterior.resize(mc, largura, altura);
-        }
-        super.resize(mc, largura, altura);
-    }
-
-    @Override
     public void tick() {
         super.tick();
         if (inicio >= 0 && Util.getMillis() - inicio >= tFim()) {
@@ -125,24 +122,26 @@ public class TelaTeste extends Screen {
     @Override
     public void onClose() {
         if (minecraft != null) {
-            minecraft.setScreen(anterior); // volta para a ficha (ou para o jogo, se anterior for null)
+            minecraft.gui.setScreen(anterior); // volta para a ficha (ou para o jogo, se anterior for null)
         }
     }
 
     // ================================================================== entrada
 
     @Override
-    public boolean mouseClicked(double mx, double my, int botao) {
+    public boolean mouseClicked(MouseButtonEvent evento, boolean duploClique) {
+        int botao = evento.button();
         if (botao == 0 || botao == 1) {
             continuar();
             return true;
         }
-        return super.mouseClicked(mx, my, botao);
+        return super.mouseClicked(evento, duploClique);
     }
 
     @Override
-    public boolean keyPressed(int tecla, int codigo, int modificadores) {
-        if (tecla == 256 || TeclasOrdem.MENU.matches(tecla, codigo)) { // Esc ou K
+    public boolean keyPressed(KeyEvent evento) {
+        int tecla = evento.key();
+        if (tecla == 256 || TeclasOrdem.MENU.matches(evento)) { // Esc ou K
             onClose();
             return true;
         }
@@ -150,7 +149,7 @@ public class TelaTeste extends Screen {
             continuar();
             return true;
         }
-        return super.keyPressed(tecla, codigo, modificadores);
+        return super.keyPressed(evento);
     }
 
     /** Durante a animação, pula para o veredito; depois do veredito, fecha. */
@@ -177,30 +176,30 @@ public class TelaTeste extends Screen {
 
     private void tocarVeredito() {
         if (teste.critico()) {
-            tocar(SonsOrdem.CRITICO.get(), 1.0F);
+            tocar(SonsOrdem.CRITICO, 1.0F);
         } else if (teste.sucesso()) {
-            tocar(SonsOrdem.SUCESSO.get(), 1.0F);
+            tocar(SonsOrdem.SUCESSO, 1.0F);
         } else if (falhaCritica) {
-            tocar(SonsOrdem.FALHA_CRITICA.get(), 1.0F);
+            tocar(SonsOrdem.FALHA_CRITICA, 1.0F);
         } else {
-            tocar(SonsOrdem.FALHA.get(), 1.0F);
+            tocar(SonsOrdem.FALHA, 1.0F);
         }
     }
 
     // ================================================================== desenho
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float parcial) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float parcial) {
         long agora = Util.getMillis();
         if (inicio < 0) {
             inicio = agora;
-            tocar(SonsOrdem.DADO_ROLANDO.get(), 1.0F);
+            tocar(SonsOrdem.DADO_ROLANDO, 1.0F);
         }
         long t = agora - inicio;
 
         // sons que dependem do tempo
         while (bonusTocados < partes.size() && t >= tBonus0() + (long) bonusTocados * T_POR_BONUS) {
-            tocar(SonsOrdem.BONUS_SOMA.get(), 1.0F + 0.1F * bonusTocados); // cada bônus um pouquinho mais agudo
+            tocar(SonsOrdem.BONUS_SOMA, 1.0F + 0.1F * bonusTocados); // cada bônus um pouquinho mais agudo
             bonusTocados++;
         }
         if (!vereditoTocado && t >= tVeredito()) {
@@ -214,7 +213,7 @@ public class TelaTeste extends Screen {
 
         // o que estava aberto antes (a ficha), sem reação ao mouse, escurecido por trás
         if (anterior != null) {
-            anterior.render(g, -1, -1, parcial);
+            anterior.extractRenderState(g, -1, -1, parcial);
         }
         g.fill(0, 0, width, height, argb(0x000000, 0.74F * opacidade));
 
@@ -223,8 +222,8 @@ public class TelaTeste extends Screen {
         larguraVirtual = width / escala;
         float cx = width / 2F / escala;
         float cy = height / 2F / escala;
-        g.pose().pushPose();
-        g.pose().scale(escala, escala, 1F);
+        g.pose().pushMatrix();
+        g.pose().scale(escala, escala);
 
         desenharTitulo(g, cx, cy, opacidade);
         desenharDados(g, cx, cy, t, opacidade);
@@ -235,10 +234,10 @@ public class TelaTeste extends Screen {
             desenharVeredito(g, cx, cy, t, opacidade);
         }
 
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
-    private void desenharTitulo(GuiGraphics g, float cx, float cy, float op) {
+    private void desenharTitulo(GuiGraphicsExtractor g, float cx, float cy, float op) {
         Pericia[] todas = Pericia.values();
         String nome = teste.pericia() >= 0 && teste.pericia() < todas.length
                 ? todas[teste.pericia()].getNome().toUpperCase(Locale.ROOT) + "  ·  "
@@ -251,7 +250,7 @@ public class TelaTeste extends Screen {
 
     // ---------------------------------------------------------------- dados
 
-    private void desenharDados(GuiGraphics g, float cx, float cy, long t, float op) {
+    private void desenharDados(GuiGraphicsExtractor g, float cx, float cy, long t, float op) {
         int n = dados.size();
         if (n == 0) {
             return;
@@ -290,7 +289,7 @@ public class TelaTeste extends Screen {
         }
     }
 
-    private void desenharDado(GuiGraphics g, float x, float y, float raio, float giro, float achatar, int valor,
+    private void desenharDado(GuiGraphicsExtractor g, float x, float y, float raio, float giro, float achatar, int valor,
             float visibilidade, float destaque, boolean vinte, boolean um) {
         int corBorda = COR_OSSO;
         if (destaque > 0F) {
@@ -309,7 +308,7 @@ public class TelaTeste extends Screen {
 
     // ---------------------------------------------------------------- total, bônus e veredito
 
-    private void desenharTotalEBonus(GuiGraphics g, float cx, float cy, long t, float op) {
+    private void desenharTotalEBonus(GuiGraphicsExtractor g, float cx, float cy, long t, float op) {
         float entrada = Mth.clamp((t - T_ROLAGEM) / 250F, 0F, 1F);
 
         // total que vai somando
@@ -354,7 +353,7 @@ public class TelaTeste extends Screen {
         }
     }
 
-    private void desenharVeredito(GuiGraphics g, float cx, float cy, long t, float op) {
+    private void desenharVeredito(GuiGraphicsExtractor g, float cx, float cy, long t, float op) {
         float q = Mth.clamp((t - tVeredito()) / 250F, 0F, 1F);
         float pop = 1F + 0.8F * (1F - q) * (1F - q);
         String texto = teste.critico() ? "CRÍTICO!" : teste.sucesso() ? "SUCESSO" : falhaCritica ? "FALHA CRÍTICA" : "FALHA";
@@ -387,23 +386,23 @@ public class TelaTeste extends Screen {
     }
 
     /** Texto centralizado em (x, y), com escala, na fonte do mod. Abaixo de uma transparência mínima nem desenha. */
-    private void textoCentro(GuiGraphics g, String s, float x, float y, float escala, int rgb, float alfa) {
+    private void textoCentro(GuiGraphicsExtractor g, String s, float x, float y, float escala, int rgb, float alfa) {
         if (alfa < 0.04F || s.isEmpty()) {
-            return; // o jogo trata alfa muito baixo como opaco, então é melhor nem desenhar
+            return; // alfa muito baixo vira "opaco" ou some, então é melhor nem desenhar
         }
         int w = FonteOP.largura(font, s);
-        g.pose().pushPose();
-        g.pose().translate(x, y, 0F);
-        g.pose().scale(escala, escala, 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(escala, escala);
         FonteOP.desenhar(g, font, s, -w / 2F, -CENTRO_VISUAL, argb(rgb, alfa), false);
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     /**
      * Polígono regular preenchido (linha por linha), com a ponta para cima.
      * {@code giro}: graus; {@code achatar}: escala horizontal (dá a ideia de o dado virando).
      */
-    private static void poligono(GuiGraphics g, float cx, float cy, float raio, float giro, float achatar, int lados,
+    private static void poligono(GuiGraphicsExtractor g, float cx, float cy, float raio, float giro, float achatar, int lados,
             int cor) {
         if (((cor >>> 24) & 0xFF) == 0 || raio <= 0F) {
             return;

@@ -7,33 +7,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.joml.Matrix4f;
-
 import com.exemplo.ordemmod.marcado.VfxMarcado;
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
 
-import net.minecraft.Util;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.util.Util;
 
 /**
  * O menu do personagem (tecla K). À esquerda fica sempre o resumo do personagem (skin e números);
@@ -48,8 +37,11 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  *
  * Os botões "+" do pentágono já existem na tela, mas ainda não fazem nada: quando o mod passar a conceder
  * pontos de atributo (marcos de NEX 20%, 50%, 80% e 95%), é aqui que eles serão ligados.
+ *
+ * Fabric 26.2 (6b): render() virou extractRenderState(GuiGraphicsExtractor, ...); a entrada recebe MouseButtonEvent/KeyEvent;
+ * o NBT usa getXxxOr/getListOrEmpty; Rede.CANAL.sendToServer virou ReceptoresCliente.enviar; as formas livres (pentágono,
+ * linhas, losango) agora são desenhadas por varredura em {@link DesenhoOP}; o halo deixou de ser aditivo.
  */
-@OnlyIn(Dist.CLIENT)
 public class TelaFicha extends Screen {
     private static final int COR_FUNDO = 0xFF050507;
     private static final int COR_PAINEL = 0xB40A0A10;
@@ -97,9 +89,9 @@ public class TelaFicha extends Screen {
     private static final float CENTRO_VISUAL = 2.2F;
 
     // mesmo visual da tela de criação (névoa, poeira, círculo ritual, halo)
-    private static final ResourceLocation CIRCULO = new ResourceLocation(OrdemMod.MOD_ID,
+    private static final Identifier CIRCULO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
             "textures/gui/marcado/circulo_ritual.png");
-    private static final ResourceLocation HALO = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
+    private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
     private final long abertaEm = Util.getMillis();
 
     private CompoundTag d;
@@ -144,12 +136,12 @@ public class TelaFicha extends Screen {
 
     private void carregar(CompoundTag dados) {
         this.d = dados;
-        this.atributos = dados.getIntArray("atributos").length == Atributo.values().length
-                ? dados.getIntArray("atributos") : new int[Atributo.values().length];
-        this.graus = dados.getByteArray("graus").length == Pericia.values().length
-                ? dados.getByteArray("graus") : new byte[Pericia.values().length];
-        this.deOrigem = dados.getByteArray("deOrigem").length == Pericia.values().length
-                ? dados.getByteArray("deOrigem") : new byte[Pericia.values().length];
+        this.atributos = dados.getIntArray("atributos").filter(a -> a.length == Atributo.values().length)
+                .orElseGet(() -> new int[Atributo.values().length]);
+        this.graus = dados.getByteArray("graus").filter(a -> a.length == Pericia.values().length)
+                .orElseGet(() -> new byte[Pericia.values().length]);
+        this.deOrigem = dados.getByteArray("deOrigem").filter(a -> a.length == Pericia.values().length)
+                .orElseGet(() -> new byte[Pericia.values().length]);
         lerLista(dados, "arvore", arvore);
         lerLista(dados, "trilhas", trilhas);
         montarGrupos();
@@ -157,9 +149,9 @@ public class TelaFicha extends Screen {
 
     private static void lerLista(CompoundTag dados, String chave, List<CompoundTag> destino) {
         destino.clear();
-        ListTag lista = dados.getList(chave, Tag.TAG_COMPOUND);
+        ListTag lista = dados.getListOrEmpty(chave);
         for (int i = 0; i < lista.size(); i++) {
-            destino.add(lista.getCompound(i));
+            destino.add(lista.getCompoundOrEmpty(i));
         }
     }
 
@@ -225,7 +217,7 @@ public class TelaFicha extends Screen {
     // ================================================================== dados
 
     private int inteiro(String chave) {
-        return d.getInt(chave);
+        return d.getIntOr(chave, 0);
     }
 
     private static String nomeAtributo(Atributo a) {
@@ -287,12 +279,12 @@ public class TelaFicha extends Screen {
         // quem exige outro poder fica embaixo dele (o primeiro pré-requisito é o "pai")
         Set<String> ids = new HashSet<>();
         for (CompoundTag n : arvore) {
-            ids.add(n.getString("id"));
+            ids.add(n.getStringOr("id", ""));
         }
         Map<String, List<CompoundTag>> filhos = new LinkedHashMap<>();
         List<CompoundTag> raizes = new ArrayList<>();
         for (CompoundTag n : arvore) {
-            String pai = n.getString("pai");
+            String pai = n.getStringOr("pai", "");
             if (pai.isEmpty() || !ids.contains(pai)) {
                 raizes.add(n);
             } else {
@@ -308,7 +300,7 @@ public class TelaFicha extends Screen {
 
     private void coletar(CompoundTag no, List<CompoundTag> destino, Map<String, List<CompoundTag>> filhos) {
         destino.add(no);
-        for (CompoundTag filho : filhos.getOrDefault(no.getString("id"), List.of())) {
+        for (CompoundTag filho : filhos.getOrDefault(no.getStringOr("id", ""), List.of())) {
             coletar(filho, destino, filhos);
         }
     }
@@ -318,7 +310,7 @@ public class TelaFicha extends Screen {
             return null;
         }
         for (CompoundTag n : arvore) {
-            if (chave.equals("h:" + n.getString("id"))) {
+            if (chave.equals("h:" + n.getStringOr("id", ""))) {
                 return n;
             }
         }
@@ -363,8 +355,8 @@ public class TelaFicha extends Screen {
         if (t == null || k < 0) {
             return null;
         }
-        ListTag hs = t.getList("habilidades", Tag.TAG_COMPOUND);
-        return k < hs.size() ? hs.getCompound(k) : null;
+        ListTag hs = t.getListOrEmpty("habilidades");
+        return k < hs.size() ? hs.getCompoundOrEmpty(k) : null;
     }
 
     // ================================================================== ações
@@ -378,8 +370,8 @@ public class TelaFicha extends Screen {
         if (no == null) {
             return new Acao("SELECIONE", false, false);
         }
-        int estado = no.getInt("estado");
-        if (no.getBoolean("repetivel")) {
+        int estado = no.getIntOr("estado", 0);
+        if (no.getBooleanOr("repetivel", false)) {
             if (estado == PacoteFicha.DISPONIVEL) {
                 return new Acao("ESCOLHER PERÍCIAS (1 PT)", true, false);
             }
@@ -399,7 +391,7 @@ public class TelaFicha extends Screen {
         }
         int escolhida = inteiro("trilha");
         if (escolhida >= 0) {
-            return new Acao(escolhida == t.getInt("indice") ? "ESCOLHIDA" : "FECHADA", false, false);
+            return new Acao(escolhida == t.getIntOr("indice", 0) ? "ESCOLHIDA" : "FECHADA", false, false);
         }
         if (inteiro("nivel") < Trilha.NIVEL_MINIMO) {
             return new Acao("NEX " + HabilidadesDoPersonagem.nexDoNivel(Trilha.NIVEL_MINIMO) + "%", false, false);
@@ -412,12 +404,12 @@ public class TelaFicha extends Screen {
         if (no == null || !acaoDoPoder().ativa()) {
             return;
         }
-        if (no.getBoolean("repetivel")) {
+        if (no.getBooleanOr("repetivel", false)) {
             escolhendo = true; // Treinamento em Perícia: primeiro escolhe as duas perícias
             escolhidas.clear();
             rolagem = 0;
         } else {
-            Rede.CANAL.sendToServer(PacoteArvore.aprender(no.getString("id")));
+            ReceptoresCliente.enviar(PacoteArvore.aprender(no.getStringOr("id", "")));
         }
     }
 
@@ -430,9 +422,9 @@ public class TelaFicha extends Screen {
             confirmando = true; // trilha não dá para trocar: pede o segundo clique
             return;
         }
-        int indice = t.getInt("indice");
+        int indice = t.getIntOr("indice", 0);
         if (indice >= 0 && indice < Trilha.values().length) {
-            Rede.CANAL.sendToServer(PacoteArvore.escolherTrilha(Trilha.values()[indice]));
+            ReceptoresCliente.enviar(PacoteArvore.escolherTrilha(Trilha.values()[indice]));
         }
         confirmando = false;
     }
@@ -443,16 +435,16 @@ public class TelaFicha extends Screen {
         }
         Pericia a = Pericia.values()[escolhidas.get(0)];
         Pericia b = Pericia.values()[escolhidas.get(1)];
-        Rede.CANAL.sendToServer(PacoteArvore.treinamento(a, b));
+        ReceptoresCliente.enviar(PacoteArvore.treinamento(a, b));
         escolhendo = false;
         escolhidas.clear();
     }
 
     /** O motivo do bloqueio em poucas letras, para caber no botão ("NEX 25%", "AGI 2", nome do poder exigido). */
     private static String motivoCurto(CompoundTag t) {
-        String motivo = t.getString("motivo");
+        String motivo = t.getStringOr("motivo", "");
         if (motivo.startsWith("Requer NEX")) {
-            return "NEX " + t.getInt("nex") + "%";
+            return "NEX " + t.getIntOr("nex", 0) + "%";
         }
         if (motivo.startsWith("Sem pontos")) {
             return "SEM PONTOS";
@@ -466,12 +458,12 @@ public class TelaFicha extends Screen {
     // ================================================================== entrada
 
     @Override
-    public boolean keyPressed(int tecla, int codigo, int modificadores) {
-        if (TeclasOrdem.MENU.matches(tecla, codigo)) {
+    public boolean keyPressed(KeyEvent evento) {
+        if (TeclasOrdem.MENU.matches(evento)) {
             onClose();
             return true;
         }
-        return super.keyPressed(tecla, codigo, modificadores);
+        return super.keyPressed(evento);
     }
 
     private boolean dentro(double mx, double my, int x, int y, int w, int h) {
@@ -483,13 +475,13 @@ public class TelaFicha extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mx, double my, double delta) {
+    public boolean mouseScrolled(double mx, double my, double scrollX, double scrollY) {
         if (aba != ABA_ATRIBUTO && dentro(mx, my, cx, listaY, cw, listaH)) {
-            rolagem -= (int) Math.signum(delta) * 16;
+            rolagem -= (int) Math.signum(scrollY) * 16;
             limitarRolagem();
             return true;
         }
-        return super.mouseScrolled(mx, my, delta);
+        return super.mouseScrolled(mx, my, scrollX, scrollY);
     }
 
     private int abaX(int i) {
@@ -511,7 +503,10 @@ public class TelaFicha extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int botao) {
+    public boolean mouseClicked(MouseButtonEvent evento, boolean duploClique) {
+        double mx = evento.x();
+        double my = evento.y();
+        int botao = evento.button();
         if (botao == 0) {
             if (my >= abaY && my < abaY + ALTURA_ABA && mx >= cx && mx < cx + cw) {
                 int nova = abaEm(mx);
@@ -549,13 +544,13 @@ public class TelaFicha extends Screen {
                 }
                 Pericia p = Pericia.values()[Integer.parseInt(a.chave().substring(3))];
                 if (podeMelhorar(p)) {
-                    Rede.CANAL.sendToServer(PacoteArvore.melhorarPericia(p));
+                    ReceptoresCliente.enviar(PacoteArvore.melhorarPericia(p));
                     clique();
                 }
                 return true;
             }
         }
-        return super.mouseClicked(mx, my, botao);
+        return super.mouseClicked(evento, duploClique);
     }
 
     private void tratarClique(String chave) {
@@ -570,7 +565,7 @@ public class TelaFicha extends Screen {
             default -> {
                 if (chave.startsWith("pe:")) { // perícia na aba Perícia: clique esquerdo rola o teste (o direito sobe de grau)
                     Pericia p = Pericia.values()[Integer.parseInt(chave.substring(3))];
-                    Rede.CANAL.sendToServer(new PacoteRolarPericia(p.ordinal()));
+                    ReceptoresCliente.enviar(new PacoteRolarPericia(p.ordinal()));
                 } else if (chave.startsWith("pp:")) { // perícia na escolha do Treinamento em Perícia
                     Integer indice = Integer.valueOf(chave.substring(3));
                     if (!escolhidas.remove(indice)) {
@@ -599,12 +594,12 @@ public class TelaFicha extends Screen {
     // ================================================================== texto
 
     /** Linha solta de texto: {@code y} é o topo da linha (já com o ajuste da fonte). */
-    private void texto(GuiGraphics g, String s, float x, float y, int cor) {
+    private void texto(GuiGraphicsExtractor g, String s, float x, float y, int cor) {
         FonteOP.desenhar(g, font, s, x, y + DESLOC_TEXTO, cor, false);
     }
 
     /** Texto centralizado na vertical dentro de uma caixa que começa em {@code topo} e tem {@code altura}. */
-    private void textoNaCaixa(GuiGraphics g, String s, float x, int topo, int altura, int cor) {
+    private void textoNaCaixa(GuiGraphicsExtractor g, String s, float x, int topo, int altura, int cor) {
         FonteOP.desenhar(g, font, s, x, yCentrado(topo, altura), cor, false);
     }
 
@@ -625,29 +620,29 @@ public class TelaFicha extends Screen {
     }
 
     /** Texto centralizado numa caixa; se for largo demais, encolhe em vez de vazar. */
-    private void textoAjustado(GuiGraphics g, String s, int x, int w, int topo, int altura, int cor) {
+    private void textoAjustado(GuiGraphicsExtractor g, String s, int x, int w, int topo, int altura, int cor) {
         int tw = FonteOP.largura(font, s);
         float escala = Math.max(0.55F, Math.min(1F, (w - 6F) / Math.max(1, tw)));
-        g.pose().pushPose();
-        g.pose().translate(x + w / 2F, topo + altura / 2F, 0F);
-        g.pose().scale(escala, escala, 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(x + w / 2F, topo + altura / 2F);
+        g.pose().scale(escala, escala);
         FonteOP.desenhar(g, font, s, -tw / 2F, -CENTRO_VISUAL, cor, false);
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     /** Daqui até {@link #soltar} nada é desenhado fora do retângulo: o texto nunca mais vaza da caixa. */
-    private static void recortar(GuiGraphics g, int x, int y, int w, int h) {
+    private static void recortar(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         g.enableScissor(x, y, x + Math.max(0, w), y + Math.max(0, h));
     }
 
-    private static void soltar(GuiGraphics g) {
+    private static void soltar(GuiGraphicsExtractor g) {
         g.disableScissor();
     }
 
     // ================================================================== desenho
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float parcial) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float parcial) {
         alvos.clear();
         sobre = "";
         periciaSobMouse = null;
@@ -670,7 +665,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Fundo igual ao da tela de criação: névoa + poeira, vinheta, título em Cinzel e divisória com losango. */
-    private void desenharFundo(GuiGraphics g) {
+    private void desenharFundo(GuiGraphicsExtractor g) {
         g.fill(0, 0, width, height, COR_FUNDO);
         float t = relogio();
         VfxMarcado.NEVOA.desenhar(g, t, 0.30F, 0, 0, width, height);
@@ -678,35 +673,28 @@ public class TelaFicha extends Screen {
         g.fillGradient(0, 0, width, height / 3, 0xDD000000, 0x00000000);
         g.fillGradient(0, height * 2 / 3, width, height, 0x00000000, 0xDD000000);
 
-        g.pose().pushPose();
-        g.pose().scale(1.25F, 1.25F, 1.0F);
+        g.pose().pushMatrix();
+        g.pose().scale(1.25F, 1.25F);
         FonteOP.desenharTitulo(g, font, "FICHA DO PERSONAGEM", margem / 1.25F, 6 / 1.25F, COR_OSSO, true);
-        g.pose().popPose();
+        g.pose().popMatrix();
         String dica = "K ou ESC para fechar";
         FonteOP.desenharEntidade(g, font, dica, width - margem - font.width(FonteOP.entidade(dica)), 8, COR_APAGADO, false);
 
         int meio = width / 2;
         g.fill(margem, 40, meio - 9, 41, 0xFF5A1620);
         g.fill(meio + 9, 40, width - margem, 41, 0xFF5A1620);
-        g.flush();
-        poligono(g, meio, 40.5F, new float[] {meio, meio + 4.5F, meio, meio - 4.5F},
+        DesenhoOP.poligono(g, new float[] {meio, meio + 4.5F, meio, meio - 4.5F},
                 new float[] {36F, 40.5F, 45F, 40.5F}, COR_SANGUE_CLARO);
     }
 
-    /** Brilho suave (textura radial branca) somado ao fundo. */
-    private void halo(GuiGraphics g, float cx, float cy, int raio, float alfa, float r, float gc, float b) {
-        g.flush();
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        g.setColor(r, gc, b, alfa);
-        g.blit(HALO, Math.round(cx) - raio, Math.round(cy) - raio, raio * 2, raio * 2, 0F, 0F, 128, 128, 128, 128);
-        g.setColor(1F, 1F, 1F, 1F);
-        RenderSystem.defaultBlendFunc();
+    /** Brilho suave (textura radial branca) tingido, por trás do personagem e do pentágono. */
+    private void halo(GuiGraphicsExtractor g, float cx, float cy, int raio, float alfa, float r, float gc, float b) {
+        DesenhoOP.halo(g, HALO, cx, cy, raio, alfa, r, gc, b);
     }
 
     // ---------------------------------------------------------------- abas
 
-    private void desenharAbas(GuiGraphics g, int mx, int my) {
+    private void desenharAbas(GuiGraphicsExtractor g, int mx, int my) {
         for (int i = 0; i < NOMES_ABAS.length; i++) {
             desenharAba(g, abaX(i), abaW(i), NOMES_ABAS[i], aba == i, mx, my, abaTemNovidade(i));
         }
@@ -722,18 +710,18 @@ public class TelaFicha extends Screen {
         };
     }
 
-    private void desenharAba(GuiGraphics g, int x, int w, String texto, boolean ativa, int mx, int my,
+    private void desenharAba(GuiGraphicsExtractor g, int x, int w, String texto, boolean ativa, int mx, int my,
             boolean novidade) {
         boolean sobreAba = mx >= x && mx < x + w && my >= abaY && my < abaY + ALTURA_ABA;
         // como na tela de criação: só o texto em Cinzel e um sublinhado (sangue na aba ativa, cinza ao passar o mouse)
         int tw = FonteOP.larguraTitulo(font, texto);
         float escala = Math.max(0.6F, Math.min(1F, (w - 14F) / Math.max(1, tw)));
-        g.pose().pushPose();
-        g.pose().translate(x + w / 2F, abaY + ALTURA_ABA / 2F - 1F, 0F);
-        g.pose().scale(escala, escala, 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(x + w / 2F, abaY + ALTURA_ABA / 2F - 1F);
+        g.pose().scale(escala, escala);
         FonteOP.desenharTitulo(g, font, texto, -tw / 2F, -4F, ativa ? COR_OSSO : sobreAba ? COR_DOURADO : COR_APAGADO,
                 ativa);
-        g.pose().popPose();
+        g.pose().popMatrix();
         if (ativa) {
             g.fill(x, abaY + ALTURA_ABA - 1, x + w, abaY + ALTURA_ABA, COR_SANGUE_CLARO);
         } else if (sobreAba) {
@@ -746,7 +734,7 @@ public class TelaFicha extends Screen {
 
     // ---------------------------------------------------------------- lista rolável (abas Perícia, Poderes e Trilha)
 
-    private void iniciarLista(GuiGraphics g, int y, int h) {
+    private void iniciarLista(GuiGraphicsExtractor g, int y, int h) {
         listaY = y;
         listaH = h;
         painel(g, cx, y, cw, h);
@@ -755,7 +743,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Fecha a lista: {@code yFimTela} é o Y (na tela) logo abaixo do último item desenhado. */
-    private void terminarLista(GuiGraphics g, int yFimTela) {
+    private void terminarLista(GuiGraphicsExtractor g, int yFimTela) {
         soltar(g);
         alturaConteudo = yFimTela + rolagem - listaY + 6;
         limitarRolagem();
@@ -789,7 +777,7 @@ public class TelaFicha extends Screen {
 
     // ---------------------------------------------------------------- aba ATRIBUTO
 
-    private void desenharAtributo(GuiGraphics g, int mx, int my) {
+    private void desenharAtributo(GuiGraphicsExtractor g, int mx, int my) {
         for (int i = 0; i < Atributo.values().length; i++) {
             double lx = pontoX(i, pentRaio + 16);
             double ly = pontoY(i, pentRaio + 16);
@@ -805,7 +793,7 @@ public class TelaFicha extends Screen {
         desenharInfoAtributo(g);
     }
 
-    private void desenharInfoAtributo(GuiGraphics g) {
+    private void desenharInfoAtributo(GuiGraphicsExtractor g) {
         int h = ALTURA_INFO_ATRIBUTO;
         painel(g, cx, infoY, cw, h);
         int x = cx + 6;
@@ -863,7 +851,7 @@ public class TelaFicha extends Screen {
 
     // ---------------------------------------------------------------- aba PERÍCIA
 
-    private void desenharPericias(GuiGraphics g, int mx, int my) {
+    private void desenharPericias(GuiGraphicsExtractor g, int mx, int my) {
         int melhoriasV = inteiro("melhoriasVeterano");
         int melhoriasE = inteiro("melhoriasExpert");
         int porMarco = Pericias.MELHORIAS_POR_MARCO + atributos[Atributo.INTELECTO.ordinal()];
@@ -924,7 +912,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Distribui as perícias lado a lado (quebrando de linha). Devolve o Y logo abaixo da última linha. */
-    private int fluxoDePericias(GuiGraphics g, int mx, int my, List<Pericia> lista, int x0, int y0, int larguraMax,
+    private int fluxoDePericias(GuiGraphicsExtractor g, int mx, int my, List<Pericia> lista, int x0, int y0, int larguraMax,
             String prefixo) {
         int x = x0;
         int y = y0;
@@ -951,7 +939,7 @@ public class TelaFicha extends Screen {
         return w;
     }
 
-    private void desenharChip(GuiGraphics g, int mx, int my, Pericia p, int x, int y, int w, String prefixo) {
+    private void desenharChip(GuiGraphicsExtractor g, int mx, int my, Pericia p, int x, int y, int w, String prefixo) {
         int grau = graus[p.ordinal()];
         boolean escolhida = prefixo.equals("pp:") && escolhidas.contains(p.ordinal());
         boolean subir = prefixo.equals("pe:") && podeMelhorar(p);
@@ -978,7 +966,7 @@ public class TelaFicha extends Screen {
         }
     }
 
-    private void desenharDetalhePericia(GuiGraphics g) {
+    private void desenharDetalhePericia(GuiGraphicsExtractor g) {
         painel(g, cx, detalheY, cw, detalheH);
         int x = cx + 6;
         int w = cw - 12;
@@ -1017,7 +1005,7 @@ public class TelaFicha extends Screen {
 
     // ---------------------------------------------------------------- aba PODERES
 
-    private void desenharPoderes(GuiGraphics g, int mx, int my) {
+    private void desenharPoderes(GuiGraphicsExtractor g, int mx, int my) {
         iniciarLista(g, corpoY, rodapeY - 3 - corpoY);
         if (escolhendo) {
             desenharEscolhaDePericias(g, mx, my);
@@ -1041,7 +1029,7 @@ public class TelaFicha extends Screen {
                     CompoundTag no = grupo.get(i);
                     int by = y + i * (caixaPx + espacoSeta);
                     if (i > 0) {
-                        boolean pai = grupo.get(i - 1).getInt("estado") == PacoteFicha.APRENDIDA;
+                        boolean pai = grupo.get(i - 1).getIntOr("estado", 0) == PacoteFicha.APRENDIDA;
                         desenharSeta(g, x + caixaPx / 2, by - espacoSeta, espacoSeta, pai ? COR_DOURADO : COR_SETA);
                     }
                     desenharPoder(g, mx, my, x, by, no);
@@ -1056,23 +1044,23 @@ public class TelaFicha extends Screen {
     }
 
     /** Um poder de classe: ícone numa moldura (dourada = aprendido, verde = dá para aprender, cinza = bloqueado). */
-    private void desenharPoder(GuiGraphics g, int mx, int my, int x, int y, CompoundTag no) {
-        String chave = "h:" + no.getString("id");
-        int estado = no.getInt("estado");
+    private void desenharPoder(GuiGraphicsExtractor g, int mx, int my, int x, int y, CompoundTag no) {
+        String chave = "h:" + no.getStringOr("id", "");
+        int estado = no.getIntOr("estado", 0);
         boolean selecionada = chave.equals(selecionado);
         boolean passou = alvo(mx, my, x, y, caixaPx, caixaPx, chave, true);
         desenharMoldura(g, x, y, selecionada, passou,
                 estado == PacoteFicha.APRENDIDA ? COR_DOURADO : estado == PacoteFicha.DISPONIVEL ? COR_OK : COR_BORDA);
-        IconesOP.desenhar(g, no.getString("id"), x + (caixaPx - iconePx) / 2, y + (caixaPx - iconePx) / 2, iconePx,
+        IconesOP.desenhar(g, no.getStringOr("id", ""), x + (caixaPx - iconePx) / 2, y + (caixaPx - iconePx) / 2, iconePx,
                 estado == PacoteFicha.BLOQUEADA ? 0.35F : 1F);
 
         String selo = null;
-        if (no.getBoolean("repetivel")) {
-            if (no.getInt("vezes") >= 1) {
-                selo = "x" + no.getInt("vezes");
+        if (no.getBooleanOr("repetivel", false)) {
+            if (no.getIntOr("vezes", 0) >= 1) {
+                selo = "x" + no.getIntOr("vezes", 0);
             }
-        } else if (no.getInt("versaoAtual") >= 2) {
-            selo = romano(no.getInt("versaoAtual")); // II, III, IV: versão aprimorada em uso
+        } else if (no.getIntOr("versaoAtual", 0) >= 2) {
+            selo = romano(no.getIntOr("versaoAtual", 0)); // II, III, IV: versão aprimorada em uso
         }
         if (selo != null) {
             int sw = FonteOP.largura(font, selo) + 4;
@@ -1081,7 +1069,7 @@ public class TelaFicha extends Screen {
         }
     }
 
-    private void desenharMoldura(GuiGraphics g, int x, int y, boolean selecionada, boolean passou, int borda) {
+    private void desenharMoldura(GuiGraphicsExtractor g, int x, int y, boolean selecionada, boolean passou, int borda) {
         if (selecionada) {
             g.fill(x - 2, y - 2, x + caixaPx + 2, y + caixaPx + 2, COR_SANGUE_CLARO);
         }
@@ -1090,7 +1078,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Seta para baixo, ligando um poder ao que depende dele. */
-    private static void desenharSeta(GuiGraphics g, int meio, int y, int alt, int cor) {
+    private static void desenharSeta(GuiGraphicsExtractor g, int meio, int y, int alt, int cor) {
         g.fill(meio, y + 1, meio + 1, y + alt - 3, cor);
         for (int i = 0; i < 3; i++) {
             g.fill(meio - 2 + i, y + alt - 4 + i, meio + 3 - i, y + alt - 3 + i, cor);
@@ -1098,7 +1086,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Treinamento em Perícia: a lista das perícias que podem subir de grau; o jogador marca duas. */
-    private void desenharEscolhaDePericias(GuiGraphics g, int mx, int my) {
+    private void desenharEscolhaDePericias(GuiGraphicsExtractor g, int mx, int my) {
         int x = cx + 8;
         int w = cw - 8 - 14;
         int y = listaY + 6 - rolagem;
@@ -1123,7 +1111,7 @@ public class TelaFicha extends Screen {
         terminarLista(g, y);
     }
 
-    private void desenharRodapePoderes(GuiGraphics g, int mx, int my) {
+    private void desenharRodapePoderes(GuiGraphicsExtractor g, int mx, int my) {
         int pontos = inteiro("pontosHabilidade");
         if (escolhendo) {
             int xConfirmar = botaoRodape(g, mx, my, "CONFIRMAR", cx + cw, escolhidas.size() == 2, false, "btn:confirmar");
@@ -1139,7 +1127,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Botão de 11 px de altura encostado em {@code xDireita}; devolve o X da borda esquerda dele. */
-    private int botaoRodape(GuiGraphics g, int mx, int my, String rotulo, int xDireita, boolean ativo, boolean perigo,
+    private int botaoRodape(GuiGraphicsExtractor g, int mx, int my, String rotulo, int xDireita, boolean ativo, boolean perigo,
             String chave) {
         int w = Math.min(cw - 20, FonteOP.largura(font, rotulo) + 10);
         int x = xDireita - w;
@@ -1151,7 +1139,7 @@ public class TelaFicha extends Screen {
         return x;
     }
 
-    private void desenharDetalhePoder(GuiGraphics g) {
+    private void desenharDetalhePoder(GuiGraphicsExtractor g) {
         painel(g, cx, detalheY, cw, detalheH);
         int x = cx + 6;
         int w = cw - 12;
@@ -1178,19 +1166,19 @@ public class TelaFicha extends Screen {
             soltar(g);
             return;
         }
-        String tipo = no.getBoolean("ativa") ? "ATIVA · " + no.getInt("custo") + " PE" : "PASSIVA";
-        texto(g, ajustar(no.getString("nome").toUpperCase(java.util.Locale.ROOT) + "  (" + tipo + ")", w), x, y,
+        String tipo = no.getBooleanOr("ativa", false) ? "ATIVA · " + no.getIntOr("custo", 0) + " PE" : "PASSIVA";
+        texto(g, ajustar(no.getStringOr("nome", "").toUpperCase(java.util.Locale.ROOT) + "  (" + tipo + ")", w), x, y,
                 COR_DOURADO);
         y += 12;
-        y = paragrafo(g, no.getString("descricao"), x, y, w, COR_OSSO, yMax);
-        int estado = no.getInt("estado");
+        y = paragrafo(g, no.getStringOr("descricao", ""), x, y, w, COR_OSSO, yMax);
+        int estado = no.getIntOr("estado", 0);
         String situacao;
         int cor;
-        if (no.getBoolean("repetivel")) {
-            int vezes = no.getInt("vezes");
+        if (no.getBooleanOr("repetivel", false)) {
+            int vezes = no.getIntOr("vezes", 0);
             situacao = (vezes > 0 ? "Escolhido " + vezes + (vezes == 1 ? " vez. " : " vezes. ") : "")
                     + (estado == PacoteFicha.DISPONIVEL ? "Cada escolha custa 1 ponto de habilidade."
-                            : no.getString("motivo") + ".");
+                            : no.getStringOr("motivo", "") + ".");
             cor = estado == PacoteFicha.DISPONIVEL ? COR_OK : COR_SANGUE_CLARO;
         } else if (estado == PacoteFicha.APRENDIDA) {
             situacao = "Aprendido.";
@@ -1199,11 +1187,11 @@ public class TelaFicha extends Screen {
             situacao = "Pronto para aprender: custa 1 ponto de habilidade.";
             cor = COR_OK;
         } else {
-            situacao = no.getString("motivo") + ".";
+            situacao = no.getStringOr("motivo", "") + ".";
             cor = COR_SANGUE_CLARO;
         }
-        if (no.getInt("versoes") > 1) {
-            situacao += " Evolui sozinho no NEX " + no.getString("evolucoes") + ".";
+        if (no.getIntOr("versoes", 0) > 1) {
+            situacao += " Evolui sozinho no NEX " + no.getStringOr("evolucoes", "") + ".";
         }
         paragrafo(g, situacao, x, y + 3, w, cor, yMax);
         soltar(g);
@@ -1211,7 +1199,7 @@ public class TelaFicha extends Screen {
 
     // ---------------------------------------------------------------- aba TRILHA
 
-    private void desenharTrilhas(GuiGraphics g, int mx, int my) {
+    private void desenharTrilhas(GuiGraphicsExtractor g, int mx, int my) {
         iniciarLista(g, corpoY, rodapeY - 3 - corpoY);
         if (trilhas.isEmpty()) {
             texto(g, "Nenhuma trilha para mostrar.", cx + 8, listaY + 6, COR_APAGADO);
@@ -1233,7 +1221,7 @@ public class TelaFicha extends Screen {
                     alturaFaixa = 0;
                 }
                 CompoundTag t = trilhas.get(i);
-                boolean essa = escolhida == t.getInt("indice");
+                boolean essa = escolhida == t.getIntOr("indice", 0);
                 boolean fechada = escolhida >= 0 && !essa;
                 alturaFaixa = Math.max(alturaFaixa, desenharColunaDeTrilha(g, mx, my, i, t, x, y, colunaW, essa, fechada));
                 x += colunaW;
@@ -1245,7 +1233,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Uma coluna: o nome da trilha e os 4 poderes dela (NEX 10%, 40%, 65% e 99%). Devolve a altura usada. */
-    private int desenharColunaDeTrilha(GuiGraphics g, int mx, int my, int i, CompoundTag t, int x, int y, int colunaW,
+    private int desenharColunaDeTrilha(GuiGraphicsExtractor g, int mx, int my, int i, CompoundTag t, int x, int y, int colunaW,
             boolean essa, boolean fechada) {
         int nivel = inteiro("nivel");
         boolean podeEscolher = inteiro("trilha") < 0 && nivel >= Trilha.NIVEL_MINIMO;
@@ -1260,7 +1248,7 @@ public class TelaFicha extends Screen {
         }
         g.fill(hx, y, hx + hw, y + ALTURA_TITULO_TRILHA, essa ? COR_DOURADO : podeEscolher ? COR_OK : COR_BORDA);
         g.fill(hx + 1, y + 1, hx + hw - 1, y + ALTURA_TITULO_TRILHA - 1, passouT ? 0xFF1F1F27 : COR_ZONA);
-        List<FormattedCharSequence> linhasNome = font.split(FonteOP.c(t.getString("nome")), hw - 4);
+        List<FormattedCharSequence> linhasNome = font.split(FonteOP.c(t.getStringOr("nome", "")), hw - 4);
         int nLinhas = Math.min(2, linhasNome.size());
         int topoTexto = y + 2 + (ALTURA_TITULO_TRILHA - 4 - nLinhas * 10) / 2;
         for (int k = 0; k < nLinhas; k++) {
@@ -1270,21 +1258,21 @@ public class TelaFicha extends Screen {
         }
 
         // os 4 poderes
-        ListTag hs = t.getList("habilidades", Tag.TAG_COMPOUND);
+        ListTag hs = t.getListOrEmpty("habilidades");
         int passo = caixaPx + 11 + espacoSeta;
         int py = y + ALTURA_TITULO_TRILHA + 8;
         int bx = x + (colunaW - caixaPx) / 2;
         for (int k = 0; k < NIVEIS_TRILHA.length; k++) {
-            CompoundTag h = k < hs.size() ? hs.getCompound(k) : null;
+            CompoundTag h = k < hs.size() ? hs.getCompoundOrEmpty(k) : null;
             int by = py + k * passo;
-            boolean liberado = h != null && h.getBoolean("liberada");
+            boolean liberado = h != null && h.getBooleanOr("liberada", false);
             boolean daParaEscolher = h != null && podeEscolher;
             String chaveP = "p:" + i + ":" + k;
             boolean passouP = alvo(mx, my, bx, by, caixaPx, caixaPx, chaveP, true);
             desenharMoldura(g, bx, by, chaveP.equals(selecionado), passouP,
                     liberado ? COR_DOURADO : daParaEscolher ? COR_OK : COR_BORDA);
             if (h != null) {
-                IconesOP.desenhar(g, h.getString("id"), bx + (caixaPx - iconePx) / 2, by + (caixaPx - iconePx) / 2,
+                IconesOP.desenhar(g, h.getStringOr("id", ""), bx + (caixaPx - iconePx) / 2, by + (caixaPx - iconePx) / 2,
                         iconePx, liberado ? 1F : fechada ? 0.2F : daParaEscolher ? 0.9F : 0.4F);
             } else {
                 String interrogacao = "?";
@@ -1295,7 +1283,7 @@ public class TelaFicha extends Screen {
             textoNaCaixa(g, nex, x + (colunaW - FonteOP.largura(font, nex)) / 2F, by + caixaPx + 1, 10,
                     liberado ? COR_DOURADO : COR_APAGADO);
             if (k < NIVEIS_TRILHA.length - 1) {
-                boolean proximoLiberado = k + 1 < hs.size() && hs.getCompound(k + 1).getBoolean("liberada");
+                boolean proximoLiberado = k + 1 < hs.size() && hs.getCompoundOrEmpty(k + 1).getBooleanOr("liberada", false);
                 desenharSeta(g, bx + caixaPx / 2, by + caixaPx + 11, espacoSeta, proximoLiberado ? COR_DOURADO : COR_SETA);
             }
         }
@@ -1308,7 +1296,7 @@ public class TelaFicha extends Screen {
         return usado;
     }
 
-    private void desenharRodapeTrilha(GuiGraphics g, int mx, int my) {
+    private void desenharRodapeTrilha(GuiGraphicsExtractor g, int mx, int my) {
         int indiceTrilha = inteiro("trilha");
         Acao acao = acaoDaTrilha();
         int xBotao = botaoRodape(g, mx, my, acao.rotulo(), cx + cw, acao.ativa(), acao.perigo(), "btn:trilha");
@@ -1317,7 +1305,7 @@ public class TelaFicha extends Screen {
         textoNaCaixa(g, ajustar(situacao, xBotao - cx - 8), cx + 2, rodapeY, 11, indiceTrilha >= 0 ? COR_OK : COR_DOURADO);
     }
 
-    private void desenharDetalheTrilha(GuiGraphics g) {
+    private void desenharDetalheTrilha(GuiGraphicsExtractor g) {
         painel(g, cx, detalheY, cw, detalheH);
         int x = cx + 6;
         int w = cw - 12;
@@ -1336,28 +1324,28 @@ public class TelaFicha extends Screen {
             return;
         }
         int escolhida = inteiro("trilha");
-        boolean essa = escolhida == t.getInt("indice");
+        boolean essa = escolhida == t.getIntOr("indice", 0);
         CompoundTag h = poderDeTrilhaPorChave(chave);
         String situacao;
         int cor;
         if (h == null) {
-            texto(g, ajustar(t.getString("nome").toUpperCase(java.util.Locale.ROOT) + "  (TRILHA)", w), x, y,
+            texto(g, ajustar(t.getStringOr("nome", "").toUpperCase(java.util.Locale.ROOT) + "  (TRILHA)", w), x, y,
                     COR_DOURADO);
             y += 12;
-            y = paragrafo(g, t.getString("descricao"), x, y, w, COR_OSSO, yMax);
-            if (t.getList("habilidades", Tag.TAG_COMPOUND).isEmpty()) {
+            y = paragrafo(g, t.getStringOr("descricao", ""), x, y, w, COR_OSSO, yMax);
+            if (t.getListOrEmpty("habilidades").isEmpty()) {
                 y = paragrafo(g, "Os poderes desta trilha ainda não foram criados.", x, y + 2, w, COR_APAGADO, yMax);
             }
         } else {
-            String tipo = h.getBoolean("ativa") ? "ATIVA · " + h.getInt("custo") + " PE" : "PASSIVA";
-            texto(g, ajustar(h.getString("nome").toUpperCase(java.util.Locale.ROOT) + "  (" + tipo + " · NEX "
-                    + h.getInt("nex") + "%)", w), x, y, COR_DOURADO);
+            String tipo = h.getBooleanOr("ativa", false) ? "ATIVA · " + h.getIntOr("custo", 0) + " PE" : "PASSIVA";
+            texto(g, ajustar(h.getStringOr("nome", "").toUpperCase(java.util.Locale.ROOT) + "  (" + tipo + " · NEX "
+                    + h.getIntOr("nex", 0) + "%)", w), x, y, COR_DOURADO);
             y += 12;
-            y = paragrafo(g, h.getString("descricao"), x, y, w, COR_OSSO, yMax);
+            y = paragrafo(g, h.getStringOr("descricao", ""), x, y, w, COR_OSSO, yMax);
         }
         if (essa) {
-            situacao = h != null && !h.getBoolean("liberada")
-                    ? "Sua trilha. Este poder chega no NEX " + h.getInt("nex") + "%."
+            situacao = h != null && !h.getBooleanOr("liberada", false)
+                    ? "Sua trilha. Este poder chega no NEX " + h.getIntOr("nex", 0) + "%."
                     : "Esta é a sua trilha.";
             cor = COR_OK;
         } else if (escolhida >= 0) {
@@ -1379,7 +1367,7 @@ public class TelaFicha extends Screen {
 
     // ---------------------------------------------------------------- coluna da esquerda
 
-    private void desenharEsquerda(GuiGraphics g, int mx, int my) {
+    private void desenharEsquerda(GuiGraphicsExtractor g, int mx, int my) {
         painel(g, esqX, topo, esqW, altura);
         int centro = esqX + esqW / 2;
         int alturaSkin = Mth.clamp((int) (altura * 0.30F), 54, 120);
@@ -1392,8 +1380,10 @@ public class TelaFicha extends Screen {
         int y = pes + 8;
         if (minecraft != null && minecraft.player != null) {
             int escala = Math.max(18, (int) (alturaSkin / 1.95F));
-            InventoryScreen.renderEntityInInventoryFollowsMouse(g, centro, pes, escala,
-                    (float) (centro - mx), pes - alturaSkin * 0.55F - my, minecraft.player);
+            // a caixa tem o centro na altura do meio do corpo (a entidade é desenhada centrada na caixa)
+            int meioCorpo = Math.round(pes - escala * 0.9F);
+            DesenhoOP.entidade(g, esqX + 2, meioCorpo - alturaSkin / 2, esqX + esqW - 2, meioCorpo + alturaSkin / 2,
+                    escala, mx, my, minecraft.player);
         }
 
         recortar(g, esqX + 1, topo + 1, esqW - 2, altura - 2); // todo o texto abaixo fica dentro da caixa
@@ -1438,13 +1428,13 @@ public class TelaFicha extends Screen {
         y = linha(g, "Resist. física", inteiro("resistFisica") + "%", px, y, pw, yMax);
         y = linha(g, "Resist. mental", inteiro("resistMental") + "%", px, y, pw, yMax);
         y = linha(g, "Velocidade", "+" + inteiro("velocidade") + "%", px, y, pw, yMax);
-        String dano = String.format(java.util.Locale.forLanguageTag("pt-BR"), "+%.1f", d.getDouble("danoForca"));
+        String dano = String.format(java.util.Locale.forLanguageTag("pt-BR"), "+%.1f", d.getDoubleOr("danoForca", 0.0));
         linha(g, "Dano (Força)", dano, px, y, pw, yMax);
         soltar(g);
     }
 
     /** Rótulo à esquerda e valor à direita na mesma linha; se não couberem os dois, o rótulo é que encolhe. */
-    private int linha(GuiGraphics g, String rotulo, String valor, int x, int y, int largura, int yMax) {
+    private int linha(GuiGraphicsExtractor g, String rotulo, String valor, int x, int y, int largura, int yMax) {
         if (y + 10 > yMax) {
             return y;
         }
@@ -1471,19 +1461,14 @@ public class TelaFicha extends Screen {
         return pentCy + r * Math.sin(Math.toRadians(-90 + 72 * i));
     }
 
-    private void desenharPentagono(GuiGraphics g) {
-        g.flush(); // termina o que já foi pedido antes de desenhar "na mão"
+    private void desenharPentagono(GuiGraphicsExtractor g) {
         int n = Atributo.values().length;
         // brilho + círculo ritual atrás do pentágono (os mesmos da tela de criação)
         float respira = 0.8F + 0.2F * (float) Math.sin(relogio() * 1.2);
         halo(g, pentCx, pentCy, (int) (pentRaio * 1.9F), 0.22F * respira, 0.7F, 0.8F, 1.0F);
         int lado = Math.round(pentRaio * 2.74F);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        g.setColor(0.85F, 0.9F, 1F, 0.55F * respira);
-        g.blit(CIRCULO, pentCx - lado / 2, pentCy - lado / 2, lado, lado, 0F, 0F, 400, 400, 400, 400);
-        g.setColor(1F, 1F, 1F, 1F);
-        g.flush();
+        g.blit(RenderPipelines.GUI_TEXTURED, CIRCULO, pentCx - lado / 2, pentCy - lado / 2, 0F, 0F, lado, lado, 400, 400,
+                400, 400, DesenhoOP.argb(0.55F * respira, 0.85F, 0.9F, 1F));
         for (int nivel = 1; nivel <= Atributos.MAXIMO_NATURAL; nivel++) {
             double r = pentRaio * nivel / Atributos.MAXIMO_NATURAL;
             int corAnel = nivel == Atributos.MAXIMO_NA_CRIACAO ? 0xFF8A7D57
@@ -1503,12 +1488,11 @@ public class TelaFicha extends Screen {
             xs[i] = (float) pontoX(i, r);
             ys[i] = (float) pontoY(i, r);
         }
-        poligono(g, pentCx, pentCy, xs, ys, 0x70B0172B);
+        DesenhoOP.poligono(g, xs, ys, 0x70B0172B);
         for (int i = 0; i < n; i++) {
             int j = (i + 1) % n;
             linhaReta(g, xs[i], ys[i], xs[j], ys[j], 1.6F, COR_SANGUE_CLARO);
         }
-        g.flush();
 
         for (int i = 0; i < n; i++) {
             int px = Math.round(xs[i]);
@@ -1524,11 +1508,11 @@ public class TelaFicha extends Screen {
             FonteOP.desenhar(g, font, sigla, (int) (lx - FonteOP.largura(font, sigla) / 2F),
                     (int) Math.round(ly - 8 - CENTRO_VISUAL), sobre ? COR_OSSO : COR_DOURADO, false);
             String valor = String.valueOf(atributos[i]);
-            g.pose().pushPose();
-            g.pose().translate(lx, ly + 0.5, 0);
-            g.pose().scale(1.4F, 1.4F, 1F);
+            g.pose().pushMatrix();
+            g.pose().translate((float) lx, (float) (ly + 0.5));
+            g.pose().scale(1.4F, 1.4F);
             FonteOP.desenhar(g, font, valor, -FonteOP.largura(font, valor) / 2F, -CENTRO_VISUAL, COR_OSSO, false);
-            g.pose().popPose();
+            g.pose().popMatrix();
 
             int bx = (int) lx + 12;
             int by = (int) ly - 5;
@@ -1540,7 +1524,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Botão de 11 px de altura com o texto centralizado (e preso dentro da caixa). */
-    private void desenharBotao(GuiGraphics g, String rotulo, int x, int y, int w, boolean sobre, boolean ativo,
+    private void desenharBotao(GuiGraphicsExtractor g, String rotulo, int x, int y, int w, boolean sobre, boolean ativo,
             boolean perigo) {
         int borda = perigo ? COR_SANGUE_CLARO : sobre ? COR_APAGADO : COR_BORDA;
         g.fill(x, y, x + w, y + 11, borda);
@@ -1553,7 +1537,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Escreve um texto quebrando em linhas. Devolve o Y logo abaixo do que foi escrito. */
-    private int paragrafo(GuiGraphics g, String texto, int x, int y, int largura, int cor, int yMax) {
+    private int paragrafo(GuiGraphicsExtractor g, String texto, int x, int y, int largura, int cor, int yMax) {
         // texto corrido em Tektur com sombra (a Cormorant desenha números em "estilo antigo", difíceis de ler)
         for (FormattedCharSequence linha : font.split(FonteOP.c(texto), largura)) {
             if (y + 10 > yMax) {
@@ -1568,7 +1552,7 @@ public class TelaFicha extends Screen {
     // ---------------------------------------------------------------- desenho "na mão"
 
     /** Caixa com borda de 1 px. O fundo é desenhado só por dentro, para continuar translúcido (a névoa aparece). */
-    private static void caixa(GuiGraphics g, int x, int y, int w, int h, int fundo, int borda) {
+    private static void caixa(GuiGraphicsExtractor g, int x, int y, int w, int h, int fundo, int borda) {
         g.fill(x + 1, y + 1, x + w - 1, y + h - 1, fundo);
         g.fill(x, y, x + w, y + 1, borda);
         g.fill(x, y + h - 1, x + w, y + h, borda);
@@ -1577,7 +1561,7 @@ public class TelaFicha extends Screen {
     }
 
     /** Painel translúcido com os "cantos de ritual" dourados (igual ao da tela de criação). */
-    private static void painel(GuiGraphics g, int x, int y, int w, int h) {
+    private static void painel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         caixa(g, x, y, w, h, COR_PAINEL, COR_BORDA);
         int t = 4;
         int cor = 0xCCC2B48C;
@@ -1591,55 +1575,8 @@ public class TelaFicha extends Screen {
         g.fill(x + w, y + h - t, x + w + 1, y + h + 1, cor);
     }
 
-    private static void linhaReta(GuiGraphics g, double x1, double y1, double x2, double y2, float espessura, int argb) {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double comprimento = Math.sqrt(dx * dx + dy * dy);
-        if (comprimento < 0.001) {
-            return;
-        }
-        float nx = (float) (-dy / comprimento * espessura / 2);
-        float ny = (float) (dx / comprimento * espessura / 2);
-        Matrix4f m = g.pose().last().pose();
-        preparar();
-        BufferBuilder b = Tesselator.getInstance().getBuilder();
-        b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        vertice(b, m, (float) x1 - nx, (float) y1 - ny, argb);
-        vertice(b, m, (float) x1 + nx, (float) y1 + ny, argb);
-        vertice(b, m, (float) x2 + nx, (float) y2 + ny, argb);
-        vertice(b, m, (float) x2 - nx, (float) y2 - ny, argb);
-        BufferUploader.drawWithShader(b.end());
-        terminar();
-    }
-
-    private static void poligono(GuiGraphics g, float cx, float cy, float[] xs, float[] ys, int argb) {
-        Matrix4f m = g.pose().last().pose();
-        preparar();
-        BufferBuilder b = Tesselator.getInstance().getBuilder();
-        b.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
-        vertice(b, m, cx, cy, argb);
-        for (int i = 0; i <= xs.length; i++) {
-            vertice(b, m, xs[i % xs.length], ys[i % xs.length], argb);
-        }
-        BufferUploader.drawWithShader(b.end());
-        terminar();
-    }
-
-    private static void vertice(BufferBuilder b, Matrix4f m, float x, float y, int argb) {
-        b.vertex(m, x, y, 0F)
-                .color((argb >> 16) & 255, (argb >> 8) & 255, argb & 255, (argb >>> 24) & 255)
-                .endVertex();
-    }
-
-    private static void preparar() {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-    }
-
-    private static void terminar() {
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+    private static void linhaReta(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, float espessura,
+            int argb) {
+        DesenhoOP.linha(g, x1, y1, x2, y2, espessura, argb);
     }
 }

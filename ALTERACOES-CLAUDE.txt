@@ -5,6 +5,23 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 14/10/2026 (porte Fabric: etapa 6b, ficha e tela do dado) -----------------
+Segunda parte da etapa 6: TelaFicha (tecla K) e TelaTeste (o dado) no Fabric 26.2
+  Arquivos: TelaFicha, TelaTeste, IconesOP, DesenhoOP (novo), marcado/VfxMarcado, ClienteFicha, ClienteTeste,
+            build.gradle (lista 6b, com DescricoesOP), PORTE-FABRIC.md. Branch fabric-26.2 (a main/Forge nao mudou).
+  - Ja havia, sem commit na pasta de trabalho, versoes portadas de TelaTeste e IconesOP (de hoje, 09:28; nao foram escritas
+    nesta sessao). O Claude manteve, incluiu no build e commitou junto.
+  - TelaFicha: GuiGraphics -> GuiGraphicsExtractor; render -> extractRenderState; entrada com MouseButtonEvent/KeyEvent;
+    NBT com getIntOr/getStringOr/getBooleanOr/getDoubleOr/getListOrEmpty/getCompoundOrEmpty e arrays Optional;
+    Rede.CANAL.sendToServer -> ReceptoresCliente.enviar; sem flush/setColor/RenderSystem.
+  - DesenhoOP (novo): poligono (regra par-impar por fila de pixels) e linha (retangulo fino girado) feitos de fill, no lugar de
+    Tesselator; halo por blit tingido (nao e mais aditivo); entidade() chama a skin do jogador no painel esquerdo.
+  - VfxMarcado: portado (Identifier, blit com tinta); ClienteFicha/ClienteTeste voltam a abrir as telas (Minecraft.gui.screen()).
+  - Nao feito: InventarioOrdem (inventario em vidro escuro) usava ContainerScreenEvent do Forge; precisa de mixin (6b2).
+  - Como testar: PORTE-FABRIC.md, secao "Para testar a 6b". NAO compilado nem testado; o nome de
+    InventoryScreen.extractEntityInInventoryFollowsMouse e palpite (unico ponto, em DesenhoOP.entidade).
+
+
 --- 14/10/2026 (porte Fabric: etapa 6a, cliente: HUD, teclas, avisos) ---------
 Primeira parte da etapa 6: entrypoint do cliente de verdade, teclas, HUD, avisos e painel da rolagem no Fabric 26.2
   Arquivos: FonteOP, TeclasOrdem, AvisoOrdem, RolagemHud, HudOrdem, ReceptoresCliente, ClienteCriacao, ClienteFicha,

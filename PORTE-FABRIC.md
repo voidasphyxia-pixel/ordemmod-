@@ -87,9 +87,19 @@ So a parte do CLIENTE que nao e tela: entrypoint, teclas, HUD, avisos e painel d
    - Pegue um item com nome: o nome (e a mensagem da barra de acao, ex.: `/title @s actionbar "oi"`) aparecem acima das barras.
 3. **Avisos** embaixo da mira: `/ordem san 0` ("Voce esta enlouquecendo!"), `/ordem nex`, `/ordem aprender <id>`: o texto entra com fade, fica um instante e sai (ate 3 linhas).
 4. **Painel da rolagem** (acima da barra de sanidade): `/ordem treinar acrobacia`, caia de mais de 3 blocos, ou leve um golpe de um mob (Reflexos): os numeros embaralham por ~0,75 s, param no resultado e somem; ao mesmo tempo o dano da queda/golpe e reduzido como na 4d.
-5. **Teclas**: em Controles > Ordem Mod devem existir **Usar habilidade (R)**, **Trocar habilidade (G)** e **Abrir ficha do personagem (K)**. R e G funcionam (aviso/efeito da habilidade selecionada); K, por enquanto, so manda o pedido ao servidor e o log mostra `[Ordem cliente] ficha recebida (...)` (a tela da ficha e a 6b).
+5. **Teclas**: em Controles > Ordem Mod devem existir **Usar habilidade (R)**, **Trocar habilidade (G)** e **Abrir ficha do personagem (K)**. R e G funcionam (aviso/efeito da habilidade selecionada); K abre a ficha (tela da 6b, veja abaixo).
 6. **Sair do mundo e entrar de novo**: a HUD some ao sair e so volta quando o servidor mandar o status de novo.
 7. Se o texto da HUD sair torto, a fonte nao carregou, ou as letras estiverem altas/baixas demais na barra, ajuste `CENTRO_GLIFO` (e `CENTRO_GLIFO_TITULO` para os rotulos em Cinzel) no topo de `HudOrdem`.
+
+### Para testar a 6b (NAO compilada ainda)
+A tela do dado (`TelaTeste`) e a ficha (`TelaFicha`, tecla K). `gradlew build` primeiro; os pontos de maior risco estao em "Pontos de risco da 6b" abaixo. Obs.: `TelaTeste` e `IconesOP` ja tinham sido portados antes (por voce ou por outra sessao, estavam sem commit); o Claude so os incluiu no build e revisou o resto.
+1. `gradlew runClient`, entre num mundo (o personagem ja criado serve) e aperte **K**: abre a ficha, com o fundo de nevoa/poeira, o titulo "FICHA DO PERSONAGEM" e a divisoria com o losango vermelho. K ou ESC fecham.
+2. **Coluna esquerda**: a skin do jogador (olhando para o mouse), nome em Cinzel, Classe/Origem/Trilha, barra de NEX e os numeros (PV, SAN, PE, Defesa, Criticos, Resistencias, Velocidade, Dano). Se a skin nao aparecer ou ficar fora do painel, e o `DesenhoOP.entidade` (veja riscos).
+3. **Aba ATRIBUTO**: o pentagono com aneis, o circulo ritual atras e os 5 atributos com o botao "+" (que ainda nao faz nada). Passe o mouse num atributo: a caixa de baixo explica. As linhas agora sao desenhadas por varredura (pode ficar um pouco serrilhado, ao contrario do Forge).
+4. **Aba PERICIA**: perícias separadas por grau. **Clique esquerdo numa perícia rola o teste**: abre a tela do dado (animacao: dados rolando, bonus entrando, veredito); clique/Espaco pula, Esc ou K fecham; ao fechar volta para a ficha. Botao direito sobe de grau quando ha melhoria sobrando (seta verde).
+5. **Aba PODERES**: icones dos poderes ligados por setas; clique escolhe, o botao do rodape aprende (1 ponto). **Aba TRILHA**: uma coluna por trilha; escolher pede um segundo clique ("CONFIRMAR?").
+6. Rolagem do mouse rola as listas das abas Pericia/Poderes/Trilha. Com a ficha aberta, aprender um poder atualiza a tela sem trocar de aba.
+7. Fora da ficha: `/ordem testar <pericia> [dt]` abre a tela do dado direto, por cima do jogo.
 
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
@@ -106,7 +116,7 @@ So a parte do CLIENTE que nao e tela: entrypoint, teclas, HUD, avisos e painel d
   - [~] 5c. Ovo de spawn do zumbi: `ItensOrdem` (registro com `Item.Properties().spawnEgg(tipo)` + `setId`, entrada na aba criativa de ovos via `CreativeModeTabEvents`) e `assets/ordemmod/items/zumbi_sangue_spawn_egg.json` (definicao de modelo do 26.x; as cores 0x4A0808 / 0xC41E1E ficam aqui, em `tints`, e nao mais no item). NAO compilada nem testada.
 - [~] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`).
   - [~] 6a. Cliente que nao e tela: entrypoint `OrdemModClienteFabric` agora liga `ReceptoresCliente.registrar()`, `TeclasOrdem.registrar()`, `HudOrdem.registrar()` e `ClienteEntidades.registrar()` (o provisorio da etapa 4 foi apagado); `FonteOP`, `TeclasOrdem` (`KeyMappingHelper`), `AvisoOrdem`, `RolagemHud` e `HudOrdem` (HUD com `HudElementRegistry`, geometria com `fill`/`fillGradient`). `ClienteCriacao`, `ClienteFicha` e `ClienteTeste` entram como PROVISORIOS (so escrevem no log). NAO compilada nem testada.
-  - [ ] 6b. Tela do dado (`TelaTeste`) e a ficha (`TelaFicha`, `IconesOP`, `InventarioOrdem`); troca os provisorios `ClienteTeste` e `ClienteFicha`.
+  - [~] 6b. `TelaTeste` (o dado), `TelaFicha` (menu K), `DesenhoOP` (poligono, linha, halo e skin do jogador; novo), `IconesOP`, `DescricoesOP` e `marcado/VfxMarcado`; `ClienteFicha` e `ClienteTeste` agora abrem as telas de verdade. NAO compilada nem testada. Falta o `InventarioOrdem` (inventario em vidro escuro): usava `ContainerScreenEvent.Render.Background` do Forge, que nao existe no Fabric; vira um mixin em `AbstractContainerScreen` (6b2).
   - [ ] 6c. Criacao de personagem (`TelaCriacao`); troca o provisorio `ClienteCriacao` (sem Marcado).
   - [ ] 6d. Cena do Marcado (`TelaMarcado`, `AudioMarcado`, `VfxMarcado`, `EventosMarcado`); `ClienteCriacao.abrir(true)` passa a abrir ela.
   - [ ] 6e. Tela inicial e menus (`titulo/*`: `TelaInicial`, `EstiloMenu`, `EstiloTexturas`, `TemaInicial`, `EventosTitulo`). Fica por ultimo: e so visual.
@@ -125,6 +135,15 @@ So a parte do CLIENTE que nao e tela: entrypoint, teclas, HUD, avisos e painel d
 
 - 6a: `HudOrdem` perdeu o corte inclinado das barras (a constante `INCLINACAO` ja era 0F) e o halo do simbolo do medo deixou de ser aditivo. Se quiser a inclinacao de volta, e preciso um `RenderPipeline` proprio (o `fill` so faz retangulos).
 - 6a: a barra de informacao do jogo (`INFO_BAR`) tambem mostra a barra do localizador (waypoints) do 26.x; ela some junto com a de XP enquanto a HUD do mod esta ativa.
+
+## Pontos de risco da 6b (escrita sem compilar)
+- `InventoryScreen.extractEntityInInventoryFollowsMouse(g, x0, y0, x1, y1, tamanho, 0.0625F, mouseX, mouseY, entidade)` em `DesenhoOP.entidade`: a assinatura (caixa + escala + yOffset + mouse) vem do 1.21.11 (`renderEntityInInventoryFollowsMouse` em mappings.dev); o NOME no 26.2 e palpite pela convencao `render*` -> `extract*`. E o unico ponto que chama isso. Se nao compilar, procure no jogo o metodo `static` de `InventoryScreen` que recebe `(GuiGraphicsExtractor, int, int, int, int, int, float, float, float, LivingEntity)`.
+- `CompoundTag`: `getIntArray`/`getByteArray` devolvendo `Optional` (usados com `.filter(...).orElseGet(...)`), `getListOrEmpty`, `getDoubleOr` e `ListTag.getCompoundOrEmpty(int)`.
+- `KeyMapping.matches(KeyEvent)` (usado em `TelaFicha` e `TelaTeste`) e `Screen.mouseClicked(MouseButtonEvent, boolean)`, `mouseScrolled(double, double, double, double)`, `keyPressed(KeyEvent)`.
+- `SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F)` (o som do jogo e um `Holder`; a `TelaTeste` usa a variante com `SoundEvent`).
+- `TextureManager.release(Identifier)` em `VfxMarcado.liberarTodos` e o `blit` de 13 argumentos (com regiao e cor) em `VfxMarcado.desenhar`.
+- Desempenho: o pentagono e as linhas viram dezenas de `fill` de 1 pixel de altura por quadro; se a ficha ficar pesada, reduzir os aneis em `desenharPentagono` ou trocar por uma textura.
+- Visual: o halo e o circulo ritual deixaram de ser aditivos (mistura normal), entao ficam mais fracos; as linhas finas do pentagono podem parecer mais serrilhadas.
 
 ## Pontos de risco da 6a (escrita sem compilar)
 Fontes: `docs.fabricmc.net` 26.1.2 (rendering/gui-graphics, hud, key-mappings, custom-screens), o codigo do Fabric API (`HudElement`, `HudElementRegistry`, `VanillaHudElements`, `KeyMappingHelper`, `ScreenMouseEvents`, `ScreenKeyboardEvents`) e o primer do NeoForge 26.1 -> 26.2. As assinaturas abaixo NAO foram conferidas no jogo:
@@ -178,6 +197,7 @@ Usei como referencia o codigo-fonte do GeckoLib 5 (`bernie-g/geckolib`, pacotes 
 - Telas (6a, para as proximas etapas): eventos de entrada recebem objetos (`net.minecraft.client.input`): `mouseClicked(MouseButtonEvent, boolean doubleClick)`, `mouseReleased(MouseButtonEvent)`, `mouseDragged(MouseButtonEvent, double dx, double dy)`, `mouseScrolled(double x, double y, double scrollX, double scrollY)`, `keyPressed(KeyEvent)`, `charTyped(CharacterEvent)`. A tela aberta e `minecraft.gui.screen()` e se abre com `minecraft.gui.setScreen(...)`.
 - HUD (6a): `RegisterGuiOverlaysEvent`/`RenderGuiOverlayEvent` viram `HudElementRegistry` (Fabric API): `attachElementBefore/After(id, novoId, elemento)`, `replaceElement(id, anterior -> novo)` e `removeElement(id)`; os ids do jogo estao em `VanillaHudElements` (`HEALTH_BAR`, `ARMOR_BAR`, `FOOD_BAR`, `HOTBAR`, `INFO_BAR`, `EXPERIENCE_LEVEL`, `HELD_ITEM_TOOLTIP`, `OVERLAY_MESSAGE`, `AIR_BAR`, `MOUNT_HEALTH`, `CROSSHAIR`...). Um `HudElement` e `(GuiGraphicsExtractor g, DeltaTracker delta) -> ...`.
 - Teclas (6a): `RegisterKeyMappingsEvent` vira `KeyMappingHelper.registerKeyMapping(new KeyMapping(chave, InputConstants.Type.KEYSYM, tecla, categoria))` com a categoria criada por `KeyMapping.Category.register(Identifier)` (traducao `key.category.<mod>.<nome>`); `TickEvent.ClientTickEvent` vira `ClientTickEvents.END_CLIENT_TICK`.
+- Formas livres (6b): sem `Tesselator`/`BufferBuilder`, poligonos e linhas grossas se desenham por varredura com `fill` (veja `DesenhoOP.poligono`/`linha`); `GuiGraphics.setColor` vira a tinta ARGB do `blit`; brilho aditivo nao existe sem um `RenderPipeline` proprio.
 - `net.minecraft.Util` virou `net.minecraft.util.Util` (`Util.getMillis()`); ainda vale corrigir o import em `TelaCriacao`, `TelaFicha`, `TelaTeste`, `titulo/EstiloMenu` e `titulo/TelaInicial` quando forem portadas (6a: o `gradlew build` acusou nas tres classes da HUD).
 - Saiu do mundo no cliente (6a): `ClientPlayerNetworkEvent.LoggingOut` vira `ClientPlayConnectionEvents.DISCONNECT`.
 - Registro de renderer: o `EntityRenderersEvent.RegisterRenderers` do Forge vira `EntityRendererRegistry.register(tipo, Renderer::new)` (Fabric API, cliente), chamado de `ClienteEntidades.registrar()`.

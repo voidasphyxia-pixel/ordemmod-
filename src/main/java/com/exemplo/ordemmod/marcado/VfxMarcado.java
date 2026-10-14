@@ -1,12 +1,16 @@
 package com.exemplo.ordemmod.marcado;
 
+import com.exemplo.ordemmod.DesenhoOP;
 import com.exemplo.ordemmod.OrdemMod;
-import com.mojang.blaze3d.systems.RenderSystem;
 
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 
-/** Só cliente: toca as sequências de quadros PNG feitas no Blender (textures/gui/marcado/vfx/<nome>/fNNNN.png). */
+/**
+ * Só cliente: toca as sequências de quadros PNG feitas no Blender (textures/gui/marcado/vfx/<nome>/fNNNN.png).
+ * Fabric 26.2: GuiGraphics -> GuiGraphicsExtractor, Identifier -> Identifier e a transparência vai como tinta no blit.
+ */
 public enum VfxMarcado {
     NEVOA("nevoa", 48, 512, 288, true),
     TINTA("tinta_sangue", 30, 512, 512, false),
@@ -22,7 +26,7 @@ public enum VfxMarcado {
     public final int largura;
     public final int altura;
     public final boolean laco;
-    private final ResourceLocation[] texturas;
+    private final Identifier[] texturas;
 
     VfxMarcado(String pasta, int quadros, int largura, int altura, boolean laco) {
         this.pasta = pasta;
@@ -30,9 +34,9 @@ public enum VfxMarcado {
         this.largura = largura;
         this.altura = altura;
         this.laco = laco;
-        this.texturas = new ResourceLocation[quadros];
+        this.texturas = new Identifier[quadros];
         for (int i = 0; i < quadros; i++) {
-            texturas[i] = new ResourceLocation(OrdemMod.MOD_ID,
+            texturas[i] = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
                     String.format("textures/gui/marcado/vfx/%s/f%04d.png", pasta, i));
         }
     }
@@ -45,7 +49,7 @@ public enum VfxMarcado {
             if (ficam.contains(v)) {
                 continue;
             }
-            for (ResourceLocation r : v.texturas) {
+            for (Identifier r : v.texturas) {
                 tm.release(r);
             }
         }
@@ -56,18 +60,15 @@ public enum VfxMarcado {
     }
 
     /** Desenha o quadro do instante {@code segundos}. Devolve false quando uma sequência sem laço já acabou. */
-    public boolean desenhar(GuiGraphics g, float segundos, float alpha, int x, int y, int w, int h) {
+    public boolean desenhar(GuiGraphicsExtractor g, float segundos, float alpha, int x, int y, int w, int h) {
         int q = (int) (segundos * FPS);
         if (laco) {
             q = Math.floorMod(q, quadros);
         } else if (q >= quadros) {
             return false;
         }
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        g.setColor(1f, 1f, 1f, alpha);
-        g.blit(texturas[Math.max(0, q)], x, y, w, h, 0f, 0f, largura, altura, largura, altura);
-        g.setColor(1f, 1f, 1f, 1f);
+        g.blit(RenderPipelines.GUI_TEXTURED, texturas[Math.max(0, q)], x, y, 0f, 0f, w, h, largura, altura, largura,
+                altura, DesenhoOP.argb(alpha, 1f, 1f, 1f));
         return true;
     }
 }
