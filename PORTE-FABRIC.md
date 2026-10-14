@@ -101,6 +101,14 @@ A tela do dado (`TelaTeste`) e a ficha (`TelaFicha`, tecla K). `gradlew build` p
 6. Rolagem do mouse rola as listas das abas Pericia/Poderes/Trilha. Com a ficha aberta, aprender um poder atualiza a tela sem trocar de aba.
 7. Fora da ficha: `/ordem testar <pericia> [dt]` abre a tela do dado direto, por cima do jogo.
 
+### Para testar a 6c (NAO compilada ainda)
+A tela de criacao de personagem (`TelaCriacao`). `gradlew build` primeiro; riscos em "Pontos de risco da 6c" abaixo.
+1. Para ver a tela com um personagem que ja existe: no mundo, `/ordem resetar` e saia e entre de novo (ou crie um mundo novo). O servidor manda `PacoteAbrirCriacao`; como a cena do Marcado ainda nao foi portada, o log mostra `[Ordem cliente] cena do Marcado ainda nao portada (etapa 6d): abrindo direto a criacao` e a tela de criacao abre sozinha.
+2. **Etapa 1, Atributos**: o pentagono com circulo ritual e brilho atras, os 5 atributos com `-` e `+` e o numero no meio; a caixa "PONTOS RESTANTES" a direita. Clique em `+` num atributo que ja esta em 3: ele treme, toca o som de "nao" e aparece o aviso vermelho "NAO DA PARA SUBIR MAIS". O botao Avancar so liga quando os pontos acabam.
+3. **Etapa 2, Origem** e **3, Classe** (tres cartas) e **4, Perícias**: passe o mouse para ler a descricao na caixa de baixo; clique escolhe; Voltar/Avancar/Confirmar no rodape. A skin do jogador aparece no painel da esquerda, olhando para o mouse.
+4. **Confirmar**: a tela fecha e o personagem e criado no servidor (`[Ordem servidor] ...` no log). ESC nao fecha a tela (de proposito).
+5. Se a tela abrir sem ter pedido (ou nao abrir), me avise: o `ClienteCriacao` agora ignora o parametro `comMarcado`.
+
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
 - [x] 2. Nucleo em Java puro (lista em `build.gradle`, variavel `nucleo`).
@@ -117,7 +125,7 @@ A tela do dado (`TelaTeste`) e a ficha (`TelaFicha`, tecla K). `gradlew build` p
 - [~] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`).
   - [~] 6a. Cliente que nao e tela: entrypoint `OrdemModClienteFabric` agora liga `ReceptoresCliente.registrar()`, `TeclasOrdem.registrar()`, `HudOrdem.registrar()` e `ClienteEntidades.registrar()` (o provisorio da etapa 4 foi apagado); `FonteOP`, `TeclasOrdem` (`KeyMappingHelper`), `AvisoOrdem`, `RolagemHud` e `HudOrdem` (HUD com `HudElementRegistry`, geometria com `fill`/`fillGradient`). `ClienteCriacao`, `ClienteFicha` e `ClienteTeste` entram como PROVISORIOS (so escrevem no log). NAO compilada nem testada.
   - [~] 6b. `TelaTeste` (o dado), `TelaFicha` (menu K), `DesenhoOP` (poligono, linha, halo e skin do jogador; novo), `IconesOP`, `DescricoesOP` e `marcado/VfxMarcado`; `ClienteFicha` e `ClienteTeste` agora abrem as telas de verdade. NAO compilada nem testada. Falta o `InventarioOrdem` (inventario em vidro escuro): usava `ContainerScreenEvent.Render.Background` do Forge, que nao existe no Fabric; vira um mixin em `AbstractContainerScreen` (6b2).
-  - [ ] 6c. Criacao de personagem (`TelaCriacao`); troca o provisorio `ClienteCriacao` (sem Marcado).
+  - [~] 6c. `TelaCriacao` (criacao de personagem, 4 etapas) portada com `DesenhoOP`; `ClienteCriacao` abre ela direto (sem a cena do Marcado, que e a 6d). NAO compilada nem testada.
   - [ ] 6d. Cena do Marcado (`TelaMarcado`, `AudioMarcado`, `VfxMarcado`, `EventosMarcado`); `ClienteCriacao.abrir(true)` passa a abrir ela.
   - [ ] 6e. Tela inicial e menus (`titulo/*`: `TelaInicial`, `EstiloMenu`, `EstiloTexturas`, `TemaInicial`, `EventosTitulo`). Fica por ultimo: e so visual.
   - Depois da 6e: apagar `cliente/ZumbiSangueModel.java` e conferir os avisos de "Pendencias pequenas".
@@ -135,6 +143,12 @@ A tela do dado (`TelaTeste`) e a ficha (`TelaFicha`, tecla K). `gradlew build` p
 
 - 6a: `HudOrdem` perdeu o corte inclinado das barras (a constante `INCLINACAO` ja era 0F) e o halo do simbolo do medo deixou de ser aditivo. Se quiser a inclinacao de volta, e preciso um `RenderPipeline` proprio (o `fill` so faz retangulos).
 - 6a: a barra de informacao do jogo (`INFO_BAR`) tambem mostra a barra do localizador (waypoints) do 26.x; ela some junto com a de XP enquanto a HUD do mod esta ativa.
+
+## Pontos de risco da 6c (escrita sem compilar)
+- `Screen.shouldCloseOnEsc()` (usado para impedir fechar a criacao com ESC) e `onClose()` apos confirmar: no 26.2 o `onClose` padrao deve fechar a tela via `Gui`; se a tela nao fechar, trocar por `minecraft.gui.setScreen(null)`.
+- `SoundEvents.VILLAGER_NO` com `SimpleSoundInstance.forUI(..., 1.0F)` (um `SoundEvent`, nao `Holder`); se reclamar, use `.value()`/o overload `Holder`, como no `UI_BUTTON_CLICK`.
+- `g.text(font, FormattedCharSequence, int, int, int, boolean)` e o `DesenhoOP.entidade` (mesmos riscos da 6b).
+- `ClienteCriacao` ignora `comMarcado` ate a 6d (o servidor segue mandando `PacoteAbrirCriacao(!concluido)`).
 
 ## Pontos de risco da 6b (escrita sem compilar)
 - `InventoryScreen.extractEntityInInventoryFollowsMouse(g, x0, y0, x1, y1, tamanho, 0.0625F, mouseX, mouseY, entidade)` em `DesenhoOP.entidade`: a assinatura (caixa + escala + yOffset + mouse) vem do 1.21.11 (`renderEntityInInventoryFollowsMouse` em mappings.dev); o NOME no 26.2 e palpite pela convencao `render*` -> `extract*`. E o unico ponto que chama isso. Se nao compilar, procure no jogo o metodo `static` de `InventoryScreen` que recebe `(GuiGraphicsExtractor, int, int, int, int, int, float, float, float, LivingEntity)`.

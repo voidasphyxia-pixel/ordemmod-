@@ -6,30 +6,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.joml.Matrix4f;
-
 import com.exemplo.ordemmod.marcado.VfxMarcado;
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.BufferUploader;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
 
-import net.minecraft.Util;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.util.Util;
 
 /**
  * A tela de criação de personagem, em 4 etapas:
@@ -40,8 +29,11 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  *
  * Como funciona: cada botão/chip é uma {@link Zona} (um retângulo com uma ação). A cada clique a
  * lista de zonas é refeita em {@link #reconstruir()}, então o estado vive só nos campos abaixo.
+ *
+ * Fabric 26.2 (6c): render() virou extractRenderState(GuiGraphicsExtractor, ...); o clique recebe MouseButtonEvent;
+ * Rede.CANAL.sendToServer virou ReceptoresCliente.enviar; drawString virou text (x/y inteiros); as formas livres
+ * (pentágono, linhas, losango) são desenhadas por varredura em {@link DesenhoOP}; o halo deixou de ser aditivo.
  */
-@OnlyIn(Dist.CLIENT)
 public class TelaCriacao extends Screen {
     // ------------------------------------------------------------------ cores (ARGB)
     private static final int COR_FUNDO = 0xFF050507;
@@ -56,9 +48,9 @@ public class TelaCriacao extends Screen {
     private static final int COR_OK = 0xFF6FBF73;
     private static final int COR_RITUAL = 0xFFD8E4FF;   // o branco-azulado do círculo ritual
 
-    private static final ResourceLocation CIRCULO = new ResourceLocation(OrdemMod.MOD_ID,
+    private static final Identifier CIRCULO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
             "textures/gui/marcado/circulo_ritual.png");
-    private static final ResourceLocation HALO = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
+    private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
 
     // tipos de zona
     private static final int CHIP = 0;
@@ -529,15 +521,17 @@ public class TelaCriacao extends Screen {
             return;
         }
         enviado = true;
-        Rede.CANAL.sendToServer(new PacoteCriarPersonagem(classe, valores, origem, escolhidas));
+        ReceptoresCliente.enviar(new PacoteCriarPersonagem(classe, valores, origem, escolhidas));
         onClose();
     }
 
     // ================================================================== cliques
 
     @Override
-    public boolean mouseClicked(double mx, double my, int botao) {
-        if (botao == 0) {
+    public boolean mouseClicked(MouseButtonEvent evento, boolean duploClique) {
+        double mx = evento.x();
+        double my = evento.y();
+        if (evento.button() == 0) {
             for (Zona z : new ArrayList<>(zonas)) {
                 if (z.ativa && z.acao != null && z.contem(mx, my)) {
                     minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
@@ -546,13 +540,13 @@ public class TelaCriacao extends Screen {
                 }
             }
         }
-        return super.mouseClicked(mx, my, botao);
+        return super.mouseClicked(evento, duploClique);
     }
 
     // ================================================================== desenho
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float parcial) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float parcial) {
         desenharFundo(g);
 
         hover = null;
@@ -593,7 +587,7 @@ public class TelaCriacao extends Screen {
         return (Util.getMillis() - abertaEm) / 1000F;
     }
 
-    private void desenharFundo(GuiGraphics g) {
+    private void desenharFundo(GuiGraphicsExtractor g) {
         g.fill(0, 0, width, height, COR_FUNDO);
         float t = relogio();
         VfxMarcado.NEVOA.desenhar(g, t, 0.30F, 0, 0, width, height);
@@ -603,10 +597,10 @@ public class TelaCriacao extends Screen {
         g.fillGradient(0, height * 2 / 3, width, height, 0x00000000, 0xDD000000);
 
         // título em Cinzel
-        g.pose().pushPose();
-        g.pose().scale(1.25F, 1.25F, 1.0F);
+        g.pose().pushMatrix();
+        g.pose().scale(1.25F, 1.25F);
         FonteOP.desenharTitulo(g, font, "CRIAÇÃO DE PERSONAGEM", margem / 1.25F, 6 / 1.25F, COR_OSSO, true);
-        g.pose().popPose();
+        g.pose().popMatrix();
         String marca = "Ordem Paranormal RPG";
         FonteOP.desenharEntidade(g, font, marca, width - margem - font.width(FonteOP.entidade(marca)), 8, COR_APAGADO, false);
 
@@ -614,23 +608,16 @@ public class TelaCriacao extends Screen {
         int meio = width / 2;
         g.fill(margem, 40, meio - 9, 41, 0xFF5A1620);
         g.fill(meio + 9, 40, width - margem, 41, 0xFF5A1620);
-        g.flush();
-        poligono(g, meio, 40.5F, new float[] {meio, meio + 4.5F, meio, meio - 4.5F},
+        DesenhoOP.poligono(g, new float[] {meio, meio + 4.5F, meio, meio - 4.5F},
                 new float[] {36F, 40.5F, 45F, 40.5F}, COR_SANGUE_CLARO);
     }
 
-    /** Brilho suave (textura radial branca) somado ao fundo. */
-    private void halo(GuiGraphics g, float cx, float cy, int raio, float alfa, float r, float gc, float b) {
-        g.flush();
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        g.setColor(r, gc, b, alfa);
-        g.blit(HALO, Math.round(cx) - raio, Math.round(cy) - raio, raio * 2, raio * 2, 0F, 0F, 128, 128, 128, 128);
-        g.setColor(1F, 1F, 1F, 1F);
-        RenderSystem.defaultBlendFunc();
+    /** Brilho suave (textura radial branca) tingido, por trás do personagem e do pentágono. */
+    private void halo(GuiGraphicsExtractor g, float cx, float cy, int raio, float alfa, float r, float gc, float b) {
+        DesenhoOP.halo(g, HALO, cx, cy, raio, alfa, r, gc, b);
     }
 
-    private void desenharPainelEsquerdo(GuiGraphics g, int mx, int my) {
+    private void desenharPainelEsquerdo(GuiGraphicsExtractor g, int mx, int my) {
         painel(g, esqX, topo, esqW, dirH);
         int centro = esqX + esqW / 2;
         int alturaSkin = Mth.clamp((int) (dirH * 0.46), 70, 150);
@@ -643,8 +630,10 @@ public class TelaCriacao extends Screen {
         int y = pes + 10;
         if (minecraft != null && minecraft.player != null) {
             int escala = Math.max(20, (int) (alturaSkin / 1.95F));
-            InventoryScreen.renderEntityInInventoryFollowsMouse(g, centro, pes, escala,
-                    (float) (centro - mx), pes - alturaSkin * 0.55F - my, minecraft.player);
+            // a caixa tem o centro na altura do meio do corpo (a entidade é desenhada centrada na caixa)
+            int meioCorpo = Math.round(pes - escala * 0.9F);
+            DesenhoOP.entidade(g, esqX + 2, meioCorpo - alturaSkin / 2, esqX + esqW - 2, meioCorpo + alturaSkin / 2,
+                    escala, mx, my, minecraft.player);
             String nome = minecraft.player.getName().getString();
             FonteOP.desenharTitulo(g, font, nome, centro - FonteOP.larguraTitulo(font, nome) / 2F, y, COR_OSSO, false);
         }
@@ -663,7 +652,7 @@ public class TelaCriacao extends Screen {
         }
     }
 
-    private int linhaRotulada(GuiGraphics g, String rotulo, String valor, int x, int y, int largura, int yMax) {
+    private int linhaRotulada(GuiGraphicsExtractor g, String rotulo, String valor, int x, int y, int largura, int yMax) {
         if (y + 9 > yMax) {
             return y;
         }
@@ -683,19 +672,14 @@ public class TelaCriacao extends Screen {
         return pentCy + r * Math.sin(Math.toRadians(-90 + 72 * i));
     }
 
-    private void desenharPentagono(GuiGraphics g) {
-        g.flush(); // termina o que já foi pedido antes de desenhar "na mão"
+    private void desenharPentagono(GuiGraphicsExtractor g) {
         int n = Atributo.values().length;
         // brilho + círculo ritual (o desenho branco da cena do Marcado) atrás do pentágono
         float respira = 0.8F + 0.2F * (float) Math.sin(relogio() * 1.2);
         halo(g, pentCx, pentCy, (int) (pentRaio * 1.9F), 0.22F * respira, 0.7F, 0.8F, 1.0F);
         int lado = Math.round(pentRaio * 2.74F);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        g.setColor(0.85F, 0.9F, 1F, 0.55F * respira);
-        g.blit(CIRCULO, pentCx - lado / 2, pentCy - lado / 2, lado, lado, 0F, 0F, 400, 400, 400, 400);
-        g.setColor(1F, 1F, 1F, 1F);
-        g.flush();
+        g.blit(RenderPipelines.GUI_TEXTURED, CIRCULO, pentCx - lado / 2, pentCy - lado / 2, 0F, 0F, lado, lado, 400, 400,
+                400, 400, DesenhoOP.argb(0.55F * respira, 0.85F, 0.9F, 1F));
         // anéis dos níveis 1 a 5: o dourado (3) é o limite da criação; o último (5) é o máximo natural
         for (int nivel = 1; nivel <= Atributos.MAXIMO_NATURAL; nivel++) {
             double r = pentRaio * nivel / Atributos.MAXIMO_NATURAL;
@@ -718,12 +702,11 @@ public class TelaCriacao extends Screen {
             xs[i] = (float) pontoX(i, r);
             ys[i] = (float) pontoY(i, r);
         }
-        poligono(g, pentCx, pentCy, xs, ys, 0x66B0172B);
+        DesenhoOP.poligono(g, xs, ys, 0x66B0172B);
         for (int i = 0; i < n; i++) {
             int j = (i + 1) % n;
             linha(g, xs[i], ys[i], xs[j], ys[j], 1.6F, COR_SANGUE_CLARO);
         }
-        g.flush();
         for (int i = 0; i < n; i++) {
             int px = Math.round(xs[i]);
             int py = Math.round(ys[i]);
@@ -732,17 +715,17 @@ public class TelaCriacao extends Screen {
         }
     }
 
-    private void desenharInfoAtributos(GuiGraphics g, Object alvo) {
+    private void desenharInfoAtributos(GuiGraphicsExtractor g, Object alvo) {
         painel(g, infoX, dirY, infoW, dirH);
         int px = infoX + 6;
         int pw = infoW - 12;
         int restam = CriacaoPersonagem.pontosRestantes(valores);
         FonteOP.desenharTitulo(g, font, "PONTOS RESTANTES", px, dirY + 6, COR_APAGADO, false);
-        g.pose().pushPose();
-        g.pose().scale(2F, 2F, 1F);
+        g.pose().pushMatrix();
+        g.pose().scale(2F, 2F);
         FonteOP.desenharTitulo(g, font, String.valueOf(restam), px / 2F, (dirY + 17) / 2F,
                 restam == 0 ? COR_OK : COR_SANGUE_CLARO, true);
-        g.pose().popPose();
+        g.pose().popMatrix();
         int y = dirY + 38;
         String regras = "Todos começam em " + Atributos.VALOR_INICIAL + " e nenhum passa de "
                 + Atributos.MAXIMO_NA_CRIACAO + " na criação (anel dourado). Você tem "
@@ -761,7 +744,7 @@ public class TelaCriacao extends Screen {
                 if (ay + 10 > dirY + dirH - 4) {
                     break;
                 }
-                g.drawString(font, linha, px + 5, ay + 4, COR_OSSO, true); // Tektur sobe ~4 px: desce para alinhar
+                g.text(font, linha, px + 5, ay + 4, COR_OSSO, true); // Tektur sobe ~4 px: desce para alinhar
                 ay += LINHA;
             }
             y = topoAviso + alturaAviso + 2;
@@ -771,7 +754,7 @@ public class TelaCriacao extends Screen {
 
     // ---------------------------------------------------------------- caixa de descrição
 
-    private void desenharDetalhe(GuiGraphics g, int x, int y, int w, int h, Object alvo, boolean comCaixa) {
+    private void desenharDetalhe(GuiGraphicsExtractor g, int x, int y, int w, int h, Object alvo, boolean comCaixa) {
         if (comCaixa) {
             painel(g, x, y, w, h);
         }
@@ -821,11 +804,11 @@ public class TelaCriacao extends Screen {
 
         float st = comCaixa ? 1.3F : 1F;   // título (Cinzel)
         float se = comCaixa ? 1.2F : 1F;   // texto corrido
-        g.pose().pushPose();
-        g.pose().translate(px, py + 4F * st, 0F); // a Cinzel também é desenhada ~4 px acima do y
-        g.pose().scale(st, st, 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(px, py + 4F * st); // a Cinzel também é desenhada ~4 px acima do y
+        g.pose().scale(st, st);
         FonteOP.desenharTitulo(g, font, titulo, 0F, 0F, COR_SANGUE_CLARO, true);
-        g.pose().popPose();
+        g.pose().popMatrix();
         py += Math.round(9F * st) + 6;
         if (sub != null) {
             py = paragrafo(g, sub, px, py, pw, COR_DOURADO, yMax, se) + 3;
@@ -845,7 +828,7 @@ public class TelaCriacao extends Screen {
     }
 
     /** Texto corrido em tamanho normal. */
-    private int paragrafo(GuiGraphics g, String texto, int x, int y, int largura, int cor, int yMax) {
+    private int paragrafo(GuiGraphicsExtractor g, String texto, int x, int y, int largura, int cor, int yMax) {
         return paragrafo(g, texto, x, y, largura, cor, yMax, 1F);
     }
 
@@ -854,29 +837,29 @@ public class TelaCriacao extends Screen {
      * em "estilo antigo", como ₁₀%, que não se leem bem). A Tektur é desenhada ~4 px acima do y, então desce 4*escala
      * para a linha começar de fato em y. Devolve o Y logo abaixo do que foi escrito.
      */
-    private int paragrafo(GuiGraphics g, String texto, int x, int y, int largura, int cor, int yMax, float escala) {
+    private int paragrafo(GuiGraphicsExtractor g, String texto, int x, int y, int largura, int cor, int yMax, float escala) {
         int passo = Math.round(LINHA * escala);
         for (FormattedCharSequence linha : font.split(FonteOP.c(texto), Math.round(largura / escala))) {
             if (y + 9F * escala > yMax) {
                 return yMax + 1;
             }
-            g.pose().pushPose();
-            g.pose().translate(x, y + 4F * escala, 0F);
-            g.pose().scale(escala, escala, 1F);
-            g.drawString(font, linha, 0F, 0F, cor, true);
-            g.pose().popPose();
+            g.pose().pushMatrix();
+            g.pose().translate(x, y + 4F * escala);
+            g.pose().scale(escala, escala);
+            g.text(font, linha, 0, 0, cor, true);
+            g.pose().popMatrix();
             y += passo;
         }
         return y;
     }
 
     /** Desenha um texto já com fonte aplicada numa escala (x, y = canto superior esquerdo do texto). */
-    private void textoEscala(GuiGraphics g, Component texto, float x, float y, float escala, int cor, boolean sombra) {
-        g.pose().pushPose();
-        g.pose().translate(x, y, 0F);
-        g.pose().scale(escala, escala, 1F);
-        g.drawString(font, texto.getVisualOrderText(), 0F, 0F, cor, sombra);
-        g.pose().popPose();
+    private void textoEscala(GuiGraphicsExtractor g, Component texto, float x, float y, float escala, int cor, boolean sombra) {
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(escala, escala);
+        g.text(font, texto.getVisualOrderText(), 0, 0, cor, sombra);
+        g.pose().popMatrix();
     }
 
     /** A maior escala (entre 1 e {@code maxima}) com que o texto ainda cabe na largura. */
@@ -888,19 +871,19 @@ public class TelaCriacao extends Screen {
     // ---------------------------------------------------------------- zonas
 
     /** Desenha a zona; se o atributo dela estiver tremendo, desloca tudo para o lado. */
-    private void desenharZona(GuiGraphics g, Zona z, int mx, int my) {
+    private void desenharZona(GuiGraphicsExtractor g, Zona z, int mx, int my) {
         float deslocamento = z.attr >= 0 ? tremor(z.attr) : 0F;
         if (deslocamento == 0F) {
             desenharZonaBase(g, z, mx, my);
             return;
         }
-        g.pose().pushPose();
-        g.pose().translate(deslocamento, 0F, 0F);
+        g.pose().pushMatrix();
+        g.pose().translate(deslocamento, 0F);
         desenharZonaBase(g, z, mx, my);
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
-    private void desenharZonaBase(GuiGraphics g, Zona z, int mx, int my) {
+    private void desenharZonaBase(GuiGraphicsExtractor g, Zona z, int mx, int my) {
         boolean sobre = z.ativa && z.acao != null && z.contem(mx, my);
         int textoY = Math.round(z.y + z.h / 2F - 0.5F); // Cinzel: o meio das letras fica ~0,5 px abaixo do y
 
@@ -981,7 +964,7 @@ public class TelaCriacao extends Screen {
         }
     }
 
-    private void desenharCarta(GuiGraphics g, Zona z, boolean sobre) {
+    private void desenharCarta(GuiGraphicsExtractor g, Zona z, boolean sobre) {
         int fundo = z.selecionada ? (sobre ? 0xFF4A1019 : 0xFF3A0D15) : (sobre ? 0xFF25252E : COR_ZONA);
         caixa(g, z.x, z.y, z.w, z.h, fundo, z.selecionada ? COR_SANGUE : sobre ? 0xFF50505C : COR_BORDA);
         if (z.selecionada) {
@@ -996,11 +979,11 @@ public class TelaCriacao extends Screen {
         // título (Cinzel desce 4*escala para começar de fato em y)
         String titulo = z.texto.toUpperCase();
         float sTitulo = Math.max(1F, Math.min(1.5F * s, util / (float) Math.max(1, FonteOP.larguraTitulo(font, titulo))));
-        g.pose().pushPose();
-        g.pose().translate(px, y + 4F * sTitulo, 0F);
-        g.pose().scale(sTitulo, sTitulo, 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(px, y + 4F * sTitulo);
+        g.pose().scale(sTitulo, sTitulo);
         FonteOP.desenharTitulo(g, font, titulo, 0F, 0F, z.selecionada ? COR_SANGUE_CLARO : COR_OSSO, true);
-        g.pose().popPose();
+        g.pose().popMatrix();
         y += 10F * sTitulo + 4F * s;
 
         // papel da classe (Cormorant, sem números)
@@ -1031,7 +1014,7 @@ public class TelaCriacao extends Screen {
         }
     }
 
-    private static void caixa(GuiGraphics g, int x, int y, int w, int h, int fundo, int borda) {
+    private static void caixa(GuiGraphicsExtractor g, int x, int y, int w, int h, int fundo, int borda) {
         g.fill(x + 1, y + 1, x + w - 1, y + h - 1, fundo);
         g.fill(x, y, x + w, y + 1, borda);
         g.fill(x, y + h - 1, x + w, y + h, borda);
@@ -1040,13 +1023,13 @@ public class TelaCriacao extends Screen {
     }
 
     /** Painel translúcido com os "cantos de ritual" dourados. */
-    private static void painel(GuiGraphics g, int x, int y, int w, int h) {
+    private static void painel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         caixa(g, x, y, w, h, COR_PAINEL, COR_BORDA);
         cantos(g, x, y, w, h, 0xCCC2B48C);
     }
 
     /** Pequenos colchetes nos quatro cantos. */
-    private static void cantos(GuiGraphics g, int x, int y, int w, int h, int cor) {
+    private static void cantos(GuiGraphicsExtractor g, int x, int y, int w, int h, int cor) {
         int t = 4;
         g.fill(x - 1, y - 1, x + t, y, cor);
         g.fill(x - 1, y - 1, x, y + t, cor);
@@ -1070,57 +1053,8 @@ public class TelaCriacao extends Screen {
 
     // ---------------------------------------------------------------- desenho "na mão" (linhas e polígonos)
 
-    /** Uma linha reta com espessura. O Minecraft não tem isso pronto no GuiGraphics. */
-    private static void linha(GuiGraphics g, double x1, double y1, double x2, double y2, float espessura, int argb) {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double comprimento = Math.sqrt(dx * dx + dy * dy);
-        if (comprimento < 0.001) {
-            return;
-        }
-        float nx = (float) (-dy / comprimento * espessura / 2);
-        float ny = (float) (dx / comprimento * espessura / 2);
-        Matrix4f m = g.pose().last().pose();
-        preparar();
-        BufferBuilder b = Tesselator.getInstance().getBuilder();
-        b.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        vertice(b, m, (float) x1 - nx, (float) y1 - ny, argb);
-        vertice(b, m, (float) x1 + nx, (float) y1 + ny, argb);
-        vertice(b, m, (float) x2 + nx, (float) y2 + ny, argb);
-        vertice(b, m, (float) x2 - nx, (float) y2 - ny, argb);
-        BufferUploader.drawWithShader(b.end());
-        terminar();
-    }
-
-    /** Polígono preenchido, ligando cada ponto ao centro (serve para formas convexas como o pentágono). */
-    private static void poligono(GuiGraphics g, float cx, float cy, float[] xs, float[] ys, int argb) {
-        Matrix4f m = g.pose().last().pose();
-        preparar();
-        BufferBuilder b = Tesselator.getInstance().getBuilder();
-        b.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
-        vertice(b, m, cx, cy, argb);
-        for (int i = 0; i <= xs.length; i++) {
-            vertice(b, m, xs[i % xs.length], ys[i % xs.length], argb);
-        }
-        BufferUploader.drawWithShader(b.end());
-        terminar();
-    }
-
-    private static void vertice(BufferBuilder b, Matrix4f m, float x, float y, int argb) {
-        b.vertex(m, x, y, 0F)
-                .color((argb >> 16) & 255, (argb >> 8) & 255, argb & 255, (argb >>> 24) & 255)
-                .endVertex();
-    }
-
-    private static void preparar() {
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-    }
-
-    private static void terminar() {
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+    /** Uma linha reta com espessura (feita por varredura de pixels em {@link DesenhoOP}). */
+    private static void linha(GuiGraphicsExtractor g, double x1, double y1, double x2, double y2, float espessura, int argb) {
+        DesenhoOP.linha(g, x1, y1, x2, y2, espessura, argb);
     }
 }
