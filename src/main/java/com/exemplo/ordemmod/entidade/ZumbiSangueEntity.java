@@ -1,10 +1,20 @@
 package com.exemplo.ordemmod.entidade;
 
+import com.geckolib.animatable.GeoEntity;
+import com.geckolib.animatable.instance.AnimatableInstanceCache;
+import com.geckolib.animatable.manager.AnimatableManager;
+import com.geckolib.animation.AnimationController;
+import com.geckolib.animation.RawAnimation;
+import com.geckolib.animation.object.LoopType;
+import com.geckolib.animation.object.PlayState;
+import com.geckolib.animation.state.AnimationTest;
+import com.geckolib.util.GeckoLibUtil;
+
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.DamageTypeTags;
@@ -25,25 +35,21 @@ import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
-import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.Animation;
-import software.bernie.geckolib.core.animation.AnimationController;
-import software.bernie.geckolib.core.animation.AnimationState;
-import software.bernie.geckolib.core.animation.RawAnimation;
-import software.bernie.geckolib.core.object.PlayState;
-import software.bernie.geckolib.util.GeckoLibUtil;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 /**
- * Zumbi de Sangue.
+ * Zumbi de Sangue (Fabric 26.2 + GeckoLib 5).
  *
- * Ciclo: nasce DEITADO -> (jogador chega perto) LEVANTANDO -> NORMAL (anda/idle) <-> ATACANDO_1/2.
+ * Ciclo: nasce DEITADO -> (jogador chega perto) LEVANTANDO -> NORMAL (anda/idle) <-> ATACANDO_1/2/3.
  *
  * O estado fica sincronizado servidor -> cliente (ESTADO) e o cliente apenas escolhe a animacao
  * correspondente. O DANO e decidido so no servidor, num tick calculado a partir do momento de
  * impacto da animacao (ver constantes de tempo abaixo), entao nunca vem antes do golpe.
+ *
+ * Mudancas em relacao ao Forge 1.20.1: hurt -> hurtServer(ServerLevel, ...), defineSynchedData com Builder,
+ * NBT com ValueInput/ValueOutput, GeckoLib 5 (pacotes com.geckolib.*, controladores sem o parametro da entidade,
+ * velocidade da animacao definida dentro do predicado) e o culling da hitbox foi para o renderer.
  */
 public class ZumbiSangueEntity extends Monster implements GeoEntity {
 
@@ -103,7 +109,7 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
     private static final RawAnimation ANIM_ATAQUE_2 = RawAnimation.begin().thenPlayAndHold("animation.zumbi.ataque_arrasto");
     private static final RawAnimation ANIM_ATAQUE_3 = RawAnimation.begin().thenPlayAndHold("animation.zumbi.ataque");
     private static final RawAnimation ANIM_MORTE = RawAnimation.begin().thenPlayAndHold("animation.zumbi.morte");
-    private static final RawAnimation ANIM_DANO = RawAnimation.begin().then("animation.zumbi.dano", Animation.LoopType.PLAY_ONCE);
+    private static final RawAnimation ANIM_DANO = RawAnimation.begin().then("animation.zumbi.dano", LoopType.PLAY_ONCE);
 
     private static final EntityDimensions DIMENSOES_DEITADO = EntityDimensions.fixed(1.0F, 0.5F);
 
@@ -146,9 +152,9 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
 
     // ---- estado --------------------------------------------------------------------------
     @Override
-    protected void defineSynchedData() {
-        super.defineSynchedData();
-        this.entityData.define(ESTADO, DEITADO);
+    protected void defineSynchedData(SynchedEntityData.Builder construtor) {
+        super.defineSynchedData(construtor);
+        construtor.define(ESTADO, DEITADO);
     }
 
     public int getEstado() {
@@ -208,7 +214,7 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
         if (this.estadoLocal == LEVANTANDO && this.tempoEstado == LEVANTAR_EM_PE) {
             this.refreshDimensions(); // corpo ja esta de pe: hitbox normal
         }
-        if (this.level().isClientSide) {
+        if (this.level().isClientSide()) {
             return;
         }
         if (this.estadoLocal == DEITADO) {
@@ -242,16 +248,17 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
         return super.isPushable() && !estaEmergindo();
     }
 
+    /** No 26.2 o dano so chega aqui no servidor (hurtServer), entao nao ha mais teste de lado do cliente. */
     @Override
-    public boolean hurt(DamageSource fonte, float quantidade) {
+    public boolean hurtServer(ServerLevel nivel, DamageSource fonte, float quantidade) {
         // o corpo deitado nao bate com a hitbox, entao fica intocavel ate levantar
         // (mas /kill e o void continuam funcionando)
         if (estaEmergindo() && !fonte.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return false;
         }
-        boolean levou = super.hurt(fonte, quantidade);
+        boolean levou = super.hurtServer(nivel, fonte, quantidade);
         // toca a animacao de dano (so em pe e sem atacar, para nao cortar o golpe no meio)
-        if (levou && !this.level().isClientSide && this.isAlive() && this.estadoLocal == NORMAL) {
+        if (levou && this.isAlive() && this.estadoLocal == NORMAL) {
             this.triggerAnim("dano", "dano");
         }
         return levou;
@@ -277,24 +284,20 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
         return deitado ? DIMENSOES_DEITADO : super.getDimensions(pose);
     }
 
-    /** O modelo deitado se estende ~2 blocos alem da hitbox: evita sumir da tela por culling. */
-    @Override
-    public AABB getBoundingBoxForCulling() {
-        return super.getBoundingBoxForCulling().inflate(2.5D);
-    }
+    // O culling (modelo deitado se estende ~2 blocos alem da hitbox) agora e feito no ZumbiSangueRenderer.
 
     // ---- save / load ------------------------------------------------------------------------
     @Override
-    public void addAdditionalSaveData(CompoundTag tag) {
-        super.addAdditionalSaveData(tag);
-        tag.putInt("EstadoZumbi", this.estadoLocal);
+    public void addAdditionalSaveData(ValueOutput saida) {
+        super.addAdditionalSaveData(saida);
+        saida.putInt("EstadoZumbi", this.estadoLocal);
     }
 
     @Override
-    public void readAdditionalSaveData(CompoundTag tag) {
-        super.readAdditionalSaveData(tag);
-        if (tag.contains("EstadoZumbi")) {
-            int e = tag.getInt("EstadoZumbi");
+    public void readAdditionalSaveData(ValueInput entrada) {
+        super.readAdditionalSaveData(entrada);
+        int e = entrada.getIntOr("EstadoZumbi", -1);
+        if (e >= 0) {
             if (e == LEVANTANDO) {
                 e = DEITADO;   // recomeca a levantar
             } else if (e == ATACANDO_1 || e == ATACANDO_2 || e == ATACANDO_3) {
@@ -328,37 +331,36 @@ public class ZumbiSangueEntity extends Monster implements GeoEntity {
     // ---- GeckoLib -----------------------------------------------------------------------------
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controladores) {
-        AnimationController<ZumbiSangueEntity> principal =
-                new AnimationController<>(this, "principal", TRANSICAO_ANIM, this::animar);
-        // so os golpes tocam mais rapido; andar/correr/levantar/morte seguem na velocidade normal
-        principal.setAnimationSpeedHandler(zumbi -> zumbi.estaAtacando() ? VELOCIDADE_ATAQUE : 1.0D);
-        controladores.add(principal);
-        // controlador separado, so para o "tranco" ao levar dano (disparado por triggerAnim em hurt())
-        controladores.add(new AnimationController<>(this, "dano", 0, estado -> PlayState.STOP)
+        // A velocidade dos golpes (VELOCIDADE_ATAQUE) e definida dentro de animar(); andar/correr/levantar/morte
+        // seguem na velocidade normal.
+        controladores.add(new AnimationController<ZumbiSangueEntity>("principal", TRANSICAO_ANIM, this::animar));
+        // controlador separado, so para o "tranco" ao levar dano (disparado por triggerAnim em hurtServer())
+        controladores.add(new AnimationController<ZumbiSangueEntity>("dano", 0, teste -> PlayState.STOP)
                 .triggerableAnim("dano", ANIM_DANO));
     }
 
-    private PlayState animar(AnimationState<ZumbiSangueEntity> estado) {
+    private PlayState animar(AnimationTest<ZumbiSangueEntity> teste) {
+        teste.setControllerSpeed(this.estaAtacando() ? (float) VELOCIDADE_ATAQUE : 1.0F);
         if (this.isDeadOrDying()) {
-            return estado.setAndContinue(ANIM_MORTE);
+            return teste.setAndContinue(ANIM_MORTE);
         }
         switch (this.estadoLocal) {
             case DEITADO:
-                return estado.setAndContinue(ANIM_DEITADO);
+                return teste.setAndContinue(ANIM_DEITADO);
             case LEVANTANDO:
-                return estado.setAndContinue(ANIM_LEVANTAR);
+                return teste.setAndContinue(ANIM_LEVANTAR);
             case ATACANDO_1:
-                return estado.setAndContinue(ANIM_ATAQUE_1);
+                return teste.setAndContinue(ANIM_ATAQUE_1);
             case ATACANDO_2:
-                return estado.setAndContinue(ANIM_ATAQUE_2);
+                return teste.setAndContinue(ANIM_ATAQUE_2);
             case ATACANDO_3:
-                return estado.setAndContinue(ANIM_ATAQUE_3);
+                return teste.setAndContinue(ANIM_ATAQUE_3);
             default:
-                if (estado.isMoving()) {
+                if (teste.isMoving()) {
                     // isAggressive() e sincronizado servidor -> cliente (getTarget() nao e)
-                    return estado.setAndContinue(this.isAggressive() ? ANIM_CORRER : ANIM_ANDAR);
+                    return teste.setAndContinue(this.isAggressive() ? ANIM_CORRER : ANIM_ANDAR);
                 }
-                return estado.setAndContinue(ANIM_IDLE);
+                return teste.setAndContinue(ANIM_IDLE);
         }
     }
 

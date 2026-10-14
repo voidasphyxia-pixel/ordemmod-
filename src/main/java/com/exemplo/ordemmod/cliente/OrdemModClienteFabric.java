@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
  * Entrypoint do CLIENTE, PROVISORIO (etapa 4). So serve para provar que a rede funciona nos dois sentidos:
  * escreve no log o que chega do servidor e, 5 segundos depois de entrar no mundo, manda uma tecla de teste.
  * Na etapa 6 isto e trocado por ReceptoresCliente.registrar() (HUD, telas, teclas de verdade).
+ * A linha ClienteEntidades.registrar() (etapa 5b) deve continuar existindo quando isso acontecer.
  */
 public class OrdemModClienteFabric implements ClientModInitializer {
     private static int ticksDesdeEntrada = -1;
@@ -22,6 +23,9 @@ public class OrdemModClienteFabric implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // etapa 5b: renderer do Zumbi de Sangue
+        ClienteEntidades.registrar();
+
         ClientPlayNetworking.registerGlobalReceiver(PacoteAbrirCriacao.TYPE, (m, contexto) ->
                 System.out.println("[Ordem cliente] servidor pediu a tela de criacao (com Marcado: "
                         + m.comMarcado() + ")"));

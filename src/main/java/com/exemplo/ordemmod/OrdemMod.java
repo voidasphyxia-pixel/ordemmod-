@@ -1,5 +1,6 @@
 package com.exemplo.ordemmod;
 
+import com.exemplo.ordemmod.entidade.EntidadesOrdem;
 import com.exemplo.ordemmod.marcado.ReceptorMarcado;
 import com.mojang.serialization.JsonOps;
 
@@ -14,8 +15,7 @@ import net.minecraft.network.FriendlyByteBuf;
  * Ja registra: o attachment do personagem, os tipos de pacote (rede), os eventos de ciclo de vida do
  * personagem e os comandos (EventosOrdem), dano/efeitos/sono/estado mental (EventosDano), os receptores
  * do servidor (ReceptoresServidor), as pericias (EventosPericias), as origens (EventosOrigens), o receptor
- * da cena do Marcado (ReceptorMarcado) e os sons (SonsOrdem).
- * Ainda NAO registra entidades.
+ * da cena do Marcado (ReceptorMarcado), os sons (SonsOrdem) e as entidades (EntidadesOrdem).
  * Veja PORTE-FABRIC.md.
  */
 public class OrdemMod implements ModInitializer {
@@ -34,6 +34,8 @@ public class OrdemMod implements ModInitializer {
         ReceptorMarcado.registrar();
         // etapa 5a
         SonsOrdem.registrar();
+        // etapa 5b
+        EntidadesOrdem.registrar();
 
         // Teste de fumaca do nucleo (pode apagar depois): se aparecer no log, o Java puro carregou.
         Personagem teste = new Personagem(ClasseOP.COMBATENTE);
@@ -41,6 +43,7 @@ public class OrdemMod implements ModInitializer {
                 + "%, vida maxima " + teste.vidaMaxima() + ").");
         testarSalvamentoEPacote(teste);
         testarSons();
+        testarEntidades();
     }
 
     /**
@@ -79,6 +82,21 @@ public class OrdemMod implements ModInitializer {
                     + ", " + SonsOrdem.MARCADO.size() + " sons do Marcado).");
         } catch (Throwable erro) {
             System.out.println("Ordem Mod etapa 5a: FALHOU com excecao (cole o erro abaixo no chat).");
+            erro.printStackTrace();
+        }
+    }
+
+    /**
+     * Teste de fumaca da etapa 5b (pode apagar depois): o tipo da entidade entrou no registro com o id certo?
+     * Mostra OK ou FALHOU no log.
+     */
+    private static void testarEntidades() {
+        try {
+            var chave = BuiltInRegistries.ENTITY_TYPE.getKey(EntidadesOrdem.ZUMBI_SANGUE);
+            System.out.println("Ordem Mod etapa 5b: entidade " + (chave != null ? "OK" : "FALHOU")
+                    + " (zumbi_sangue = " + chave + ").");
+        } catch (Throwable erro) {
+            System.out.println("Ordem Mod etapa 5b: FALHOU com excecao (cole o erro abaixo no chat).");
             erro.printStackTrace();
         }
     }

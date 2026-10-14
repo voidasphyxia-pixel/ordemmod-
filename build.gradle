@@ -29,7 +29,7 @@ dependencies {
     // Sem 'mappings' e sem 'modImplementation': na 26.x vale 'implementation' normal.
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-    // Etapa 5a: so a dependencia (nenhum codigo usa o GeckoLib ainda; a 5b usa).
+    // GeckoLib 5 (usado a partir da etapa 5b: entidade animada do Zumbi de Sangue).
     implementation "com.geckolib:geckolib-fabric-${project.minecraft_version}:${project.geckolib_version}"
 }
 
@@ -46,6 +46,9 @@ dependencies {
 //            QuedaAcrobacia, EsquivaReflexos, EsquivaVisual (provisorio, no lugar do Epic Fight)
 //            e os mixins MobMixin, PlayerMixin e TamableAnimalMixin.
 //   Etapa 5a: SonsOrdem (registro direto, sem GeckoLib).
+//   Etapa 5b: Zumbi de Sangue (EntidadesOrdem, ZumbiSangueEntity, ZumbiSangueAtaqueGoal) e o cliente dele
+//            (ClienteEntidades, ZumbiSangueRenderer). ZumbiSangueModel.java ficou obsoleto (o renderer cria
+//            o modelo sozinho) e NAO entra aqui. Ovo de spawn: etapa 5c.
 // ---------------------------------------------------------------------------------------
 def nucleo = [
     'Atributo', 'Atributos', 'ClasseOP', 'GrauTreinamento', 'ParteBonus', 'Proficiencia',
@@ -69,6 +72,9 @@ def nucleo = [
     'mixin/MobMixin', 'mixin/PlayerMixin', 'mixin/TamableAnimalMixin',
     // etapa 5a
     'SonsOrdem',
+    // etapa 5b
+    'entidade/EntidadesOrdem', 'entidade/ZumbiSangueEntity', 'entidade/ZumbiSangueAtaqueGoal',
+    'cliente/ClienteEntidades', 'cliente/ZumbiSangueRenderer',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }

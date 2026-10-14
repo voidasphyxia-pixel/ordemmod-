@@ -2,6 +2,7 @@ package com.exemplo.ordemmod.entidade;
 
 import java.util.EnumSet;
 
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
@@ -14,6 +15,8 @@ import net.minecraft.world.entity.ai.goal.Goal;
  *   2) durante a animacao ele fica parado olhando pro alvo (nenhum dano ainda)
  *   3) no tick de IMPACTO da animacao o dano e aplicado, mas SO se o alvo ainda estiver
  *      ao alcance; se o jogador se afastou, o golpe pega no ar.
+ *
+ * Fabric 26.2: unica mudanca de logica e o doHurtTarget, que agora recebe o ServerLevel.
  */
 public class ZumbiSangueAtaqueGoal extends Goal {
 
@@ -135,8 +138,8 @@ public class ZumbiSangueAtaqueGoal extends Goal {
             boolean alcanca = alvo.isAlive()
                     && this.zumbi.distanceToSqr(alvo) <= ALCANCE_ACERTO * ALCANCE_ACERTO
                     && this.zumbi.hasLineOfSight(alvo);
-            if (alcanca) {
-                this.zumbi.doHurtTarget(alvo);
+            if (alcanca && this.zumbi.level() instanceof ServerLevel nivel) {
+                this.zumbi.doHurtTarget(nivel, alvo);
             }
         }
 
