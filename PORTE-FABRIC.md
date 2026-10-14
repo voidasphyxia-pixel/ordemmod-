@@ -59,13 +59,23 @@ git mv src/main/resources/assets/ordemmod/animations/entity/zumbi_sangue.animati
 
 Depois: `gradlew build` (cole aqui os erros de compilacao, se houver; os mais provaveis estao listados em "Pontos de risco da 5b" abaixo) e `gradlew runClient`.
 - No log: `Ordem Mod etapa 5b: entidade OK (zumbi_sangue = ordemmod:zumbi_sangue).` e o GeckoLib carregando como mod. Se o jogo reclamar de dependencia `geckolib`, cole o trecho.
-- No mundo (o ovo de spawn so volta na 5c): `/summon ordemmod:zumbi_sangue ~ ~ ~`. Ele deve nascer DEITADO e imovel, intocavel.
+- No mundo (o ovo de spawn e da 5c, abaixo): `/summon ordemmod:zumbi_sangue ~ ~ ~`. Ele deve nascer DEITADO e imovel, intocavel.
 - Chegue a menos de 8 blocos (em sobrevivencia): ele se levanta (animacao de 5,4 s) e ganha a hitbox normal depois de ~3,6 s.
 - Em pe: persegue correndo, ataca com 3 golpes diferentes (garra, arrasto, ataque), a 1,5x; o dano so aparece no momento do impacto da animacao; se voce se afastar antes, o golpe pega no ar.
 - Ao leva-lo a dano: tranco de dano (animacao `dano`) e o som de zumbi.
 - Ao mata-lo: animacao de morte completa (~2,2 s) e o corpo NAO tomba 90 graus; some so depois.
 - Cabeca: em pe, ela acompanha o olhar. Se girar ao contrario (olha para onde voce NAO esta), troque `-` por `+` nas duas linhas do `adjustModelBonesForRender` em `ZumbiSangueRenderer`.
 - Sair do mundo e entrar de novo: ele volta como estava (levantando volta a deitado; atacando volta a normal).
+
+### Para testar a 5c (NAO compilada ainda)
+So tem 3 arquivos novos/alterados: `ItensOrdem.java` (registro do ovo e da aba criativa), `assets/ordemmod/items/zumbi_sangue_spawn_egg.json` (definicao de modelo com as cores) e a chamada em `OrdemMod`. O modelo (`models/item/zumbi_sangue_spawn_egg.json`) e o nome (lang) ja existiam.
+1. `gradlew build`. Pontos de risco (assinaturas do 26.2 tiradas da documentacao do Fabric, nao do jogo): `new Item.Properties().spawnEgg(EntityType)`, `Item.Properties.setId(ResourceKey)`, `SpawnEggItem::new` como `Function<Item.Properties, Item>` e `CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.SPAWN_EGGS)` com `aba.accept(item)`.
+2. `gradlew runClient`. No log: `Ordem Mod etapa 5c: item OK (zumbi_sangue_spawn_egg = ordemmod:zumbi_sangue_spawn_egg).`
+3. Modo criativo, aba **Ovos de criacao** (Spawn Eggs): deve haver o "Ovo de spawn: Zumbi de Sangue" (no fim da aba, onde ficam os de mods), com o ovo vermelho-escuro (casca `0x4A0808`, manchas `0xC41E1E`).
+   - Se o ovo aparecer SEM cor (cinza/branco): as cores vem do campo `tints` do `items/zumbi_sangue_spawn_egg.json`; confira se o jogo reclama desse arquivo no log (`Failed to load item model`...) e cole aqui.
+   - Se aparecer o nome cru (`item.ordemmod.zumbi_sangue_spawn_egg`): o lang nao carregou.
+4. Clique direito no chao com o ovo: o zumbi nasce deitado, como no `/summon`.
+5. Dispenser com o ovo dentro tambem deve gerar o zumbi (comportamento padrao do `SpawnEggItem`).
 
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
@@ -78,8 +88,8 @@ Depois: `gradlew build` (cole aqui os erros de compilacao, se houver; os mais pr
   - [~] 4d. Escrita, NAO compilada nem testada: `EventosPericias`, `EventosOrigens`, `ReceptorMarcado` (+ `RoteiroMarcado`, `QuedaAcrobacia`, `EsquivaReflexos`, que ja eram Java puro), `RolagemNaHud`, `EsquivaVisual` (provisorio) e os mixins `MobMixin`, `PlayerMixin`, `TamableAnimalMixin` (mais dois ganchos novos no `LivingEntityMixin`). Veja "O que muda" abaixo para o que virou o que. (Ha commits posteriores corrigindo `PlayerMixin` e metodos publicos, o que sugere que ja foi compilada; confirmar e marcar como [x] depois de testar.)
 - [~] 5. Entidades e sons (GeckoLib 5.x para 26.2).
   - [~] 5a. `SonsOrdem` (sem GeckoLib: cada campo e o proprio `SoundEvent`, registrado em `BuiltInRegistries.SOUND_EVENT`) e a dependencia `com.geckolib:geckolib-fabric-26.2:5.5.5` no build (repositorio Cloudsmith do GeckoLib, `geckolib_version` no `gradle.properties`). NAO compilada nem testada.
-  - [~] 5b. Zumbi de Sangue: `EntidadesOrdem` (tipo registrado direto + atributos via `FabricDefaultAttributeRegistry`), `ZumbiSangueEntity` (GeckoLib 5, `hurtServer`, NBT com `ValueInput/ValueOutput`), `ZumbiSangueAtaqueGoal` (`doHurtTarget(ServerLevel, alvo)`), e o cliente: `ZumbiSangueRenderer` (faz o papel do antigo `ZumbiSangueModel`: modelo criado pelo id do tipo, cabeca via `adjustModelBonesForRender`, sem tombar na morte, culling inflado) e `ClienteEntidades.registrar()` (chamado por `OrdemModClienteFabric`). `fabric.mod.json` agora exige `geckolib >= 5.5.3`. NAO compilada nem testada. Exige mover 2 arquivos de assets (veja "Para testar a 5b").
-  - [ ] 5c. Ovo de spawn do zumbi (`zumbi_sangue_spawn_egg`, cores 0x4A0808 / 0xC41E1E) e entrada na aba criativa de ovos. No 26.x o item precisa de id nas propriedades e de uma definicao de modelo de item (`assets/ordemmod/items/...json`); sera feito depois que a entidade funcionar.
+  - [~] 5b. Zumbi de Sangue: `EntidadesOrdem` (tipo registrado direto + atributos via `FabricDefaultAttributeRegistry`), `ZumbiSangueEntity` (GeckoLib 5, `hurtServer`, NBT com `ValueInput/ValueOutput`), `ZumbiSangueAtaqueGoal` (`doHurtTarget(ServerLevel, alvo)`), e o cliente: `ZumbiSangueRenderer` (faz o papel do antigo `ZumbiSangueModel`: modelo criado pelo id do tipo, cabeca via `adjustModelBonesForRender`, sem tombar na morte, culling inflado) e `ClienteEntidades.registrar()` (chamado por `OrdemModClienteFabric`). `fabric.mod.json` agora exige `geckolib >= 5.5.3`. NAO compilada nem testada. Exige mover 2 arquivos de assets (veja "Para testar a 5b"). Ja houve uma correcao de compilacao (`getDimensions` -> `getDefaultDimensions`).
+  - [~] 5c. Ovo de spawn do zumbi: `ItensOrdem` (registro com `Item.Properties().spawnEgg(tipo)` + `setId`, entrada na aba criativa de ovos via `CreativeModeTabEvents`) e `assets/ordemmod/items/zumbi_sangue_spawn_egg.json` (definicao de modelo do 26.x; as cores 0x4A0808 / 0xC41E1E ficam aqui, em `tints`, e nao mais no item). NAO compilada nem testada.
 - [ ] 6. HUD, teclas e telas (`HudOrdem`, `TeclasOrdem`, `Tela*`, `Cliente*`). Aqui trocar o `cliente/OrdemModClienteFabric` (provisorio) por `ReceptoresCliente.registrar()` e apagar o provisorio (mantendo a chamada `ClienteEntidades.registrar()`).
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
 
@@ -91,11 +101,12 @@ Depois: `gradlew build` (cole aqui os erros de compilacao, se houver; os mais pr
 - 5b: `cliente/ZumbiSangueModel.java` ficou obsoleto (Forge/GeckoLib 4) e fora do build; pode ser apagado quando voce quiser. `ZumbiSangueRenderer` o substitui.
 - 5b: os arquivos antigos em `assets/ordemmod/geo/` e `animations/` (caminho do GeckoLib 4) so servem para a `main` (Forge); neste branch eles saem de la pelo `git mv`.
 - 5b: o arquivo `zumbi_sangue.animation.json` e do formato do GeckoLib 4; o GeckoLib 5 le o mesmo formato Bedrock, mas se alguma animacao nao tocar, o log do GeckoLib avisa o nome. Os nomes usados no codigo sao `animation.zumbi.` + deitado, levantar, idle, andar, correr, ataque_garra, ataque_arrasto, ataque, morte, dano.
+- 5c: o ovo nao tem textura propria: usa as texturas padrao do jogo (`item/spawn_egg` e `item/spawn_egg_overlay`) pintadas pelas cores do `tints`, igual ao ovo de qualquer mob de vanilla.
 
 ## Pontos de risco da 5b (escrita sem compilar)
 Usei como referencia o codigo-fonte do GeckoLib 5 (`bernie-g/geckolib`, pacotes `com.geckolib.*`) e mods 26.x reais que o usam, mas as assinaturas do Minecraft 26.2 abaixo vieram desses mods e nao do jogo em si:
 - `Mob.xpReward` (campo) e `Monster.createMonsterAttributes()` no construtor/atributos da entidade.
-- `getDimensions(Pose)` e `isImmobile()` sobrescritos como no 1.21; `tickDeath()` com `broadcastEntityEvent(this, (byte) 60)`.
+- `getDimensions(Pose)` e `isImmobile()` sobrescritos como no 1.21; `tickDeath()` com `broadcastEntityEvent(this, (byte) 60)`. (Atualizacao: `getDimensions` e final no 26.2, o codigo agora sobrescreve `getDefaultDimensions`.)
 - `getBoundingBoxForCulling(ZumbiSangueEntity)` no renderer (o metodo da entidade nao existe mais; no renderer e `protected AABB`).
 - `EntityType.Builder.build(ResourceKey)` e `FabricDefaultAttributeRegistry.register`.
 - `EntityRendererRegistry.register(tipo, ZumbiSangueRenderer::new)` com o renderer parametrizado por `LivingEntityRenderState`.
@@ -121,6 +132,7 @@ Usei como referencia o codigo-fonte do GeckoLib 5 (`bernie-g/geckolib`, pacotes 
 - `Player.getCooldowns()` trabalha com `ItemStack` (nao `Item`), e o som `SoundEvents.ITEM_BREAK` e um `Holder` (usar `.value()`).
 - NBT na 1.21.5+: os getters devolvem `Optional`. Use `getIntOr`, `getStringOr`, `getBooleanOr`, `getCompoundOrEmpty`, `getListOrEmpty`. `getAllKeys()` mudou de nome. Vale para a `TelaFicha`, que le o CompoundTag do `PacoteFicha`. Em entidades, salvar/ler e por `ValueOutput`/`ValueInput` (`putInt`, `getIntOr`).
 - Entidades (5b): `hurt(DamageSource, float)` virou `hurtServer(ServerLevel, DamageSource, float)` (so roda no servidor); `defineSynchedData()` recebe um `SynchedEntityData.Builder` e usa `builder.define(...)`; `doHurtTarget` recebe `(ServerLevel, Entity)`; `level().isClientSide` virou o metodo `isClientSide()`; `EntityType.Builder.build(...)` recebe um `ResourceKey`.
+- Itens (5c): `new Item.Properties()` precisa de `.setId(ResourceKey<Item>)` antes de criar o item (o helper `ItensOrdem.registrar` faz isso); todo item precisa de uma definicao de modelo em `assets/<mod>/items/<id>.json` (alem do modelo em `models/item/`); a cor do ovo de spawn vai no `tints` dessa definicao; aba criativa e `CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.X)` (Fabric API, pacote `...api.creativetab.v1`).
 - Os receptores do Fabric ja rodam na thread certa: sem `enqueueWork` e sem `DistExecutor`.
 - `ResourceLocation` virou `Identifier` na 26.x.
 - `ChatFormatting.getColor()` nao existe mais na 26.2: use `Avisos.rgbDe(cor)`.
