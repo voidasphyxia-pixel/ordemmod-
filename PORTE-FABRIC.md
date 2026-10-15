@@ -140,7 +140,7 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
   - [~] 6b2. `InventarioOrdem` (inventario e baus em vidro escuro) portado via mixins so de cliente (`mixin/cliente/*`, `ordemmod.client.mixins.json`). Nomes dos metodos do jogo NAO conferidos (config tolerante a falha). NAO compilada nem testada.
   - [ ] 6e2. Visual das telas do jogo (`titulo/EstiloMenu`, `titulo/EstiloTexturas`): fundo de nevoa, botoes de vidro, borda dos campos de texto. FICAM FORA do build: usavam eventos do Forge (ScreenEvent.Render) e trocavam `widgets.png`/`slider.png`, que no 26.x nao sao mais usados (os botoes viraram sprites do atlas gui). O caminho provavel: sprites estaticos em `assets/minecraft/textures/gui/sprites/widget/` + `ScreenEvents` do Fabric API para o fundo. Ate la, Um jogador/Opcoes etc. abrem com o visual original do jogo.
   - Depois da 6e: apagar `cliente/ZumbiSangueModel.java` e conferir os avisos de "Pendencias pequenas".
-- [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
+- [~] 7. Esquiva e rolada sem Epic Fight: `EsquivaVisual` agora da um impulso de verdade (passo para longe do atacante; rolada para a frente) com fumaca e som; sem animacao de corpo (nao ha biblioteca de animacao do jogador no Fabric aqui). `EsquivaEpicFight` e `RolamentoEpicFight` apagados deste branch. Armas: TACZ Fabric (7a, ver `PORTE-TACZ.md`). NAO compilada nem testada.
 
 ## Pendencias pequenas
 - Os arquivos `font/c-OFL.txt`, `font/Tektur-OFL.txt`, `font/z-OFL.txt` e `sounds/menu/CREDITOS-MUSICA.txt` tem maiuscula e geram "Invalid path in mod resource-pack" no log (inofensivo). Renomear para minusculas ou mover para fora de `assets/`.
@@ -154,6 +154,12 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
 
 - 6a: `HudOrdem` perdeu o corte inclinado das barras (a constante `INCLINACAO` ja era 0F) e o halo do simbolo do medo deixou de ser aditivo. Se quiser a inclinacao de volta, e preciso um `RenderPipeline` proprio (o `fill` so faz retangulos).
 - 6a: a barra de informacao do jogo (`INFO_BAR`) tambem mostra a barra do localizador (waypoints) do 26.x; ela some junto com a de XP enquanto a HUD do mod esta ativa.
+
+## Pontos de risco da 7 (escrita sem compilar)
+- `Entity.hurtMarked` (campo publico que manda o movimento ao cliente) e `ServerPlayer.onGround()`; se o build reclamar de `hurtMarked`, troque por `jogador.connection.send(new ClientboundSetEntityMotionPacket(jogador))`.
+- `Level.playSound(null, x, y, z, SoundEvent, SoundSource, float, float)` e `SoundEvents.PLAYER_ATTACK_SWEEP`.
+- Sensacao: `FORCA_PASSO` (0,55) e `FORCA_ROLADA` (0,40) em `EsquivaVisual`; ajuste vendo no jogo. Se o passo parecer "arrastar", aumente o `SALTINHO`.
+- Teste: deixe um zumbi te bater com Reflexos treinado; ao esquivar (painel "Esquiva" com sucesso) voce deve ser empurrado para longe dele. Caia de uns 6 blocos com Acrobacia treinada: ao reduzir a queda voce desliza um pouco para a frente.
 
 ## Pontos de risco da 6b2 (inventario, escrita sem compilar)
 - Os NOMES dos metodos do jogo sao palpites pela regra render -> extract: `extractBg(GuiGraphicsExtractor, float, int, int)` (em `InventoryScreen` e `ContainerScreen`) e `extractLabels(GuiGraphicsExtractor, int, int)` (em `InventoryScreen` e `AbstractContainerScreen`). Os campos `leftPos`, `topPos`, `imageWidth`, `imageHeight` tambem. `ContainerScreen` (baus) pode ter outro nome no 26.2.
