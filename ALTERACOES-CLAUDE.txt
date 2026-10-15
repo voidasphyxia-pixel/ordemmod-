@@ -5,6 +5,14 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 15/10/2026 (porte Fabric: 6e2 parcial, botoes de vidro) --------------------
+  Arquivos: tools/gerar_botoes.py (novo), assets/minecraft/textures/gui/sprites/widget/*.png e *.png.mcmeta (14 arquivos),
+            PORTE-FABRIC.md.
+  - Botoes e sliders no estilo do mod como sprites estaticos (nada de codigo). O fundo de nevoa e a borda dos campos
+    de texto continuam pendentes (precisam de codigo).
+  - Como testar: abrir o jogo e olhar os botoes do menu de Opcoes / Um jogador: vidro escuro, borda fina, sangue no hover.
+    Se aparecerem cinza como antes, o nome do sprite mudou. NAO testado.
+
 --- 15/10/2026 (porte Fabric: limpeza de pendencias pequenas) -----------------
   - Apagado cliente/ZumbiSangueModel.java (obsoleto, GeckoLib 4; o ZumbiSangueRenderer o substitui).
   - Renomeados para minusculas: assets/ordemmod/font/{z,c,tektur}-ofl.txt e sounds/menu/creditos-musica.txt
