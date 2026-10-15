@@ -67,3 +67,5 @@ Cole no começo do novo chat: "Continue a cena do Marcado do ordemmod a partir d
 
 ## Sobre este zip
 Para ficar leve, ele **não inclui** `libs/` (os .jar de TACZ, Epic Fight e GeckoLib) nem `run/`. Copie esses jars da sua pasta original para `libs/` antes de rodar o Gradle.
+
+**Porte Fabric 26.2 (15/10/2026):** a tela inicial (`titulo/TelaInicial`, `TemaInicial`, `EventosTitulo`) foi portada na etapa 6e, ainda sem compilar. Faltam o visual dos menus do jogo (6e2), o `InventarioOrdem` (6b2) e a etapa 7. Detalhes em `PORTE-FABRIC.md`.

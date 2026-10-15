@@ -87,6 +87,9 @@ if (taczJars.files.isEmpty()) {
 //   Etapa 6c: TelaCriacao (criacao de personagem); ClienteCriacao abre ela direto (a cena do Marcado e a 6d).
 //   Etapa 6d: cena do Marcado (TelaMarcado, AudioMarcado); ClienteCriacao volta a abrir a TelaMarcado quando comMarcado.
 //            marcado/EventosMarcado.java ficou OBSOLETO e fora do build (o attachment do perfil ja e copyOnDeath).
+//   Etapa 6e: tela inicial (titulo/TelaInicial, TemaInicial, EventosTitulo). titulo/EstiloMenu e EstiloTexturas (visual das
+//            telas do jogo: fundo, botoes de vidro) ficam FORA: dependem de eventos do Forge e de texturas widgets.png que
+//            nao existem mais no 26.x (veja PORTE-FABRIC.md, "6e2").
 //   Etapa 7a: dependencia do TACZ (so build + fabric.mod.json, sem codigo novo).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
@@ -125,6 +128,7 @@ def nucleo = [
     'TelaCriacao',
     // etapa 6d: cena do Marcado
     'marcado/AudioMarcado', 'marcado/TelaMarcado',
+    'titulo/TelaInicial', 'titulo/TemaInicial', 'titulo/EventosTitulo',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }

@@ -8,15 +8,12 @@ import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
 /**
  * O tema da tela inicial: um OGG em laco (sounds/menu/tema_inicial.ogg, ja com a emenda feita no proprio arquivo).
  * Toca na categoria MUSICA (o controle de volume de Musica do jogo vale), sobe devagar (~4 s) e continua tocando
  * nos submenus (Um jogador, Opcoes, Mods...). Ao entrar num mundo desce em ~1,5 s e para. So existe no cliente.
  */
-@OnlyIn(Dist.CLIENT)
 public final class TemaInicial extends AbstractTickableSoundInstance {
     /** Volume maximo do tema (0..1). O arquivo ja esta em -22 LUFS; baixe aqui se ainda ficar alto. */
     public static final float VOLUME = 1.0F;
@@ -29,7 +26,7 @@ public final class TemaInicial extends AbstractTickableSoundInstance {
     private boolean liberouVfx;
 
     private TemaInicial() {
-        super(SonsOrdem.TEMA_INICIAL.get(), SoundSource.MUSIC, RandomSource.create());
+        super(SonsOrdem.TEMA_INICIAL, SoundSource.MUSIC, RandomSource.create());
         this.looping = true;
         this.delay = 0;
         this.volume = 0.001F; // nao pode ser 0: o Minecraft descarta sons que comecam mudos
@@ -57,6 +54,10 @@ public final class TemaInicial extends AbstractTickableSoundInstance {
     @Override
     public void tick() {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) {
+            // Sem o PlaySoundEvent do Forge, a musica de menu do jogo e calada aqui, a cada tick, enquanto o tema toca.
+            mc.getMusicManager().stopPlaying();
+        }
         if (mc.level != null) { // entrou num mundo: o tema se despede
             encerrar = true;
             if (!liberouVfx) {

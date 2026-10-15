@@ -28,6 +28,7 @@ public class OrdemModClienteFabric implements ClientModInitializer {
         ReceptoresCliente.registrar();
         TeclasOrdem.registrar();
         HudOrdem.registrar();
+        com.exemplo.ordemmod.titulo.EventosTitulo.registrar();
 
         // Ao sair do mundo (ou cair a conexao), a HUD esquece o que o servidor mandou e os paineis somem.
         ClientPlayConnectionEvents.DISCONNECT.register((handler, cliente) -> {

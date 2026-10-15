@@ -7,16 +7,19 @@ import java.util.Random;
 
 import org.lwjgl.glfw.GLFW;
 
+import com.exemplo.ordemmod.DesenhoOP;
 import com.exemplo.ordemmod.FonteOP;
 import com.exemplo.ordemmod.OrdemMod;
 import com.exemplo.ordemmod.marcado.AudioMarcado;
 import com.exemplo.ordemmod.marcado.VfxMarcado;
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
 
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
-import net.minecraft.Util;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.font.FontDescription;
 import net.minecraft.client.gui.screens.OptionsScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
@@ -25,12 +28,9 @@ import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.gui.ModListScreen;
-import net.minecraftforge.fml.ModList;
+import net.minecraft.util.Util;
 
 /**
  * A tela inicial do mod, no visual da cena do Marcado e das telas de criacao/ficha: preto com nevoa e poeira, o simbolo
@@ -38,7 +38,6 @@ import net.minecraftforge.fml.ModList;
  * ritual, glitch raro no titulo. O tema (TemaInicial) toca em laco. Substitui o TitleScreen via EventosTitulo.
  * Nao existe Minecraft Realms aqui (de proposito).
  */
-@OnlyIn(Dist.CLIENT)
 public class TelaInicial extends Screen {
     // cores (ARGB), as mesmas da TelaCriacao
     private static final int COR_FUNDO = 0xFF050507;
@@ -50,11 +49,15 @@ public class TelaInicial extends Screen {
     private static final int COR_SANGUE = 0xFFB0172B;
     private static final int COR_SANGUE_CLARO = 0xFFE0263E;
 
-    private static final ResourceLocation SIMBOLO = new ResourceLocation(OrdemMod.MOD_ID,
+    private static final Identifier SIMBOLO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
             "textures/gui/titulo/simbolo_maior.png");
-    private static final ResourceLocation HALO = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
-    private static final Style ESTILO_LOGO = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "titulo_logo"));
-    private static final Style ESTILO_TITULO = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "titulo_hud"));
+    private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
+    private static final Style ESTILO_LOGO = estilo("titulo_logo");
+    private static final Style ESTILO_TITULO = estilo("titulo_hud");
+
+    private static Style estilo(String fonte) {
+        return Style.EMPTY.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, fonte)));
+    }
 
     // ajustes finos (so da para acertar vendo no jogo)
     private static final float TRACK_LOGO = 6F;       // espaco extra entre as letras de ORDEM (px a escala 1)
@@ -126,19 +129,18 @@ public class TelaInicial extends Screen {
     private void montarItens() {
         itens.clear();
         itens.add(new Item("menu.singleplayer", "Um jogador", true,
-                () -> minecraft.setScreen(new SelectWorldScreen(this))));
+                () -> minecraft.gui.setScreen(new SelectWorldScreen(this))));
         Item multi = new Item("menu.multiplayer", "Multijogador", false, () -> {
             if (minecraft.options.skipMultiplayerWarning) {
-                minecraft.setScreen(new JoinMultiplayerScreen(this));
+                minecraft.gui.setScreen(new JoinMultiplayerScreen(this));
             } else {
-                minecraft.setScreen(new SafetyScreen(this));
+                minecraft.gui.setScreen(new SafetyScreen(this));
             }
         });
         multi.ativo = minecraft.allowsMultiplayer();
         itens.add(multi);
-        itens.add(new Item("fml.menu.mods", "Mods", false, () -> minecraft.setScreen(new ModListScreen(this))));
         itens.add(new Item("menu.options", "Opcoes", false,
-                () -> minecraft.setScreen(new OptionsScreen(this, minecraft.options))));
+                () -> minecraft.gui.setScreen(new OptionsScreen(this, minecraft.options))));
         itens.add(new Item("menu.quit", "Sair", false, () -> minecraft.stop()));
     }
 
@@ -180,7 +182,7 @@ public class TelaInicial extends Screen {
     // ================================================================== desenho
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float parcial) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float parcial) {
         long agora = Util.getMillis();
         if (inicio == 0L) {
             inicio = agora;
@@ -218,7 +220,7 @@ public class TelaInicial extends Screen {
         desenharRodape(g, ui);
     }
 
-    private void desenharFundo(GuiGraphics g, float t, float bg) {
+    private void desenharFundo(GuiGraphicsExtractor g, float t, float bg) {
         g.fill(0, 0, width, height, COR_FUNDO);
         VfxMarcado.NEVOA.desenhar(g, t, 0.34F * bg, 0, 0, width, height);
 
@@ -228,17 +230,11 @@ public class TelaInicial extends Screen {
         int raio = (int) (tamSimbolo * 0.62F);
         halo(g, cx, cy, raio, raio, 0.20F * respira * bg, 0.70F, 0.80F, 1F);
         if (bg > 0.01F) {
-            g.flush();
-            minecraft.getTextureManager().getTexture(SIMBOLO).setFilter(true, false);
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            g.setColor(0.85F, 0.90F, 1F, ALFA_SIMBOLO * respira * bg);
-            g.pose().pushPose();
-            g.pose().translate(cx - tamSimbolo / 2F, cy - CENTRO_SIMBOLO * tamSimbolo, 0F);
             int tam = Math.round(tamSimbolo);
-            g.blit(SIMBOLO, 0, 0, tam, tam, 0F, 0F, 1024, 1024, 1024, 1024);
-            g.pose().popPose();
-            g.setColor(1F, 1F, 1F, 1F);
+            int sx = Math.round(cx - tamSimbolo / 2F);
+            int sy = Math.round(cy - CENTRO_SIMBOLO * tamSimbolo);
+            g.blit(RenderPipelines.GUI_TEXTURED, SIMBOLO, sx, sy, 0F, 0F, tam, tam, 1024, 1024, 1024, 1024,
+                    DesenhoOP.argb(ALFA_SIMBOLO * respira * bg, 0.85F, 0.90F, 1F));
         }
 
         VfxMarcado.POEIRA.desenhar(g, t, 0.55F * bg, 0, 0, width, height);
@@ -246,7 +242,7 @@ public class TelaInicial extends Screen {
         g.fillGradient(0, height * 2 / 3, width, height, 0x00000000, 0xDD000000);
     }
 
-    private void desenharLogo(GuiGraphics g, float t, float ui) {
+    private void desenharLogo(GuiGraphicsExtractor g, float t, float ui) {
         if (ui < 0.02F) {
             return;
         }
@@ -294,7 +290,7 @@ public class TelaInicial extends Screen {
         losango(g, meio, y, 4, alfa(COR_SANGUE_CLARO, ui));
     }
 
-    private void desenharMenu(GuiGraphics g, float dt, float ui) {
+    private void desenharMenu(GuiGraphicsExtractor g, float dt, float ui) {
         float sTxt = Mth.clamp(entH / 17F, 1F, 1.4F);
         for (int i = 0; i < itens.size(); i++) {
             Item it = itens.get(i);
@@ -338,13 +334,13 @@ public class TelaInicial extends Screen {
         }
     }
 
-    private void desenharRodape(GuiGraphics g, float ui) {
+    private void desenharRodape(GuiGraphicsExtractor g, float ui) {
         if (ui < 0.05F) {
             return;
         }
         int cor = alfa(COR_APAGADO, ui);
-        String esq = "Minecraft " + SharedConstants.getCurrentVersion().getName() + "  \u00b7  "
-                + Component.translatable("fml.menu.loadingmods", ModList.get().size()).getString();
+        String esq = "Minecraft " + SharedConstants.getCurrentVersion().name() + "  \u00b7  "
+                + FabricLoader.getInstance().getAllMods().size() + " mods";
         FonteOP.desenhar(g, font, esq, 8, height - 11 + 0.5F, cor, false);
         String dir = "Copyright Mojang AB. Do not distribute!";
         FonteOP.desenhar(g, font, dir, width - 8 - FonteOP.largura(font, dir), height - 11 + 0.5F, cor, false);
@@ -353,7 +349,8 @@ public class TelaInicial extends Screen {
     // ================================================================== entrada
 
     @Override
-    public boolean keyPressed(int tecla, int scan, int mods) {
+    public boolean keyPressed(KeyEvent evento) {
+        int tecla = evento.key();
         if (tecla == GLFW.GLFW_KEY_DOWN || tecla == GLFW.GLFW_KEY_TAB) {
             mover(1);
             return true;
@@ -367,7 +364,7 @@ public class TelaInicial extends Screen {
             ativar(itens.get(sel));
             return true;
         }
-        return super.keyPressed(tecla, scan, mods);
+        return super.keyPressed(evento);
     }
 
     private void mover(int passo) {
@@ -392,8 +389,10 @@ public class TelaInicial extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int botao) {
-        if (botao == 0) {
+    public boolean mouseClicked(MouseButtonEvent evento, boolean duplo) {
+        double mx = evento.x();
+        double my = evento.y();
+        if (evento.button() == 0) {
             for (Item it : itens) {
                 if (it.ativo && it.contem(mx, my)) {
                     ativar(it);
@@ -401,7 +400,7 @@ public class TelaInicial extends Screen {
                 }
             }
         }
-        return super.mouseClicked(mx, my, botao);
+        return super.mouseClicked(evento, duplo);
     }
 
     // ================================================================== utilitarios de desenho
@@ -446,7 +445,7 @@ public class TelaInicial extends Screen {
     }
 
     /** Texto letra a letra com espacamento, centrado em cx. y = topo da linha de texto (antes da escala). */
-    private void desenharEspacado(GuiGraphics g, String txt, Style estilo, float cx, float y, float escala, float track,
+    private void desenharEspacado(GuiGraphicsExtractor g, String txt, Style estilo, float cx, float y, float escala, float track,
             int cor) {
         if (((cor >>> 24) & 255) < 8) { // alfa muito baixo vira opaco no texto do Minecraft
             return;
@@ -454,30 +453,24 @@ public class TelaInicial extends Screen {
         float x = cx - larguraEspacada(txt, estilo, track) * escala / 2F;
         for (int i = 0; i < txt.length(); i++) {
             Component c = Component.literal(txt.substring(i, i + 1)).withStyle(estilo);
-            g.pose().pushPose();
-            g.pose().translate(x, y, 0F);
-            g.pose().scale(escala, escala, 1F);
-            g.drawString(font, c.getVisualOrderText(), 0F, 0F, cor, false);
-            g.pose().popPose();
+            g.pose().pushMatrix();
+            g.pose().translate(x, y);
+            g.pose().scale(escala, escala);
+            g.text(font, c, 0, 0, cor, false);
+            g.pose().popMatrix();
             x += (font.width(c) + track) * escala;
         }
     }
 
-    /** Brilho suave (textura radial branca) somado ao fundo. */
-    private void halo(GuiGraphics g, float cx, float cy, int rx, int ry, float alfa, float r, float gc, float b) {
+    /** Brilho suave (textura radial branca) tingido; mistura normal (no Forge era aditiva, entao fica um pouco mais fraco). */
+    private void halo(GuiGraphicsExtractor g, float cx, float cy, int rx, int ry, float alfa, float r, float gc, float b) {
         if (alfa <= 0.003F) {
             return;
         }
-        g.flush();
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        g.setColor(r, gc, b, alfa);
-        g.blit(HALO, Math.round(cx) - rx, Math.round(cy) - ry, rx * 2, ry * 2, 0F, 0F, 128, 128, 128, 128);
-        g.setColor(1F, 1F, 1F, 1F);
-        RenderSystem.defaultBlendFunc();
+        DesenhoOP.haloEliptico(g, HALO, Math.round(cx), Math.round(cy), rx, ry, alfa, r, gc, b);
     }
 
-    private static void losango(GuiGraphics g, float cx, float cy, int r, int cor) {
+    private static void losango(GuiGraphicsExtractor g, float cx, float cy, int r, int cor) {
         int x = Math.round(cx);
         int y = Math.round(cy);
         for (int dy = -r; dy <= r; dy++) {
@@ -486,7 +479,7 @@ public class TelaInicial extends Screen {
         }
     }
 
-    private static void caixa(GuiGraphics g, int x, int y, int w, int h, int fundo, int borda) {
+    private static void caixa(GuiGraphicsExtractor g, int x, int y, int w, int h, int fundo, int borda) {
         g.fill(x + 1, y + 1, x + w - 1, y + h - 1, fundo);
         g.fill(x, y, x + w, y + 1, borda);
         g.fill(x, y + h - 1, x + w, y + h, borda);
@@ -495,7 +488,7 @@ public class TelaInicial extends Screen {
     }
 
     /** Pequenos colchetes nos quatro cantos (os "cantos de ritual"). */
-    private static void cantos(GuiGraphics g, int x, int y, int w, int h, int cor) {
+    private static void cantos(GuiGraphicsExtractor g, int x, int y, int w, int h, int cor) {
         int t = 4;
         g.fill(x - 1, y - 1, x + t, y, cor);
         g.fill(x - 1, y - 1, x, y + t, cor);

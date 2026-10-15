@@ -136,7 +136,8 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
   - [~] 6b. `TelaTeste` (o dado), `TelaFicha` (menu K), `DesenhoOP` (poligono, linha, halo e skin do jogador; novo), `IconesOP`, `DescricoesOP` e `marcado/VfxMarcado`; `ClienteFicha` e `ClienteTeste` agora abrem as telas de verdade. NAO compilada nem testada. Falta o `InventarioOrdem` (inventario em vidro escuro): usava `ContainerScreenEvent.Render.Background` do Forge, que nao existe no Fabric; vira um mixin em `AbstractContainerScreen` (6b2).
   - [~] 6c. `TelaCriacao` (criacao de personagem, 4 etapas) portada com `DesenhoOP`; `ClienteCriacao` abre ela direto (sem a cena do Marcado, que e a 6d). NAO compilada nem testada.
   - [~] 6d. Cena do Marcado: `TelaMarcado` e `AudioMarcado` portados; `ClienteCriacao.abrir(true)` volta a abrir a `TelaMarcado` (que no fim manda `PacoteMarcado` e abre a `TelaCriacao`). A silhueta branca do personagem virou uma silhueta chapada desenhada na mao (`DesenhoOP.silhueta`; `SILHUETA_PROCEDURAL = false` usa a skin real). `EventosMarcado` e obsoleto (o attachment ja e `copyOnDeath`) e fica fora do build. NAO compilada nem testada.
-  - [ ] 6e. Tela inicial e menus (`titulo/*`: `TelaInicial`, `EstiloMenu`, `EstiloTexturas`, `TemaInicial`, `EventosTitulo`). Fica por ultimo: e so visual.
+  - [~] 6e. Tela inicial: `TelaInicial`, `TemaInicial` e `EventosTitulo` portados (o `EventosTitulo` usa `ScreenEvents.AFTER_INIT` do Fabric API e troca o `TitleScreen` no tick seguinte). O botao "Mods" saiu (o Fabric nao tem tela de mods; o rodape mostra a quantidade de mods). NAO compilada nem testada.
+  - [ ] 6e2. Visual das telas do jogo (`titulo/EstiloMenu`, `titulo/EstiloTexturas`): fundo de nevoa, botoes de vidro, borda dos campos de texto. FICAM FORA do build: usavam eventos do Forge (ScreenEvent.Render) e trocavam `widgets.png`/`slider.png`, que no 26.x nao sao mais usados (os botoes viraram sprites do atlas gui). O caminho provavel: sprites estaticos em `assets/minecraft/textures/gui/sprites/widget/` + `ScreenEvents` do Fabric API para o fundo. Ate la, Um jogador/Opcoes etc. abrem com o visual original do jogo.
   - Depois da 6e: apagar `cliente/ZumbiSangueModel.java` e conferir os avisos de "Pendencias pequenas".
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
 
@@ -152,6 +153,15 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
 
 - 6a: `HudOrdem` perdeu o corte inclinado das barras (a constante `INCLINACAO` ja era 0F) e o halo do simbolo do medo deixou de ser aditivo. Se quiser a inclinacao de volta, e preciso um `RenderPipeline` proprio (o `fill` so faz retangulos).
 - 6a: a barra de informacao do jogo (`INFO_BAR`) tambem mostra a barra do localizador (waypoints) do 26.x; ela some junto com a de XP enquanto a HUD do mod esta ativa.
+
+## Pontos de risco da 6e (escrita sem compilar)
+- `ScreenEvents.AFTER_INIT.register((cliente, tela, largura, altura) -> ...)` (pacote `net.fabricmc.fabric.api.client.screen.v1`) e `cliente.gui.screen()/setScreen`.
+- `Minecraft.getMusicManager().stopPlaying()` em `TemaInicial.tick` (calar a musica de menu do jogo; o nome do metodo nao foi conferido). Se falhar, apague so essa linha: o tema do mod toca por cima da musica do jogo.
+- `SharedConstants.getCurrentVersion().name()` no rodape da `TelaInicial` (pode ser `getName()`).
+- `OptionsScreen(Screen, Options)`, `SafetyScreen(Screen)`, `Options.skipMultiplayerWarning`, `Minecraft.allowsMultiplayer()` nos botoes.
+- `g.text(font, Component, ...)` (texto letra a letra), blit do simbolo 1024x1024 com tinta.
+- Visual: halos nao-aditivos (ficam um pouco mais fracos). Sem EstiloMenu, os submenus (Um jogador, Opcoes) ficam com o visual do jogo.
+- Se a tela inicial nao aparecer: veja se o log mostra erro em `EventosTitulo`; para testar sem ela, `SUBSTITUIR_MENU = false`.
 
 ## Pontos de risco da 6d (escrita sem compilar)
 - `AbstractTickableSoundInstance(SoundEvent, SoundSource, RandomSource)` e os campos `looping`, `delay`, `volume`, `relative`, `attenuation` em `AudioMarcado.Laco` (nao mudaram de nome que eu saiba, mas nao foi conferido no 26.2).
