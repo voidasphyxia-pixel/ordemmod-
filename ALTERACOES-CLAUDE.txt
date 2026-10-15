@@ -5,6 +5,12 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 15/10/2026 (porte Fabric: limpeza de pendencias pequenas) -----------------
+  - Apagado cliente/ZumbiSangueModel.java (obsoleto, GeckoLib 4; o ZumbiSangueRenderer o substitui).
+  - Renomeados para minusculas: assets/ordemmod/font/{z,c,tektur}-ofl.txt e sounds/menu/creditos-musica.txt
+    (acaba com o aviso "Invalid path in mod resource-pack" no log). Nenhum codigo os referenciava.
+  - Como testar: o log do jogo nao deve mais mostrar "Invalid path in mod resource-pack".
+
 --- 15/10/2026 (porte Fabric: etapa 7, esquiva e rolada sem Epic Fight) --------
   Arquivos: EsquivaVisual (reescrito), EsquivaEpicFight e RolamentoEpicFight (APAGADOS neste branch), PORTE-FABRIC.md.
   - A esquiva por Reflexos e a rolada de Acrobacia agora dao um impulso fisico no jogador (servidor + hurtMarked):

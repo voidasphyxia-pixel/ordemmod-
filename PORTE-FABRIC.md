@@ -143,11 +143,11 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
 - [~] 7. Esquiva e rolada sem Epic Fight: `EsquivaVisual` agora da um impulso de verdade (passo para longe do atacante; rolada para a frente) com fumaca e som; sem animacao de corpo (nao ha biblioteca de animacao do jogador no Fabric aqui). `EsquivaEpicFight` e `RolamentoEpicFight` apagados deste branch. Armas: TACZ Fabric (7a, ver `PORTE-TACZ.md`). NAO compilada nem testada.
 
 ## Pendencias pequenas
-- Os arquivos `font/c-OFL.txt`, `font/Tektur-OFL.txt`, `font/z-OFL.txt` e `sounds/menu/CREDITOS-MUSICA.txt` tem maiuscula e geram "Invalid path in mod resource-pack" no log (inofensivo). Renomear para minusculas ou mover para fora de `assets/`.
+- FEITO (15/10): `font/*-OFL.txt` e `sounds/menu/CREDITOS-MUSICA.txt` renomeados para minusculas (`*-ofl.txt`, `creditos-musica.txt`); o aviso "Invalid path in mod resource-pack" some.
 - 4d: `TamableAnimalMixin` so cobre lobo, gato e papagaio; cavalos e afins ainda nao ganham o bonus de Adestramento.
 - 4d: a queda (Acrobacia) agora testa quando o dano da queda e >= 1 (queda acima de 3 blocos); no Forge o gatilho era distancia >= 4.
-- 5a: o codigo ainda nao portado que usa `SonsOrdem.X.get()` (telas, `RolagemHud`, cena do Marcado) precisa trocar para `SonsOrdem.X` quando for portado na etapa 6.
-- 5b: `cliente/ZumbiSangueModel.java` ficou obsoleto (Forge/GeckoLib 4) e fora do build; pode ser apagado quando voce quiser. `ZumbiSangueRenderer` o substitui.
+- FEITO: todo o codigo de tela/HUD/Marcado ja usa `SonsOrdem.X` sem `.get()` (conferido por grep em 15/10).
+- FEITO (15/10): `cliente/ZumbiSangueModel.java` (obsoleto, GeckoLib 4) apagado; `ZumbiSangueRenderer` o substitui.
 - 5b: os arquivos antigos em `assets/ordemmod/geo/` e `animations/` (caminho do GeckoLib 4) so servem para a `main` (Forge); neste branch eles saem de la pelo `git mv`.
 - 5b: o arquivo `zumbi_sangue.animation.json` e do formato do GeckoLib 4; o GeckoLib 5 le o mesmo formato Bedrock, mas se alguma animacao nao tocar, o log do GeckoLib avisa o nome. Os nomes usados no codigo sao `animation.zumbi.` + deitado, levantar, idle, andar, correr, ataque_garra, ataque_arrasto, ataque, morte, dano.
 - 5c: o ovo nao tem textura propria: usa as texturas padrao do jogo (`item/spawn_egg` e `item/spawn_egg_overlay`) pintadas pelas cores do `tints`, igual ao ovo de qualquer mob de vanilla.
