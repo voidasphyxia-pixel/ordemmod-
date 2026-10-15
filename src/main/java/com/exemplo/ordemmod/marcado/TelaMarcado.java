@@ -6,28 +6,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
+import com.exemplo.ordemmod.DesenhoOP;
 import com.exemplo.ordemmod.OrdemMod;
-import com.exemplo.ordemmod.Rede;
+import com.exemplo.ordemmod.ReceptoresCliente;
 import com.exemplo.ordemmod.TelaCriacao;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
-import net.minecraft.world.entity.LivingEntity;
-import com.mojang.blaze3d.platform.GlStateManager;
-import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.systems.RenderSystem;
-import org.joml.Matrix4f;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundSource;
 
 /**
@@ -36,14 +32,27 @@ import net.minecraft.sounds.SoundSource;
  * manda as escolhas ao servidor (PacoteMarcado) e abre a TelaCriacao normal.
  *
  * ESTADO: esqueleto jogável, ainda sem teste no jogo. Veja o LEIA-ME-MARCADO.md (o que falta ajustar).
+ *
+ * Fabric 26.2 (6d): render() virou extractRenderState(GuiGraphicsExtractor, ...); a entrada recebe KeyEvent/MouseButtonEvent;
+ * a pilha de matrizes e a Matrix3x2fStack; os halos deixaram de ser aditivos (sobre o fundo preto da cena ficam iguais);
+ * drawCenteredString virou textoCentro (g.text com a largura medida); as escolhas vao por ReceptoresCliente.enviar.
+ * A SILHUETA do personagem: no Forge era o proprio jogador desenhado com uma textura branca (RenderType trocado). Isso nao
+ * existe no 26.2, entao por padrao e uma silhueta chapada desenhada na mao (DesenhoOP.silhueta). Com SILHUETA_PROCEDURAL = false
+ * volta a skin real do jogador, parada (DesenhoOP.entidade).
  */
 public class TelaMarcado extends Screen {
-    private static final Style FONTE_ENTIDADE = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "entidade"));
-    private static final ResourceLocation BRANCO = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/branco.png");
-    private static final ResourceLocation HALO = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
+    private static final Style FONTE_ENTIDADE = estilo("entidade");
+    private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
+    /** true: silhueta chapada desenhada na mao; false: a skin real do jogador (sem o efeito de silhueta branca). */
+    private static final boolean SILHUETA_PROCEDURAL = true;
+    private static final int COR_SILHUETA = 0xFFE4E8F2;
     private static final float LETRAS_POR_SEGUNDO = 22f;
     private static final float PAUSA_PADRAO = 1.2f;
     private static final Random SORTEIO = new Random();
+
+    private static Style estilo(String fonte) {
+        return Style.EMPTY.withFont(new FontDescription.Resource(Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, fonte)));
+    }
 
     private enum Fase { DIGITANDO, PAUSA, ESCOLHA, REACAO, SILENCIO, ESPERA, REVELACAO, FIM, SAIDA_FADE }
 
@@ -295,8 +304,8 @@ public class TelaMarcado extends Screen {
             return;
         }
         enviado = true;
-        Rede.CANAL.sendToServer(new PacoteMarcado(escolhas));
-        Minecraft.getInstance().setScreen(new TelaCriacao());
+        ReceptoresCliente.enviar(new PacoteMarcado(escolhas));
+        Minecraft.getInstance().gui.setScreen(new TelaCriacao());
     }
 
     // ================================================================== efeitos (ids do roteiro)
@@ -430,7 +439,7 @@ public class TelaMarcado extends Screen {
     // ================================================================== desenho
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float parcial) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float parcial) {
         long agora = System.nanoTime();
         float dt = Math.min(0.1f, (agora - ultimo) / 1_000_000_000f);
         ultimo = agora;
@@ -479,30 +488,32 @@ public class TelaMarcado extends Screen {
     }
 
     /** "VOCÊ É UM / MARCADO / Você é livre das correntes da realidade." durante o fade final. */
-    private void desenharTitulo(GuiGraphics g) {
+    private void desenharTitulo(GuiGraphicsExtractor g) {
         int a = (int) (255f * Math.min(1f, t / 1.5f));
         if (a < 8) {
-            return; // alfa muito baixo vira opaco no texto do Minecraft
+            return; // alfa muito baixo vira opaco ou some no texto do Minecraft
         }
         int alfa = a << 24;
-        Style titulo = Style.EMPTY.withFont(new ResourceLocation(OrdemMod.MOD_ID, "titulo"));
+        Style titulo = estilo("titulo");
         int cx = width / 2;
         int cy = height / 2;
-        g.pose().pushPose();
-        g.pose().translate(cx, cy - 30, 0);
-        g.pose().scale(1.5f, 1.5f, 1f);
-        g.drawCenteredString(font, Component.translatable("marcado.titulo.1").withStyle(titulo), 0, 0, 0xB8B0B0 | alfa);
-        g.pose().popPose();
-        g.pose().pushPose();
-        g.pose().translate(cx, cy - 10, 0);
-        g.pose().scale(3.5f, 3.5f, 1f);
-        g.drawCenteredString(font, Component.translatable("marcado.titulo.2").withStyle(titulo), 0, 0, 0xF0E8E8 | alfa);
-        g.pose().popPose();
-        g.drawCenteredString(font, Component.translatable("marcado.titulo.3").withStyle(FONTE_ENTIDADE), cx, cy + 38,
+        textoCentro(g, Component.translatable("marcado.titulo.1").withStyle(titulo), cx, cy - 30, 1.5f, 0xB8B0B0 | alfa);
+        textoCentro(g, Component.translatable("marcado.titulo.2").withStyle(titulo), cx, cy - 10, 3.5f, 0xF0E8E8 | alfa);
+        textoCentro(g, Component.translatable("marcado.titulo.3").withStyle(FONTE_ENTIDADE), cx, cy + 38, 1f,
                 0x988E8E | alfa);
     }
 
-    private void desenharPersonagem(GuiGraphics g, int cx) {
+    /** Texto centralizado em (x, y) com escala (o g.text so aceita posicoes inteiras; a escala vem da matriz). */
+    private void textoCentro(GuiGraphicsExtractor g, Component c, float x, float y, float escala, int cor) {
+        int w = font.width(c);
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(escala, escala);
+        g.text(font, c, -w / 2, 0, cor, false);
+        g.pose().popMatrix();
+    }
+
+    private void desenharPersonagem(GuiGraphicsExtractor g, int cx) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {
             return;
@@ -541,9 +552,13 @@ public class TelaMarcado extends Screen {
         desenharHalo(g, cx + dx, corpoY - escala / 4, (int) (escala * 0.9f), alfa, r, gc, b);
 
         float ang = relogio * 0.35f;
-        Quaternionf pose = new Quaternionf().rotateZ((float) Math.PI).rotateY(ang);
-        Quaternionf camera = new Quaternionf().rotateX(-0.12f);
-        desenharSilhueta(g, cx + dx, pe, escala, pose, camera, mc.player);
+        if (SILHUETA_PROCEDURAL) {
+            DesenhoOP.silhueta(g, cx + dx, pe, escala * 1.8f, ang, COR_SILHUETA);
+        } else {
+            // skin real, parada, olhando de frente (o "mouse" fica no meio do corpo)
+            DesenhoOP.entidade(g, cx + dx - escala, pe - Math.round(escala * 1.9f), cx + dx + escala,
+                    pe + Math.round(escala * 0.1f), escala, cx + dx, corpoY, mc.player);
+        }
         if (aparicao < 1f) { // surge devagar saindo do preto
             g.fill(0, 0, width, height, ((int) ((1f - aparicao) * 255f)) << 24);
         }
@@ -554,7 +569,7 @@ public class TelaMarcado extends Screen {
      * e um feixe de luz que varre a tela da esquerda para a direita, recortando a silhueta. A animação roda em
      * câmera lenta ({@link #ESCALA_SOMBRA}).
      */
-    private void desenharCriatura(GuiGraphics g, int cx, float p) {
+    private void desenharCriatura(GuiGraphicsExtractor g, int cx, float p) {
         int s = Math.min(width, height);
         int topo = height / 2 - s / 2 - 10;
         float env = (float) Math.sin(p * Math.PI);
@@ -562,53 +577,20 @@ public class TelaMarcado extends Screen {
         desenharHalo(g, cx, topo + s / 2, (int) (s * 0.8f), 0.30f * env, 0.70f, 0.82f, 1f);
         // feixe de luz que passa (elipse alta e estreita)
         float x = -width * 0.15f + p * width * 1.3f;
-        desenharHaloEliptico(g, (int) x, height / 2, (int) (s * 0.35f), (int) (height * 0.75f), 0.55f * env, 0.85f, 0.92f, 1f);
+        DesenhoOP.haloEliptico(g, HALO, (int) x, height / 2, (int) (s * 0.35f), (int) (height * 0.75f), 0.55f * env, 0.85f,
+                0.92f, 1f);
         VfxMarcado.SOMBRA.desenhar(g, efeitos.get("shadow") * ESCALA_SOMBRA, 0.97f, cx - s / 2, topo, s, s);
     }
 
-    private void desenharHaloEliptico(GuiGraphics g, int x, int y, int rx, int ry, float alfa, float r, float gc, float b) {
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        g.setColor(r, gc, b, alfa);
-        g.blit(HALO, x - rx, y - ry, rx * 2, ry * 2, 0f, 0f, 128, 128, 128, 128);
-        g.setColor(1f, 1f, 1f, 1f);
-        RenderSystem.defaultBlendFunc();
+    /** Brilho suave (textura radial branca) tingido; por cima do fundo preto da cena fica igual ao aditivo do Forge. */
+    private void desenharHalo(GuiGraphicsExtractor g, int x, int y, int raio, float alfa, float r, float gc, float b) {
+        if (alfa < 0.01f) {
+            return;
+        }
+        DesenhoOP.halo(g, HALO, x, y, raio, alfa, r, gc, b);
     }
 
-    /** Brilho suave (textura radial branca), somado à imagem de trás. */
-    private void desenharHalo(GuiGraphics g, int x, int y, int raio, float alfa, float r, float gc, float b) {
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        g.setColor(r, gc, b, alfa);
-        g.blit(HALO, x - raio, y - raio, raio * 2, raio * 2, 0f, 0f, 128, 128, 128, 128);
-        g.setColor(1f, 1f, 1f, 1f);
-        RenderSystem.defaultBlendFunc();
-    }
-
-    /**
-     * Igual ao InventoryScreen.renderEntityInInventory, mas todo o modelo (corpo, roupa, itens) é desenhado
-     * com uma textura branca única, então vira uma silhueta clara sem rosto nem skin.
-     */
-    private void desenharSilhueta(GuiGraphics g, int x, int y, int escala, Quaternionf pose, Quaternionf camera,
-            LivingEntity entidade) {
-        g.pose().pushPose();
-        g.pose().translate((double) x, (double) y, 50.0D);
-        g.pose().mulPoseMatrix(new Matrix4f().scaling((float) escala, (float) escala, (float) -escala));
-        g.pose().mulPose(pose);
-        Lighting.setupForEntityInInventory();
-        EntityRenderDispatcher disp = Minecraft.getInstance().getEntityRenderDispatcher();
-        camera.conjugate();
-        disp.overrideCameraOrientation(camera);
-        disp.setRenderShadow(false);
-        MultiBufferSource fonte = tipo -> g.bufferSource().getBuffer(RenderType.entityCutoutNoCull(BRANCO));
-        RenderSystem.runAsFancy(() -> disp.render(entidade, 0.0D, 0.0D, 0.0D, 0.0F, 1.0F, g.pose(), fonte, 15728880));
-        g.flush();
-        disp.setRenderShadow(true);
-        g.pose().popPose();
-        Lighting.setupFor3DItems();
-    }
-
-    private void desenharEfeitos(GuiGraphics g, int cx) {
+    private void desenharEfeitos(GuiGraphicsExtractor g, int cx) {
         float p = efeito("pulse_red", 1.25f);
         if (p >= 0) {
             int a = (int) (40 * Math.sin(p * Math.PI));
@@ -638,7 +620,10 @@ public class TelaMarcado extends Screen {
     }
 
     /** Símbolo do elemento, tingido e com brilho; só aparece por instantes (nunca fica na tela). */
-    private void desenharSimbolo(GuiGraphics g, int cx, String el, int tam, float alfa) {
+    private void desenharSimbolo(GuiGraphicsExtractor g, int cx, String el, int tam, float alfa) {
+        if (alfa < 0.01f) {
+            return;
+        }
         float r = 1f, gc = 1f, b = 1f;
         switch (el) {
             case "conhecimento" -> { r = 0.95f; gc = 0.85f; b = 0.55f; }
@@ -650,15 +635,12 @@ public class TelaMarcado extends Screen {
         }
         int cy = height / 2 - 10;
         desenharHalo(g, cx, cy, (int) (tam * 1.1f), alfa * 0.6f, r, gc, b);
-        ResourceLocation tex = new ResourceLocation(OrdemMod.MOD_ID, "textures/gui/marcado/simbolo_" + el + ".png");
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        g.setColor(r, gc, b, alfa);
-        g.blit(tex, cx - tam / 2, cy - tam / 2, tam, tam, 0f, 0f, 128, 128, 128, 128);
-        g.setColor(1f, 1f, 1f, 1f);
+        Identifier tex = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/simbolo_" + el + ".png");
+        g.blit(RenderPipelines.GUI_TEXTURED, tex, cx - tam / 2, cy - tam / 2, 0f, 0f, tam, tam, 128, 128, 128, 128,
+                DesenhoOP.argb(alfa, r, gc, b));
     }
 
-    private void desenharRevelacao(GuiGraphics g) {
+    private void desenharRevelacao(GuiGraphicsExtractor g) {
         float corr = VfxMarcado.CORRENTES.duracao();
         int w = width;
         int h = w * 9 / 16; // os quadros são 16:9
@@ -668,7 +650,7 @@ public class TelaMarcado extends Screen {
         }
     }
 
-    private void desenharTexto(GuiGraphics g, int mx, int my) {
+    private void desenharTexto(GuiGraphicsExtractor g, int mx, int my) {
         areasOpcao.clear();
         int y = saindo ? height / 2 - linhas.size() * 13 / 2 : height * 2 / 3; // frase da saída secreta fica no centro
         if (fase == Fase.ESCOLHA && passo != null) { // com muitas opções, sobe o bloco para caber na tela
@@ -684,7 +666,7 @@ public class TelaMarcado extends Screen {
             String parte = linha.substring(0, Math.max(0, Math.min(linha.length(), restante)));
             restante -= linha.length();
             Component c = Component.literal(parte).withStyle(FONTE_ENTIDADE);
-            g.drawString(font, c, width / 2 - font.width(Component.literal(linha).withStyle(FONTE_ENTIDADE)) / 2 + dx, y,
+            g.text(font, c, width / 2 - font.width(Component.literal(linha).withStyle(FONTE_ENTIDADE)) / 2 + dx, y,
                     corTexto, false);
             y += 13;
         }
@@ -697,7 +679,7 @@ public class TelaMarcado extends Screen {
                 int w = font.width(c);
                 int x = width / 2 - w / 2;
                 areasOpcao.add(new int[] { x, y - 2, x + w, y + 11 });
-                g.drawString(font, c, x, y, ativa ? 0xFFFFFFFF : 0xFF8A8484, false);
+                g.text(font, c, x, y, ativa ? 0xFFFFFFFF : 0xFF8A8484, false);
                 y += 15;
             }
         }
@@ -706,7 +688,8 @@ public class TelaMarcado extends Screen {
     // ================================================================== entrada
 
     @Override
-    public boolean keyPressed(int tecla, int scan, int mods) {
+    public boolean keyPressed(KeyEvent evento) {
+        int tecla = evento.key();
         if (fase == Fase.ESCOLHA) {
             int n = passo.opcoes.size();
             if (tecla == GLFW.GLFW_KEY_W || tecla == GLFW.GLFW_KEY_UP) {
@@ -727,17 +710,17 @@ public class TelaMarcado extends Screen {
             pular();
             return true;
         }
-        return super.keyPressed(tecla, scan, mods); // ESC não faz nada (shouldCloseOnEsc = false)
+        return super.keyPressed(evento); // ESC não faz nada (shouldCloseOnEsc = false)
     }
 
     /** O ESC é contado ao soltar a tecla, assim segurar a tecla (repetição automática) vale um só. */
     @Override
-    public boolean keyReleased(int tecla, int scan, int mods) {
-        if (tecla == GLFW.GLFW_KEY_ESCAPE) {
+    public boolean keyReleased(KeyEvent evento) {
+        if (evento.key() == GLFW.GLFW_KEY_ESCAPE) {
             contarEsc();
             return true;
         }
-        return super.keyReleased(tecla, scan, mods);
+        return super.keyReleased(evento);
     }
 
     /** Enter durante a digitação mostra o texto todo; durante a pausa, passa adiante. */
@@ -764,7 +747,9 @@ public class TelaMarcado extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mx, double my, int botao) {
+    public boolean mouseClicked(MouseButtonEvent evento, boolean duploClique) {
+        double mx = evento.x();
+        double my = evento.y();
         if (fase == Fase.ESCOLHA) {
             for (int i = 0; i < areasOpcao.size(); i++) {
                 int[] a = areasOpcao.get(i);

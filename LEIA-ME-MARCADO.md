@@ -2,7 +2,7 @@
 
 Última atualização: 08/10/2026. Projeto: mod `ordemmod` (Forge 1.20.1, package `com.exemplo.ordemmod`).
 
-**Porte para Fabric 26.2 (branch `fabric-26.2`, desde 14/10/2026):** a cena do Marcado (`TelaMarcado`, `AudioMarcado`, `VfxMarcado`) e as telas de criação/ficha/dado ainda NÃO foram portadas; elas são as etapas 6b em diante (veja `PORTE-FABRIC.md`). A 6a portou só a HUD do jogo, as teclas e os avisos; a 6b portou a ficha (K), a tela do dado e o `VfxMarcado` (névoa/poeira). A `TelaCriacao` (6c) e a `TelaMarcado` (6d) continuam por portar. Enquanto isso, no Fabric o servidor ainda manda `PacoteAbrirCriacao`/`PacoteMarcado` normalmente (rede e `ReceptorMarcado` já portados), mas o cliente só escreve no log. O texto abaixo continua descrevendo a `main` (Forge 1.20.1).
+**Porte para Fabric 26.2 (branch `fabric-26.2`, desde 14/10/2026):** as telas foram portadas por etapas (veja `PORTE-FABRIC.md`). A 6a portou só a HUD do jogo, as teclas e os avisos; a 6b portou a ficha (K), a tela do dado e o `VfxMarcado` (névoa/poeira). A 6c portou a `TelaCriacao` e a 6d portou a cena do Marcado (`TelaMarcado`, `AudioMarcado`), ainda sem teste no jogo. No Fabric a silhueta do personagem na cena é desenhada na mão (chapada, `DesenhoOP.silhueta`), porque a skin branca do Forge dependia de trocar o `RenderType` da entidade; `SILHUETA_PROCEDURAL` em `TelaMarcado` volta a skin real. `EventosMarcado` não é mais usado (o attachment do perfil já é `copyOnDeath`). Falta só a tela inicial e os menus (6e). O texto abaixo continua descrevendo a `main` (Forge 1.20.1).
 
 ## Onde parou
 

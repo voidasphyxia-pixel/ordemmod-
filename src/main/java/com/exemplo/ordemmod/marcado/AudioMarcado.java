@@ -10,7 +10,10 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 
-/** Só cliente: toca os sons da cena (um disparo ou um laço com fade). Nomes = arquivos em sounds/marcado/. */
+/**
+ * Só cliente: toca os sons da cena (um disparo ou um laço com fade). Nomes = arquivos em sounds/marcado/.
+ * Fabric 26.2 (6d): SonsOrdem.MARCADO guarda o próprio SoundEvent (sem .get()).
+ */
 public final class AudioMarcado {
     private AudioMarcado() {
     }
@@ -18,7 +21,7 @@ public final class AudioMarcado {
     public static void tocar(String nome, float volume, float pitch) {
         var obj = SonsOrdem.MARCADO.get(nome);
         if (obj != null) {
-            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(obj.get(), pitch, volume));
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(obj, pitch, volume));
         }
     }
 
@@ -28,7 +31,7 @@ public final class AudioMarcado {
         private boolean encerrar;
 
         public Laco(String nome, float alvoInicial) {
-            super(SonsOrdem.MARCADO.get(nome).get(), SoundSource.MASTER, RandomSource.create());
+            super(SonsOrdem.MARCADO.get(nome), SoundSource.MASTER, RandomSource.create());
             this.looping = true;
             this.delay = 0;
             // Não pode ser 0: o SoundEngine descarta sons que começam com volume zero (nunca tocariam).

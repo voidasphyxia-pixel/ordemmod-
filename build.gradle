@@ -85,6 +85,8 @@ if (taczJars.files.isEmpty()) {
 //            marcado/VfxMarcado; ClienteFicha e ClienteTeste passam a abrir as telas de verdade. Ainda provisorio:
 //            ClienteCriacao. InventarioOrdem (o inventario em vidro escuro) fica de fora: usava um evento do Forge.
 //   Etapa 6c: TelaCriacao (criacao de personagem); ClienteCriacao abre ela direto (a cena do Marcado e a 6d).
+//   Etapa 6d: cena do Marcado (TelaMarcado, AudioMarcado); ClienteCriacao volta a abrir a TelaMarcado quando comMarcado.
+//            marcado/EventosMarcado.java ficou OBSOLETO e fora do build (o attachment do perfil ja e copyOnDeath).
 //   Etapa 7a: dependencia do TACZ (so build + fabric.mod.json, sem codigo novo).
 // ---------------------------------------------------------------------------------------
 def nucleo = [
@@ -121,6 +123,8 @@ def nucleo = [
     'DesenhoOP', 'IconesOP', 'DescricoesOP', 'marcado/VfxMarcado', 'TelaTeste', 'TelaFicha',
     // etapa 6c: tela de criacao de personagem
     'TelaCriacao',
+    // etapa 6d: cena do Marcado
+    'marcado/AudioMarcado', 'marcado/TelaMarcado',
     'OrdemMod'
 ]
 sourceSets.main.java.include nucleo.collect { "com/exemplo/ordemmod/${it}.java" }

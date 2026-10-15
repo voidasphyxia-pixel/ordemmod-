@@ -109,6 +109,15 @@ A tela de criacao de personagem (`TelaCriacao`). `gradlew build` primeiro; risco
 4. **Confirmar**: a tela fecha e o personagem e criado no servidor (`[Ordem servidor] ...` no log). ESC nao fecha a tela (de proposito).
 5. Se a tela abrir sem ter pedido (ou nao abrir), me avise: o `ClienteCriacao` agora ignora o parametro `comMarcado`.
 
+### Para testar a 6d (NAO compilada ainda)
+A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem ainda nao viu a cena. `gradlew build` primeiro; riscos em "Pontos de risco da 6d" abaixo.
+1. Para rever a cena: no mundo, `/ordem resetar` (apaga personagem e perfil do Marcado), saia e entre de novo, ou crie um mundo novo. Deve abrir a tela preta com o drone quase inaudivel; depois as falas da entidade aparecem letra a letra (com o blip), as perguntas sao respondidas com W/S/Enter ou o mouse, e ha efeitos (glitch, pulso vermelho, simbolos, sussurros, batimento, silencio).
+2. **Personagem**: perto do fim ele e revelado por um halo azulado sobre o fundo preto, girando devagar. No Forge era a skin do jogador em branco; agora e uma **silhueta chapada** (cabeca, tronco, bracos, pernas) que afina e engorda ao girar. Se quiser a skin real (parada), troque `SILHUETA_PROCEDURAL` para `false` no topo de `TelaMarcado`.
+3. **Sombra da criatura** (efeito `shadow`): o feixe de luz varre a tela e a sequencia `sombra` aparece em camera lenta. **Revelacao**: correntes e depois o titulo "VOCE E UM / MARCADO" (sequencias `correntes` e `titulo`).
+4. **Saida secreta**: ESC 5 vezes seguidas (no maximo 2,5 s entre eles): fade para o preto, o som para, aparece a frase e abre a criacao.
+5. No fim da cena, o log do servidor deve mostrar as respostas gravadas (`PacoteMarcado`) e a `TelaCriacao` abre; ao terminar a criacao, `/ordem resetar` repete tudo.
+6. Os sons: se algum nao tocar, confira `sounds.json` e os nomes em `SonsOrdem.NOMES_MARCADO` (etapa 5a).
+
 ## Etapas
 - [x] 1. Esqueleto: Loom sem remapeamento, `fabric.mod.json`, entrypoint `OrdemMod`.
 - [x] 2. Nucleo em Java puro (lista em `build.gradle`, variavel `nucleo`).
@@ -126,7 +135,7 @@ A tela de criacao de personagem (`TelaCriacao`). `gradlew build` primeiro; risco
   - [~] 6a. Cliente que nao e tela: entrypoint `OrdemModClienteFabric` agora liga `ReceptoresCliente.registrar()`, `TeclasOrdem.registrar()`, `HudOrdem.registrar()` e `ClienteEntidades.registrar()` (o provisorio da etapa 4 foi apagado); `FonteOP`, `TeclasOrdem` (`KeyMappingHelper`), `AvisoOrdem`, `RolagemHud` e `HudOrdem` (HUD com `HudElementRegistry`, geometria com `fill`/`fillGradient`). `ClienteCriacao`, `ClienteFicha` e `ClienteTeste` entram como PROVISORIOS (so escrevem no log). NAO compilada nem testada.
   - [~] 6b. `TelaTeste` (o dado), `TelaFicha` (menu K), `DesenhoOP` (poligono, linha, halo e skin do jogador; novo), `IconesOP`, `DescricoesOP` e `marcado/VfxMarcado`; `ClienteFicha` e `ClienteTeste` agora abrem as telas de verdade. NAO compilada nem testada. Falta o `InventarioOrdem` (inventario em vidro escuro): usava `ContainerScreenEvent.Render.Background` do Forge, que nao existe no Fabric; vira um mixin em `AbstractContainerScreen` (6b2).
   - [~] 6c. `TelaCriacao` (criacao de personagem, 4 etapas) portada com `DesenhoOP`; `ClienteCriacao` abre ela direto (sem a cena do Marcado, que e a 6d). NAO compilada nem testada.
-  - [ ] 6d. Cena do Marcado (`TelaMarcado`, `AudioMarcado`, `VfxMarcado`, `EventosMarcado`); `ClienteCriacao.abrir(true)` passa a abrir ela.
+  - [~] 6d. Cena do Marcado: `TelaMarcado` e `AudioMarcado` portados; `ClienteCriacao.abrir(true)` volta a abrir a `TelaMarcado` (que no fim manda `PacoteMarcado` e abre a `TelaCriacao`). A silhueta branca do personagem virou uma silhueta chapada desenhada na mao (`DesenhoOP.silhueta`; `SILHUETA_PROCEDURAL = false` usa a skin real). `EventosMarcado` e obsoleto (o attachment ja e `copyOnDeath`) e fica fora do build. NAO compilada nem testada.
   - [ ] 6e. Tela inicial e menus (`titulo/*`: `TelaInicial`, `EstiloMenu`, `EstiloTexturas`, `TemaInicial`, `EventosTitulo`). Fica por ultimo: e so visual.
   - Depois da 6e: apagar `cliente/ZumbiSangueModel.java` e conferir os avisos de "Pendencias pequenas".
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
@@ -143,6 +152,13 @@ A tela de criacao de personagem (`TelaCriacao`). `gradlew build` primeiro; risco
 
 - 6a: `HudOrdem` perdeu o corte inclinado das barras (a constante `INCLINACAO` ja era 0F) e o halo do simbolo do medo deixou de ser aditivo. Se quiser a inclinacao de volta, e preciso um `RenderPipeline` proprio (o `fill` so faz retangulos).
 - 6a: a barra de informacao do jogo (`INFO_BAR`) tambem mostra a barra do localizador (waypoints) do 26.x; ela some junto com a de XP enquanto a HUD do mod esta ativa.
+
+## Pontos de risco da 6d (escrita sem compilar)
+- `AbstractTickableSoundInstance(SoundEvent, SoundSource, RandomSource)` e os campos `looping`, `delay`, `volume`, `relative`, `attenuation` em `AudioMarcado.Laco` (nao mudaram de nome que eu saiba, mas nao foi conferido no 26.2).
+- `Minecraft.getSoundManager().stop(null, SoundSource.MASTER)` (a assinatura com `Identifier` nulo) na saida secreta.
+- `font.getSplitter().splitLines(Component, int, Style)` em `mostrar()` e `Screen.mouseMoved(double, double)`/`keyReleased(KeyEvent)`.
+- `g.text(font, Component, int, int, int, boolean)` com `Component` (a documentacao so mostra `String`/`Component` de forma geral).
+- Visual: os halos deixaram de ser aditivos; sobre o fundo preto da cena ficam iguais, mas sobre a sombra/correntes podem ficar um pouco mais fracos. A silhueta e uma aproximacao (veja acima).
 
 ## Pontos de risco da 6c (escrita sem compilar)
 - `Screen.shouldCloseOnEsc()` (usado para impedir fechar a criacao com ESC) e `onClose()` apos confirmar: no 26.2 o `onClose` padrao deve fechar a tela via `Gui`; se a tela nao fechar, trocar por `minecraft.gui.setScreen(null)`.

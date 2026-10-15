@@ -121,6 +121,44 @@ public final class DesenhoOP {
                 raio * 2, 128, 128, 128, 128, argb(alfa, r, gc, b));
     }
 
+    /** Como {@link #halo}, mas esticado numa elipse de raios {@code rx} x {@code ry} (o "feixe de luz" da cena do Marcado). */
+    public static void haloEliptico(GuiGraphicsExtractor g, Identifier textura, int x, int y, int rx, int ry, float alfa,
+            float r, float gc, float b) {
+        if (alfa < 0.01F || rx <= 0 || ry <= 0) {
+            return;
+        }
+        g.blit(RenderPipelines.GUI_TEXTURED, textura, x - rx, y - ry, 0F, 0F, rx * 2, ry * 2, 128, 128, 128, 128,
+                argb(alfa, r, gc, b));
+    }
+
+    /**
+     * Silhueta humanoide chapada (cabeca, tronco, bracos e pernas, como retangulos), de pe em ({@code cx}, {@code pe}) e com
+     * {@code altura} pixels. {@code angulo} (radianos) gira o corpo em torno do eixo vertical: o corpo todo afina e engorda
+     * em x, o que da a ideia de ele virando. No Forge a cena desenhava o proprio jogador com uma textura branca; no 26.2 isso
+     * exigiria trocar o RenderType da entidade (nao existe mais), por isso a silhueta e desenhada na mao.
+     */
+    public static void silhueta(GuiGraphicsExtractor g, float cx, float pe, float altura, float angulo, int argb) {
+        float u = altura / 32F;
+        float f = 0.35F + 0.65F * Math.abs((float) Math.cos(angulo));
+        // {x0, y0, x1, y1} em unidades de 1/32 da altura: x centrado em 0, y de cima (0) para baixo (32)
+        float[][] partes = {
+                {-4F, 0F, 4F, 8F},      // cabeca
+                {-4F, 8F, 4F, 20F},     // tronco
+                {-8F, 8F, -4F, 20F},    // braco esquerdo
+                {4F, 8F, 8F, 20F},      // braco direito
+                {-4F, 20F, 0F, 32F},    // perna esquerda
+                {0F, 20F, 4F, 32F}};    // perna direita
+        for (float[] p : partes) {
+            int x0 = Math.round(cx + p[0] * u * f);
+            int x1 = Math.round(cx + p[2] * u * f);
+            int y0 = Math.round(pe - altura + p[1] * u);
+            int y1 = Math.round(pe - altura + p[3] * u);
+            if (x1 > x0 && y1 > y0) {
+                g.fill(x0, y0, x1, y1, argb);
+            }
+        }
+    }
+
     /**
      * A skin do jogador (ou outra entidade viva) num quadro, olhando para o mouse. A caixa e (x0, y0)-(x1, y1);
      * {@code tamanho} e o numero de pixels por bloco. ATENCAO: o nome do metodo do jogo (extractEntityInInventoryFollowsMouse)
