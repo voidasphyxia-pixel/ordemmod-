@@ -137,6 +137,7 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
   - [~] 6c. `TelaCriacao` (criacao de personagem, 4 etapas) portada com `DesenhoOP`; `ClienteCriacao` abre ela direto (sem a cena do Marcado, que e a 6d). NAO compilada nem testada.
   - [~] 6d. Cena do Marcado: `TelaMarcado` e `AudioMarcado` portados; `ClienteCriacao.abrir(true)` volta a abrir a `TelaMarcado` (que no fim manda `PacoteMarcado` e abre a `TelaCriacao`). A silhueta branca do personagem virou uma silhueta chapada desenhada na mao (`DesenhoOP.silhueta`; `SILHUETA_PROCEDURAL = false` usa a skin real). `EventosMarcado` e obsoleto (o attachment ja e `copyOnDeath`) e fica fora do build. NAO compilada nem testada.
   - [~] 6e. Tela inicial: `TelaInicial`, `TemaInicial` e `EventosTitulo` portados (o `EventosTitulo` usa `ScreenEvents.AFTER_INIT` do Fabric API e troca o `TitleScreen` no tick seguinte). O botao "Mods" saiu (o Fabric nao tem tela de mods; o rodape mostra a quantidade de mods). NAO compilada nem testada.
+  - [~] 6b2. `InventarioOrdem` (inventario e baus em vidro escuro) portado via mixins so de cliente (`mixin/cliente/*`, `ordemmod.client.mixins.json`). Nomes dos metodos do jogo NAO conferidos (config tolerante a falha). NAO compilada nem testada.
   - [ ] 6e2. Visual das telas do jogo (`titulo/EstiloMenu`, `titulo/EstiloTexturas`): fundo de nevoa, botoes de vidro, borda dos campos de texto. FICAM FORA do build: usavam eventos do Forge (ScreenEvent.Render) e trocavam `widgets.png`/`slider.png`, que no 26.x nao sao mais usados (os botoes viraram sprites do atlas gui). O caminho provavel: sprites estaticos em `assets/minecraft/textures/gui/sprites/widget/` + `ScreenEvents` do Fabric API para o fundo. Ate la, Um jogador/Opcoes etc. abrem com o visual original do jogo.
   - Depois da 6e: apagar `cliente/ZumbiSangueModel.java` e conferir os avisos de "Pendencias pequenas".
 - [ ] 7. Esquiva e rolamento sem Epic Fight (`EsquivaEpicFight`, `RolamentoEpicFight`, hoje substituidos pelo provisorio `EsquivaVisual`) e armas sem TACZ.
@@ -153,6 +154,13 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
 
 - 6a: `HudOrdem` perdeu o corte inclinado das barras (a constante `INCLINACAO` ja era 0F) e o halo do simbolo do medo deixou de ser aditivo. Se quiser a inclinacao de volta, e preciso um `RenderPipeline` proprio (o `fill` so faz retangulos).
 - 6a: a barra de informacao do jogo (`INFO_BAR`) tambem mostra a barra do localizador (waypoints) do 26.x; ela some junto com a de XP enquanto a HUD do mod esta ativa.
+
+## Pontos de risco da 6b2 (inventario, escrita sem compilar)
+- Os NOMES dos metodos do jogo sao palpites pela regra render -> extract: `extractBg(GuiGraphicsExtractor, float, int, int)` (em `InventoryScreen` e `ContainerScreen`) e `extractLabels(GuiGraphicsExtractor, int, int)` (em `InventoryScreen` e `AbstractContainerScreen`). Os campos `leftPos`, `topPos`, `imageWidth`, `imageHeight` tambem. `ContainerScreen` (baus) pode ter outro nome no 26.2.
+- A config `ordemmod.client.mixins.json` tem `defaultRequire: 0` e `required: false`: se um nome estiver errado, o mixin nao acha o alvo e o inventario fica com o visual do jogo (o log mostra um aviso do Mixin). Um erro de ASSINATURA (parametros diferentes) pode derrubar o jogo ao abrir o inventario: nesse caso o log diz qual metodo; para desligar tudo, tire a linha `ordemmod.client.mixins.json` do `fabric.mod.json`.
+- Para conferir os nomes reais: `gradlew genSources` e procurar `extractBg` em `AbstractContainerScreen`/`InventoryScreen` nas fontes geradas.
+- Se os textos sairem deslocados: o jogo pode nao mover o desenho para o canto do painel dentro de `extractLabels` (a `InventarioOrdem.frente` assume que move).
+- O boneco usa `DesenhoOP.entidade` (nome do metodo do jogo nao conferido, ja listado na 6b).
 
 ## Pontos de risco da 6e (escrita sem compilar)
 - `ScreenEvents.AFTER_INIT.register((cliente, tela, largura, altura) -> ...)` (pacote `net.fabricmc.fabric.api.client.screen.v1`) e `cliente.gui.screen()/setScreen`.

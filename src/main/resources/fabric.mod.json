@@ -11,7 +11,10 @@
     "main": ["com.exemplo.ordemmod.OrdemMod"],
     "client": ["com.exemplo.ordemmod.cliente.OrdemModClienteFabric"]
   },
-  "mixins": ["ordemmod.mixins.json"],
+  "mixins": [
+    "ordemmod.mixins.json",
+    { "config": "ordemmod.client.mixins.json", "environment": "client" }
+  ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": ">=26.2",

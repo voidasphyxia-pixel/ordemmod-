@@ -2,17 +2,14 @@ package com.exemplo.ordemmod;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ContainerScreenEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import com.exemplo.ordemmod.mixin.cliente.AbstractContainerScreenAccessor;
 
 /**
  * O inventário no mesmo visual da HUD: painel de vidro escuro com borda fina, casas escuras e textos na fonte do mod.
@@ -21,8 +18,11 @@ import net.minecraftforge.fml.common.Mod;
  *
  * Como funciona: depois que o jogo desenha a textura dele, cobrimos tudo com o nosso painel e redesenhamos as casas
  * nas posições reais dos slots. Só existe no cliente.
+ *
+ * Fabric 26.2: no Forge eram os eventos ContainerScreenEvent.Render.Background/Foreground. O Fabric API não tem
+ * equivalente, então {@link #fundo} e {@link #frente} são chamados pelos mixins em mixin/cliente
+ * (InventoryScreenMixin, ContainerScreenMixin, AbstractContainerScreenMixin), no fim de extractBg e de extractLabels.
  */
-@Mod.EventBusSubscriber(modid = OrdemMod.MOD_ID, value = Dist.CLIENT)
 public final class InventarioOrdem {
     private InventarioOrdem() {
     }
@@ -48,26 +48,23 @@ public final class InventarioOrdem {
 
     // ------------------------------------------------------------------ fundo (depois da textura do jogo)
 
-    @SubscribeEvent
-    public static void fundo(ContainerScreenEvent.Render.Background e) {
-        AbstractContainerScreen<?> tela = e.getContainerScreen();
+    /** Chamado no fim do desenho do fundo da tela (mixin). {@code mx}/{@code my}: posicao do mouse. */
+    public static void fundo(AbstractContainerScreen<?> tela, GuiGraphicsExtractor g, int mx, int my) {
         if (!aplica(tela)) {
             return;
         }
-        GuiGraphics g = e.getGuiGraphics();
-        int x = tela.getGuiLeft();
-        int y = tela.getGuiTop();
-        int w = tela.getXSize();
-        int h = tela.getYSize();
+        AbstractContainerScreenAccessor a = (AbstractContainerScreenAccessor) tela;
+        int x = a.ordemmod$esquerda();
+        int y = a.ordemmod$topo();
+        int w = a.ordemmod$largura();
+        int h = a.ordemmod$altura();
 
         painel(g, x, y, w, h);
 
         if (tela instanceof InventoryScreen) {
             // caixa do boneco + o boneco de novo (a textura do jogo, com ele dentro, acabou de ser coberta)
             caixa(g, x + 26, y + 8, 49, 70);
-            InventoryScreen.renderEntityInInventoryFollowsMouse(g, x + 51, y + 75, 30,
-                    (float) (x + 51) - e.getMouseX(), (float) (y + 75 - 50) - e.getMouseY(),
-                    Minecraft.getInstance().player);
+            DesenhoOP.entidade(g, x + 26, y + 8, x + 75, y + 78, 30, mx, my, Minecraft.getInstance().player);
             seta(g, x + 134, y + 36);
         }
 
@@ -77,7 +74,7 @@ public final class InventarioOrdem {
     }
 
     /** Painel de vidro escuro: halo fraco por fora, borda fina (clara em cima, escura embaixo) e reflexo no topo. */
-    private static void painel(GuiGraphics g, int x, int y, int w, int h) {
+    private static void painel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         g.fill(x - 2, y - 2, x + w + 2, y + h + 2, 0x20E8E2D4);
         g.fill(x - 1, y - 1, x + w + 1, y + h + 1, BORDA_LADO);
         g.fill(x - 1, y - 1, x + w + 1, y, BORDA_TOPO);
@@ -87,7 +84,7 @@ public final class InventarioOrdem {
     }
 
     /** Caixa funda (onde fica o boneco). */
-    private static void caixa(GuiGraphics g, int x, int y, int w, int h) {
+    private static void caixa(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         g.fill(x - 1, y - 1, x + w + 1, y + h + 1, BORDA_LADO);
         g.fill(x - 1, y - 1, x + w + 1, y, BORDA_BASE);
         g.fill(x - 1, y + h, x + w + 1, y + h + 1, BORDA_TOPO);
@@ -95,7 +92,7 @@ public final class InventarioOrdem {
     }
 
     /** Uma casa de item (18x18, o item tem 16): vidro bem escuro com borda fina. */
-    private static void casa(GuiGraphics g, int x, int y, boolean resultado) {
+    private static void casa(GuiGraphicsExtractor g, int x, int y, boolean resultado) {
         g.fill(x, y, x + 18, y + 18, resultado ? BORDA_RESULTADO : BORDA_LADO);
         if (!resultado) {
             g.fill(x, y, x + 18, y + 1, BORDA_TOPO);
@@ -105,7 +102,7 @@ public final class InventarioOrdem {
     }
 
     /** A seta da grade de criação até o resultado (a do jogo estava na textura que foi coberta). */
-    private static void seta(GuiGraphics g, int x, int y) {
+    private static void seta(GuiGraphicsExtractor g, int x, int y) {
         g.fill(x, y - 1, x + 10, y + 1, COR_SETA);
         g.fill(x + 10, y - 3, x + 11, y + 3, COR_SETA);
         g.fill(x + 11, y - 2, x + 12, y + 2, COR_SETA);
@@ -114,15 +111,13 @@ public final class InventarioOrdem {
 
     // ------------------------------------------------------------------ textos (depois dos textos do jogo)
 
-    @SubscribeEvent
-    public static void frente(ContainerScreenEvent.Render.Foreground e) {
-        AbstractContainerScreen<?> tela = e.getContainerScreen();
+    /** Chamado no fim do desenho dos textos da tela (mixin), com o desenho ja deslocado para o canto do painel. */
+    public static void frente(AbstractContainerScreen<?> tela, GuiGraphicsExtractor g) {
         if (!aplica(tela)) {
             return;
         }
-        GuiGraphics g = e.getGuiGraphics();
         Font fonte = Minecraft.getInstance().font;
-        int h = tela.getYSize();
+        int h = ((AbstractContainerScreenAccessor) tela).ordemmod$altura();
         String titulo = tela.getTitle().getString();
 
         // aqui o desenho já está deslocado para o canto do painel; os textos do jogo (cinza escuro, ilegíveis no
@@ -135,18 +130,18 @@ public final class InventarioOrdem {
         }
     }
 
-    private static void rotulo(GuiGraphics g, Font fonte, int x, int y, String texto, int alturaPainel) {
+    private static void rotulo(GuiGraphicsExtractor g, Font fonte, int x, int y, String texto, int alturaPainel) {
         int largura = fonte.width(texto);
         int topo = y - 1;
         int base = y + fonte.lineHeight;
         g.fillGradient(x - 1, topo, x + largura + 2, base, corFundo(topo, alturaPainel), corFundo(base, alturaPainel));
 
         float centroY = y + fonte.lineHeight / 2F;
-        g.pose().pushPose();
-        g.pose().translate(x, centroY - ESCALA_TEXTO * CENTRO_GLIFO, 0F);
-        g.pose().scale(ESCALA_TEXTO, ESCALA_TEXTO, 1F);
+        g.pose().pushMatrix();
+        g.pose().translate(x, centroY - ESCALA_TEXTO * CENTRO_GLIFO);
+        g.pose().scale(ESCALA_TEXTO, ESCALA_TEXTO);
         FonteOP.desenhar(g, fonte, texto, 0F, 0F, COR_OSSO, false);
-        g.pose().popPose();
+        g.pose().popMatrix();
     }
 
     /** A cor do degradê do painel na altura {@code y} (relativa ao topo do painel). */

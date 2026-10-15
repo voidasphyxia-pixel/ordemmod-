@@ -1,0 +1,14 @@
+{
+  "required": false,
+  "package": "com.exemplo.ordemmod.mixin.cliente",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "AbstractContainerScreenAccessor",
+    "AbstractContainerScreenMixin",
+    "ContainerScreenMixin",
+    "InventoryScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

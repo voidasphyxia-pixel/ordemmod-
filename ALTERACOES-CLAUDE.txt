@@ -5,6 +5,17 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 15/10/2026 (porte Fabric: etapa 6b2, inventario em vidro escuro) -----------
+InventarioOrdem portado com mixins so de cliente
+  Arquivos: InventarioOrdem, mixin/cliente/{AbstractContainerScreenAccessor, AbstractContainerScreenMixin,
+            ContainerScreenMixin, InventoryScreenMixin}, resources/ordemmod.client.mixins.json (novo),
+            resources/fabric.mod.json (registra a config so para cliente), build.gradle, PORTE-FABRIC.md.
+  - No Forge eram os eventos ContainerScreenEvent.Render.Background/Foreground; agora InventarioOrdem.fundo/frente sao
+    chamados no fim de extractBg e extractLabels por mixins. Os nomes desses metodos NAO foram conferidos.
+  - Config com defaultRequire 0: nome errado = inventario com o visual do jogo, sem derrubar o jogo.
+  - Como testar: abrir o inventario (E) e um bau: painel escuro, casas escuras, textos na fonte do mod, boneco no lugar.
+    NAO compilado nem testado. Riscos: PORTE-FABRIC.md, "Pontos de risco da 6b2".
+
 --- 15/10/2026 (porte Fabric: etapa 6e, tela inicial) -------------------------
 Quinta parte da etapa 6: TelaInicial, TemaInicial e EventosTitulo no Fabric 26.2
   Arquivos: titulo/TelaInicial, titulo/TemaInicial, titulo/EventosTitulo, cliente/OrdemModClienteFabric (chama

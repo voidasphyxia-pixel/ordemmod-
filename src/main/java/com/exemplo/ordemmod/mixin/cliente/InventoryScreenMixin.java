@@ -1,0 +1,26 @@
+package com.exemplo.ordemmod.mixin.cliente;
+
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import com.exemplo.ordemmod.InventarioOrdem;
+
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+
+/** Inventario do jogador: o painel do mod por cima da textura do jogo (extractBg) e os textos (extractLabels). */
+@Mixin(InventoryScreen.class)
+public abstract class InventoryScreenMixin {
+    @Inject(method = "extractBg", at = @At("TAIL"), require = 0)
+    private void ordemmod$fundo(GuiGraphicsExtractor g, float parcial, int mx, int my, CallbackInfo ci) {
+        InventarioOrdem.fundo((AbstractContainerScreen<?>) (Object) this, g, mx, my);
+    }
+
+    @Inject(method = "extractLabels", at = @At("TAIL"), require = 0)
+    private void ordemmod$textos(GuiGraphicsExtractor g, int mx, int my, CallbackInfo ci) {
+        InventarioOrdem.frente((AbstractContainerScreen<?>) (Object) this, g);
+    }
+}
