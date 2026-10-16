@@ -140,7 +140,7 @@ public class TelaInicial extends Screen {
         multi.ativo = minecraft.allowsMultiplayer();
         itens.add(multi);
         itens.add(new Item("menu.options", "Opcoes", false,
-                () -> minecraft.gui.setScreen(new OptionsScreen(this, minecraft.options))));
+                () -> minecraft.gui.setScreen(new OptionsScreen(this, minecraft.options, true))));
         itens.add(new Item("menu.quit", "Sair", false, () -> minecraft.stop()));
     }
 

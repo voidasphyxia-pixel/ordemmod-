@@ -169,6 +169,7 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
 - O boneco usa `DesenhoOP.entidade` (nome do metodo do jogo nao conferido, ja listado na 6b).
 
 ## Erros reais do build (15-16/10/2026)
+- 6e, 2o build: `new OptionsScreen(Screen, Options, boolean)` pede um terceiro argumento (true = aberto a partir do menu principal); corrigido. O pacote `screens.options` estava certo (confirmado pelo compilador).
 - 6e, `TelaInicial` (5 erros, corrigidos): `FontDescription` e de `net.minecraft.network.chat` (nao `client.gui.font`); `OptionsScreen` foi para `net.minecraft.client.gui.screens.options` (palpite, confirmar no proximo build); `I18n.exists` virou `Language.getInstance().has(chave)` (`net.minecraft.locale.Language`). O javac so reportou a `TelaInicial`, entao as demais etapas ainda podem mostrar erros na proxima rodada.
 
 ## Pontos de risco da 6e (escrita sem compilar)
