@@ -173,6 +173,9 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
 - Se ficar fundo preto sem nevoa: `VfxMarcado.NEVOA/POEIRA` nao desenharam (texturas); veja o log.
 - CORRECAO IMPORTANTE (skill de modding): nas telas de conteiner o fundo e `extractBackground(GuiGraphicsExtractor, float, int, int)`, NAO `extractBg`; os mixins do inventario (6b2) foram corrigidos para esse nome. O inventario em vidro escuro provavelmente nao estava sendo aplicado antes.
 
+## Ajustes pos-teste (16/10/2026)
+- O build da `fabric-26.2` passou e o usuario ja viu no jogo: botoes de vidro, tela de criacao (4 etapas) e o fim da cena do Marcado. Pedidos atendidos no mesmo dia: titulo final do Marcado legivel (Cinzel Black + circulo da tela inicial), lore em origens e pericias, caixa da etapa Classe removida. Risco: textos longos de lore podem passar do tamanho da caixa (o `paragrafo` corta no limite); se cortar, encurte o texto em `DescricoesOP`.
+
 ## Erros reais do build (15-16/10/2026)
 - 6e, 2o build: `new OptionsScreen(Screen, Options, boolean)` pede um terceiro argumento (true = aberto a partir do menu principal); corrigido. O pacote `screens.options` estava certo (confirmado pelo compilador).
 - 6e, `TelaInicial` (5 erros, corrigidos): `FontDescription` e de `net.minecraft.network.chat` (nao `client.gui.font`); `OptionsScreen` foi para `net.minecraft.client.gui.screens.options` (palpite, confirmar no proximo build); `I18n.exists` virou `Language.getInstance().has(chave)` (`net.minecraft.locale.Language`). O javac so reportou a `TelaInicial`, entao as demais etapas ainda podem mostrar erros na proxima rodada.

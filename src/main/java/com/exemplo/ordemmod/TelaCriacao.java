@@ -381,10 +381,9 @@ public class TelaCriacao extends Screen {
 
     private void montarClasses() {
         ClasseOP[] todas = ClasseOP.values();
-        dividirTela();
         int gap = 6;
         int largura = (dirW - 2 * gap) / 3;
-        int altura = Math.max(60, listaH);
+        int altura = Math.max(60, dirH); // as cartas ja explicam cada classe: sem a caixa longa embaixo, elas usam a altura toda
         for (int k = 0; k < todas.length; k++) {
             final ClasseOP c = todas[k];
             Personagem p = CriacaoPersonagem.construir(c, valores, origem);
@@ -563,7 +562,8 @@ public class TelaCriacao extends Screen {
                 desenharPentagono(g);
                 desenharInfoAtributos(g, alvo);
             }
-            case 1, 2 -> desenharDetalhe(g, dirX, caixaY, dirW, caixaH, alvo, true);
+            case 1 -> desenharDetalhe(g, dirX, caixaY, dirW, caixaH, alvo, true);
+            case 2 -> { } // classe: so as cartas (sem caixa de descricao)
             default -> {
                 String contador = "Perícias treinadas: " + escolhidas.size() + " de " + vagasDeTreino()
                         + "   (as da origem são de graça)";
@@ -780,6 +780,7 @@ public class TelaCriacao extends Screen {
             titulo = o.getNome();
             sub = "Perícias treinadas de graça: " + o.getPericias().get(0).getNome() + " e "
                     + o.getPericias().get(1).getNome();
+            textos.add(DescricoesOP.origemLore(o));
             textos.add("Poder — " + o.getPoder() + ": " + o.getDescricao());
         } else if (alvo instanceof ClasseOP c) {
             titulo = DescricoesOP.nomeClasse(c);
@@ -789,6 +790,7 @@ public class TelaCriacao extends Screen {
         } else if (alvo instanceof Pericia p) {
             titulo = p.getNome();
             sub = "Atributo: " + nome(p.getAtributo()) + (daOrigem(p) ? "  ·  já vem da sua origem" : "");
+            textos.add(DescricoesOP.periciaLore(p));
             textos.add(DescricoesOP.pericia(p));
             List<Beneficio> beneficios = Beneficio.de(p);
             if (beneficios.isEmpty()) {

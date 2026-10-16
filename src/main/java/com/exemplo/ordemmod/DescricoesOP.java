@@ -127,4 +127,70 @@ public final class DescricoesOP {
             case VONTADE -> "Força mental: resistir a medo, pressão e influência paranormal.";
         };
     }
+
+    // ------------------------------------------------------------------ lore (texto de ambientação)
+
+    /** Quem era essa pessoa antes de a Realidade ceder: uma frase ou duas de ambientação. */
+    public static String origemLore(Origem o) {
+        return switch (o) {
+            case ACADEMICO -> "Passou anos entre bibliotecas e laboratórios, acostumado a achar que tudo tem explicação. Até encontrar algo que não tinha.";
+            case AGENTE_DE_SAUDE -> "Viu de perto o que o corpo aguenta e o que ele não aguenta. Cuidar dos outros ensinou a olhar para o que está errado antes de todo mundo.";
+            case ARTISTA -> "Vive de emocionar quem assiste. Sabe que uma boa performance engana a plateia, e que uma plateia assustada é a mais difícil de enganar.";
+            case ATLETA -> "Treinou a vida inteira para ir além do próprio limite. O corpo responde antes mesmo de a mente entender o que está acontecendo.";
+            case CHEF -> "Cozinhas profissionais são calor, pressa e faca afiada. Quem sobrevive a elas aprende a trabalhar sob pressão e a nunca revelar a receita.";
+            case CRIMINOSO -> "Aprendeu na rua que regras são para quem pode pagar por elas. Conhece cada fechadura, cada atalho e cada sombra útil.";
+            case CULTISTA_ARREPENDIDO -> "Esteve do outro lado do rito e viu o que ele cobra. Fugiu com marcas que ninguém mais enxerga e com um conhecimento que preferia não ter.";
+            case DESGARRADO -> "Sem casa, sem nome nos papéis, sem ninguém para avisar se sumir. Sobreviver virou ofício, e o desconforto virou rotina.";
+            case ENGENHEIRO -> "Acredita que tudo é um sistema, e que todo sistema tem um ponto de falha. Para ele, o paranormal é só um problema ainda sem projeto.";
+            case EXECUTIVO -> "Salas de reunião, metas e contratos. Sabe que quase tudo se resolve com a pessoa certa na mesa certa, até o que não devia.";
+            case LUTADOR -> "Aprendeu que a dor é uma linguagem e que o ringue não mente. Cada cicatriz é uma lição que não precisa ser repetida.";
+            case MAGNATA -> "Cresceu cercado de recursos, contatos e portas que se abrem sozinhas. Descobriu que dinheiro compra quase tudo, menos o silêncio do Outro Lado.";
+            case MERCENARIO -> "Luta por quem paga, sem perguntar o motivo. A experiência ensinou a chegar primeiro e a deixar o medo para depois.";
+            case MILITAR -> "Disciplina, hierarquia e missão cumprida. Foi treinado para obedecer e para liderar, mas ninguém o treinou para isto.";
+            case OPERARIO -> "Mãos calejadas, turnos longos e ferramentas que conhece de olhos fechados. Constrói e conserta o mundo que os outros só usam.";
+            case POLICIAL -> "Patrulhou ruas onde algo sempre parecia fora do lugar. Aprendeu a confiar no instinto quando o relatório não explica o que viu.";
+            case RELIGIOSO -> "Tem fé, e a fé foi posta à prova. Sabe consolar quem sofre e sabe o peso de acreditar em algo maior que o mundo.";
+            case SERVIDOR_PUBLICO -> "Anos atrás de um balcão, entre processos e filas. Conhece as pessoas de verdade e acredita que alguém precisa continuar de pé.";
+            case TI -> "Vive de achar o que está escondido em meio a milhões de linhas. Descobriu que algumas coisas na rede não deveriam ter endereço.";
+            case TEORICO_DA_CONSPIRACAO -> "Todo mundo riu dele, por anos. Agora os sinais que ele juntava em paredes de recortes estão do lado de fora da janela.";
+            case TRABALHADOR_RURAL -> "Criou-se no campo, entre bichos, clima e trabalho duro. Entende a natureza e sabe quando ela fica quieta demais.";
+            case TRAMBIQUEIRO -> "Vive de contar a história certa para a pessoa certa. Já enganou muita gente; agora precisa descobrir quem pode enganá-lo.";
+            case UNIVERSITARIO -> "Noites em claro, prazos e curiosidade demais. Está acostumado a procurar respostas, mesmo quando não deveria fazer a pergunta.";
+            case VITIMA -> "Sobreviveu a algo que não devia ter sobrevivido. Carrega o trauma, e também o reflexo de quem aprendeu a nunca baixar a guarda.";
+        };
+    }
+
+    /** O que essa perícia significa no universo: uma frase de ambientação. */
+    public static String periciaLore(Pericia p) {
+        return switch (p) {
+            case ACROBACIA -> "Quando o chão some, quem sabe cair sai andando. O corpo aprende o caminho antes da cabeça.";
+            case ADESTRAMENTO -> "Os animais sentem o Outro Lado antes de nós. Quem os entende sabe quando eles recuam, e por quê.";
+            case ARTES -> "Uma música, um traço, um gesto no palco. A arte atravessa o medo e faz a plateia sentir o que as palavras não alcançam.";
+            case ATLETISMO -> "Correr mais, subir mais alto, aguentar mais. Quando fugir é a única saída, o corpo treinado decide quem volta.";
+            case ATUALIDADES -> "Notícias, boatos, cultura e o que anda se falando por aí. Quem acompanha o mundo percebe quando algo não bate.";
+            case CIENCIAS -> "Fórmulas, métodos e provas. A ciência explica quase tudo, e o que ela não explica é justamente o que importa.";
+            case CRIME -> "Fechaduras cedem, bolsos esvaziam e alarmes calam. Um conhecimento de rua que abre portas que o dinheiro não abre.";
+            case DIPLOMACIA -> "Uma conversa bem conduzida vale mais que um tiro. Saber ouvir, ceder e convencer mantém o grupo vivo.";
+            case ENGANACAO -> "A mentira certa, no tom certo, protege mais que um colete. Mas quem mente muito acaba perdendo a conta do que é verdade.";
+            case FORTITUDE -> "O corpo cobra tudo: dor, veneno, cansaço. Quem resiste mais continua em pé quando os outros já caíram.";
+            case FURTIVIDADE -> "Ficar quieto, ficar fora da luz, ficar fora do radar. Nem tudo precisa ser enfrentado, e muita coisa não deve ser.";
+            case INICIATIVA -> "O primeiro segundo decide o resto. Quem reage antes pensa depois, e geralmente sobrevive para pensar.";
+            case INTIMIDACAO -> "Um olhar, uma pausa, uma ameaça sem pressa. O medo dos outros também é uma arma, e custa menos que munição.";
+            case INTUICAO -> "Aquela sensação de que algo está errado, sem saber o quê. Aprender a escutá-la é aprender a sobreviver.";
+            case INVESTIGACAO -> "Cada cena guarda um detalhe fora do lugar. Quem investiga junta as peças que os outros preferem ignorar.";
+            case LUTA -> "Punhos, lâminas e o que estiver à mão. O corpo a corpo não perdoa hesitação, e a prática é o que separa quem fica de quem cai.";
+            case MEDICINA -> "Estancar, suturar, diagnosticar. Entre um golpe e o próximo, o médico decide quem ainda tem tempo.";
+            case OCULTISMO -> "Símbolos, rituais e nomes que não se pronunciam. Saber demais atrai a atenção do Outro Lado, e saber de menos também.";
+            case PERCEPCAO -> "Um ruído no corredor, um cheiro que não devia estar ali. Os sentidos alertam antes de a razão aceitar o perigo.";
+            case PILOTAGEM -> "Carros, barcos, aeronaves. Chegar rápido, ou escapar mais rápido ainda, pode ser tudo que separa a vida da morte.";
+            case PONTARIA -> "Respiração, mira e o tiro certo. A distância é a melhor aliada contra aquilo que não se deve tocar.";
+            case PROFISSAO -> "Um ofício vivido por anos. Cada trabalho ensina um jeito de ver o mundo, e às vezes é esse jeito que resolve o problema.";
+            case REFLEXOS -> "Quando o perigo vem de repente, não há tempo para pensar. O corpo desvia, e só depois vem o susto.";
+            case RELIGIAO -> "Preces, ritos e crenças antigas. Quem conhece a fé sabe consolar, e também sabe do que as pessoas têm medo.";
+            case SOBREVIVENCIA -> "Rastros na lama, abrigo na chuva, água para beber. Longe da cidade, quem entende o ambiente é quem volta para casa.";
+            case TATICA -> "Posição, terreno e tempo. Em um combate, quem vê o quadro inteiro ganha a luta antes de ela começar.";
+            case TECNOLOGIA -> "Redes, sistemas e aparelhos que fazem mais do que deviam. Quem os domina abre portas, câmeras e segredos.";
+            case VONTADE -> "A mente também é um campo de batalha. Quem não cede ao medo, à dor ou à voz que sussurra continua sendo quem é.";
+        };
+    }
 }

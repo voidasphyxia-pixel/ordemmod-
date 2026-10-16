@@ -43,6 +43,15 @@ import net.minecraft.sounds.SoundSource;
 public class TelaMarcado extends Screen {
     private static final Style FONTE_ENTIDADE = estilo("entidade");
     private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
+    /** O circulo ritual grande da tela inicial (o mesmo arquivo), 1024x1024. */
+    private static final Identifier SIMBOLO_TITULO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
+            "textures/gui/titulo/simbolo_maior.png");
+    /** Onde fica o centro do circulo dentro da textura (fracao da altura) e metricas da Cinzel Black (iguais as da TelaInicial). */
+    private static final float SIMBOLO_CENTRO = 0.539f;
+    private static final float CAP_LOGO = 28f;
+    private static final float CAP_SUB = 8.75f;
+    private static final float BASE_LOGO = 6.6f;
+    private static final float BASE_SUB = 4.9f;
     /** true: silhueta chapada desenhada na mao; false: a skin real do jogador (sem o efeito de silhueta branca). */
     private static final boolean SILHUETA_PROCEDURAL = true;
     private static final int COR_SILHUETA = 0xFFE4E8F2;
@@ -487,20 +496,54 @@ public class TelaMarcado extends Screen {
         }
     }
 
-    /** "VOCÊ É UM / MARCADO / Você é livre das correntes da realidade." durante o fade final. */
+    /**
+     * "VOCÊ É UM / MARCADO / Você é livre das correntes da realidade." no fade final, sobre o circulo ritual da tela
+     * inicial (simbolo_maior, 1024 px). Fontes: Cinzel Black (titulo_logo para MARCADO, titulo_hud_black para as outras
+     * duas linhas) e o espaco entre as linhas segue a altura das letras (as capitais da Cinzel Black sao bem maiores
+     * que a linha de texto do jogo, por isso antes as linhas se sobrepunham).
+     */
     private void desenharTitulo(GuiGraphicsExtractor g) {
-        int a = (int) (255f * Math.min(1f, t / 1.5f));
+        float fade = Math.min(1f, t / 1.5f);
+        int a = (int) (255f * fade);
         if (a < 8) {
             return; // alfa muito baixo vira opaco ou some no texto do Minecraft
         }
         int alfa = a << 24;
-        Style titulo = estilo("titulo");
         int cx = width / 2;
         int cy = height / 2;
-        textoCentro(g, Component.translatable("marcado.titulo.1").withStyle(titulo), cx, cy - 30, 1.5f, 0xB8B0B0 | alfa);
-        textoCentro(g, Component.translatable("marcado.titulo.2").withStyle(titulo), cx, cy - 10, 3.5f, 0xF0E8E8 | alfa);
-        textoCentro(g, Component.translatable("marcado.titulo.3").withStyle(FONTE_ENTIDADE), cx, cy + 38, 1f,
-                0x988E8E | alfa);
+
+        // simbolo de fundo (o mesmo da tela inicial), respirando devagar
+        float respira = 0.8f + 0.2f * (float) Math.sin(t * 1.2f);
+        int tamSimbolo = Math.round(Math.min(0.84f * height, 0.70f * width));
+        int sx = cx - tamSimbolo / 2;
+        int sy = Math.round(cy - SIMBOLO_CENTRO * tamSimbolo);
+        desenharHalo(g, cx, cy, (int) (tamSimbolo * 0.62f), 0.20f * respira * fade, 0.70f, 0.80f, 1f);
+        g.blit(RenderPipelines.GUI_TEXTURED, SIMBOLO_TITULO, sx, sy, 0f, 0f, tamSimbolo, tamSimbolo, 1024, 1024, 1024, 1024,
+                DesenhoOP.argb(0.40f * respira * fade, 0.85f, 0.90f, 1f));
+
+        Style logo = estilo("titulo_logo");
+        Style sub = estilo("titulo_hud_black");
+        Component c1 = Component.translatable("marcado.titulo.1").withStyle(sub);
+        Component c2 = Component.translatable("marcado.titulo.2").withStyle(logo);
+        Component c3 = Component.translatable("marcado.titulo.3").withStyle(sub);
+
+        // escala: MARCADO ocupa ~55% da largura (no maximo 2,2x); as outras linhas acompanham
+        float sL = Math.max(0.6f, Math.min(2.2f, Math.min(width * 0.55f / Math.max(1, font.width(c2)), height / 300f)));
+        float s1 = sL * 0.95f;
+        float s3 = sL * 0.80f;
+        float cap1 = CAP_SUB * s1;
+        float capL = CAP_LOGO * sL;
+        float cap3 = CAP_SUB * s3;
+        float gap1 = 0.30f * capL;
+        float gap2 = 0.42f * capL;
+        float total = cap1 + gap1 + capL + gap2 + cap3;
+        float topo = cy - total / 2f;
+        float base1 = topo + cap1;
+        float base2 = base1 + gap1 + capL;
+        float base3 = base2 + gap2 + cap3;
+        textoCentro(g, c1, cx, base1 - BASE_SUB * s1, s1, 0xD8D0D0 | alfa);
+        textoCentro(g, c2, cx, base2 - BASE_LOGO * sL, sL, 0xF4EEEE | alfa);
+        textoCentro(g, c3, cx, base3 - BASE_SUB * s3, s3, 0xC8BEBE | alfa);
     }
 
     /** Texto centralizado em (x, y) com escala (o g.text so aceita posicoes inteiras; a escala vem da matriz). */
