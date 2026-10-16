@@ -779,12 +779,12 @@ public class TelaFicha extends Screen {
 
     private void desenharAtributo(GuiGraphicsExtractor g, int mx, int my) {
         for (int i = 0; i < Atributo.values().length; i++) {
-            double lx = pontoX(i, pentRaio + 16);
-            double ly = pontoY(i, pentRaio + 16);
-            if (Math.abs(mx - lx) <= 14 && Math.abs(my - ly) <= 14) {
+            double lx = pontoX(i, pentRaio + RAIO_ROTULO);
+            double ly = pontoY(i, pentRaio + RAIO_ROTULO);
+            if (Math.abs(mx - lx) <= 14 && Math.abs(my - ly) <= 16) {
                 atributoSobMouse = i;
             }
-            if (mx >= lx + 12 && mx < lx + 23 && my >= ly - 5 && my < ly + 6) {
+            if (mx >= lx + 12 && mx < lx + 23 && my >= ly + DESLOC_MAIS && my < ly + DESLOC_MAIS + 11) {
                 atributoSobMouse = i;
                 maisSobMouse = true;
             }
@@ -1453,6 +1453,14 @@ public class TelaFicha extends Screen {
 
     // ---------------------------------------------------------------- centro: pentágono
 
+    /** Distância do rótulo (sigla + número) ao vértice do pentágono. */
+    private static final float RAIO_ROTULO = 24F;
+    /** Sigla acima do centro do rótulo, número abaixo, para as duas linhas nunca se tocarem. */
+    private static final float DESLOC_SIGLA = -13F;
+    private static final float DESLOC_NUMERO = 3.5F;
+    /** Topo do botão "+" em relação ao centro do rótulo (alinhado com o número). */
+    private static final int DESLOC_MAIS = -2;
+
     private double pontoX(int i, double r) {
         return pentCx + r * Math.cos(Math.toRadians(-90 + 72 * i));
     }
@@ -1501,22 +1509,22 @@ public class TelaFicha extends Screen {
             int meio = i == atributoSobMouse ? 3 : 2;
             g.fill(px - meio, py - meio, px + meio + 1, py + meio + 1, COR_OSSO);
 
-            // rótulo: sigla em cima, valor grande embaixo, e o botão "+" ao lado
-            double lx = pontoX(i, pentRaio + 16);
-            double ly = pontoY(i, pentRaio + 16);
+            // rótulo: sigla em cima, valor grande embaixo (bem separados), e o botão "+" ao lado do número
+            double lx = pontoX(i, pentRaio + RAIO_ROTULO);
+            double ly = pontoY(i, pentRaio + RAIO_ROTULO);
             boolean sobre = i == atributoSobMouse;
             String sigla = Atributo.values()[i].getSigla();
-            FonteOP.desenhar(g, font, sigla, (int) (lx - FonteOP.largura(font, sigla) / 2F),
-                    (int) Math.round(ly - 8 - CENTRO_VISUAL), sobre ? COR_OSSO : COR_DOURADO, false);
+            FonteOP.desenhar(g, font, sigla, Math.round(lx - FonteOP.largura(font, sigla) / 2F),
+                    Math.round(ly + DESLOC_SIGLA - CENTRO_VISUAL), sobre ? COR_OSSO : COR_DOURADO, false);
             String valor = String.valueOf(atributos[i]);
             g.pose().pushMatrix();
-            g.pose().translate((float) lx, (float) (ly + 0.5));
+            g.pose().translate((float) lx, (float) (ly + DESLOC_NUMERO));
             g.pose().scale(1.4F, 1.4F);
             FonteOP.desenhar(g, font, valor, -FonteOP.largura(font, valor) / 2F, -CENTRO_VISUAL, COR_OSSO, false);
             g.pose().popMatrix();
 
             int bx = (int) lx + 12;
-            int by = (int) ly - 5;
+            int by = (int) ly + DESLOC_MAIS;
             boolean sobreMais = sobre && maisSobMouse;
             g.fill(bx, by, bx + 11, by + 11, sobreMais ? COR_APAGADO : COR_BORDA);
             g.fill(bx + 1, by + 1, bx + 10, by + 10, COR_ZONA);
