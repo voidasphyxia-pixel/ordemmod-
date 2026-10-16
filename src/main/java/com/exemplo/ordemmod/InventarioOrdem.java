@@ -22,7 +22,8 @@ import com.exemplo.ordemmod.mixin.cliente.AbstractContainerScreenAccessor;
  *
  * Fabric 26.2: no Forge eram os eventos ContainerScreenEvent.Render.Background/Foreground. O Fabric API não tem
  * equivalente, então {@link #fundo} e {@link #frente} são chamados pelos mixins em mixin/cliente
- * (InventoryScreenMixin, ContainerScreenMixin, AbstractContainerScreenFundoMixin, AbstractContainerScreenMixin).
+ * (InventoryScreenMixin, ContainerScreenMixin, CraftingScreenMixin, AbstractContainerScreenFundoMixin,
+ * AbstractContainerScreenMixin).
  */
 public final class InventarioOrdem {
     private InventarioOrdem() {
@@ -43,6 +44,9 @@ public final class InventarioOrdem {
     /** Mesma ideia da HUD: o centro das letras fica um pouco acima do topo da linha de texto. */
     private static final float CENTRO_GLIFO = -0.6F;
 
+    /** A tela cujo painel já foi desenhado neste quadro (o gancho de reserva só desenha se for outra). */
+    private static AbstractContainerScreen<?> fundoDesenhadoEm;
+
     private static boolean bancada(AbstractContainerScreen<?> tela) {
         return tela.getMenu() instanceof CraftingMenu;
     }
@@ -53,11 +57,24 @@ public final class InventarioOrdem {
 
     // ------------------------------------------------------------------ fundo (depois da textura do jogo)
 
+    /** Chamado no começo de cada quadro da tela (mixin): ainda ninguém desenhou o painel neste quadro. */
+    public static void novoQuadro(AbstractContainerScreen<?> tela) {
+        fundoDesenhadoEm = null;
+    }
+
+    /** Gancho de reserva: desenha o painel só se os ganchos por classe não desenharam neste quadro. */
+    public static void fundoSeFaltou(AbstractContainerScreen<?> tela, GuiGraphicsExtractor g, int mx, int my) {
+        if (fundoDesenhadoEm != tela) {
+            fundo(tela, g, mx, my);
+        }
+    }
+
     /** Chamado no fim do desenho do fundo da tela (mixin). {@code mx}/{@code my}: posicao do mouse. */
     public static void fundo(AbstractContainerScreen<?> tela, GuiGraphicsExtractor g, int mx, int my) {
         if (!aplica(tela)) {
             return;
         }
+        fundoDesenhadoEm = tela;
         AbstractContainerScreenAccessor a = (AbstractContainerScreenAccessor) tela;
         int x = a.ordemmod$esquerda();
         int y = a.ordemmod$topo();
