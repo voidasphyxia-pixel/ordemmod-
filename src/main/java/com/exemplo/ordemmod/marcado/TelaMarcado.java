@@ -43,11 +43,11 @@ import net.minecraft.sounds.SoundSource;
 public class TelaMarcado extends Screen {
     private static final Style FONTE_ENTIDADE = estilo("entidade");
     private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
-    /** O circulo ritual grande da tela inicial (o mesmo arquivo), 1024x1024. */
+    /** O emblema do Marcado (tres aneis ligados ao centro), 1024x1024, recortado e centrado na textura. */
     private static final Identifier SIMBOLO_TITULO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
-            "textures/gui/titulo/simbolo_maior.png");
-    /** Onde fica o centro do circulo dentro da textura (fracao da altura) e metricas da Cinzel Black (iguais as da TelaInicial). */
-    private static final float SIMBOLO_CENTRO = 0.539f;
+            "textures/gui/marcado/simbolo_marcado.png");
+    /** Onde fica o centro do emblema dentro da textura (fracao da altura) e metricas da Cinzel Black (iguais as da TelaInicial). */
+    private static final float SIMBOLO_CENTRO = 0.5f;
     private static final float CAP_LOGO = 28f;
     private static final float CAP_SUB = 8.75f;
     private static final float BASE_LOGO = 6.6f;
@@ -497,8 +497,8 @@ public class TelaMarcado extends Screen {
     }
 
     /**
-     * "VOCÊ É UM / MARCADO / Você é livre das correntes da realidade." no fade final, sobre o circulo ritual da tela
-     * inicial (simbolo_maior, 1024 px). Fontes: Cinzel Black (titulo_logo para MARCADO, titulo_hud_black para as outras
+     * "VOCÊ É UM / MARCADO / Você é livre das correntes da realidade." no fade final, sobre o emblema do Marcado
+     * (simbolo_marcado, 1024 px). Fontes: Cinzel Black (titulo_logo para MARCADO, titulo_hud_black para as outras
      * duas linhas) e o espaco entre as linhas segue a altura das letras (as capitais da Cinzel Black sao bem maiores
      * que a linha de texto do jogo, por isso antes as linhas se sobrepunham).
      */
@@ -512,7 +512,7 @@ public class TelaMarcado extends Screen {
         int cx = width / 2;
         int cy = height / 2;
 
-        // simbolo de fundo (o mesmo da tela inicial), respirando devagar
+        // simbolo de fundo (o emblema do Marcado), respirando devagar
         float respira = 0.8f + 0.2f * (float) Math.sin(t * 1.2f);
         int tamSimbolo = Math.round(Math.min(0.84f * height, 0.70f * width));
         int sx = cx - tamSimbolo / 2;

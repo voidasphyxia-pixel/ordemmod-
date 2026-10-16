@@ -49,7 +49,7 @@ public class TelaCriacao extends Screen {
     private static final int COR_RITUAL = 0xFFD8E4FF;   // o branco-azulado do círculo ritual
 
     private static final Identifier CIRCULO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
-            "textures/gui/marcado/circulo_ritual.png");
+            "textures/gui/titulo/simbolo_maior.png"); // o mesmo simbolo (1024 px) da tela inicial
     private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
 
     // tipos de zona
@@ -678,8 +678,9 @@ public class TelaCriacao extends Screen {
         float respira = 0.8F + 0.2F * (float) Math.sin(relogio() * 1.2);
         halo(g, pentCx, pentCy, (int) (pentRaio * 1.9F), 0.22F * respira, 0.7F, 0.8F, 1.0F);
         int lado = Math.round(pentRaio * 2.74F);
-        g.blit(RenderPipelines.GUI_TEXTURED, CIRCULO, pentCx - lado / 2, pentCy - lado / 2, 0F, 0F, lado, lado, 400, 400,
-                400, 400, DesenhoOP.argb(0.55F * respira, 0.85F, 0.9F, 1F));
+        // o centro do circulo interno do simbolo fica a 53,9% da altura da textura (igual a TelaInicial)
+        g.blit(RenderPipelines.GUI_TEXTURED, CIRCULO, pentCx - lado / 2, pentCy - Math.round(0.539F * lado), 0F, 0F, lado,
+                lado, 1024, 1024, 1024, 1024, DesenhoOP.argb(0.45F * respira, 0.85F, 0.9F, 1F));
         // anéis dos níveis 1 a 5: o dourado (3) é o limite da criação; o último (5) é o máximo natural
         for (int nivel = 1; nivel <= Atributos.MAXIMO_NATURAL; nivel++) {
             double r = pentRaio * nivel / Atributos.MAXIMO_NATURAL;
