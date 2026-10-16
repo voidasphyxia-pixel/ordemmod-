@@ -90,7 +90,7 @@ public class TelaFicha extends Screen {
 
     // mesmo visual da tela de criação (névoa, poeira, círculo ritual, halo)
     private static final Identifier CIRCULO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID,
-            "textures/gui/marcado/circulo_ritual.png");
+            "textures/gui/titulo/simbolo_maior.png"); // o mesmo simbolo em HD (1024 px) da tela inicial e da criacao
     private static final Identifier HALO = Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/marcado/halo.png");
     private final long abertaEm = Util.getMillis();
 
@@ -1463,12 +1463,13 @@ public class TelaFicha extends Screen {
 
     private void desenharPentagono(GuiGraphicsExtractor g) {
         int n = Atributo.values().length;
-        // brilho + círculo ritual atrás do pentágono (os mesmos da tela de criação)
+        // brilho + símbolo ritual (o mesmo em HD da tela inicial e da criação) atrás do pentágono
         float respira = 0.8F + 0.2F * (float) Math.sin(relogio() * 1.2);
         halo(g, pentCx, pentCy, (int) (pentRaio * 1.9F), 0.22F * respira, 0.7F, 0.8F, 1.0F);
         int lado = Math.round(pentRaio * 2.74F);
-        g.blit(RenderPipelines.GUI_TEXTURED, CIRCULO, pentCx - lado / 2, pentCy - lado / 2, 0F, 0F, lado, lado, 400, 400,
-                400, 400, DesenhoOP.argb(0.55F * respira, 0.85F, 0.9F, 1F));
+        // o centro do circulo interno do simbolo fica a 53,9% da altura da textura (igual a TelaInicial e TelaCriacao)
+        g.blit(RenderPipelines.GUI_TEXTURED, CIRCULO, pentCx - lado / 2, pentCy - Math.round(0.539F * lado), 0F, 0F, lado,
+                lado, 1024, 1024, 1024, 1024, DesenhoOP.argb(0.45F * respira, 0.85F, 0.9F, 1F));
         for (int nivel = 1; nivel <= Atributos.MAXIMO_NATURAL; nivel++) {
             double r = pentRaio * nivel / Atributos.MAXIMO_NATURAL;
             int corAnel = nivel == Atributos.MAXIMO_NA_CRIACAO ? 0xFF8A7D57
