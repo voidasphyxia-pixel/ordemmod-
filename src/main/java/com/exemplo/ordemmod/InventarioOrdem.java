@@ -7,21 +7,22 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
 import com.exemplo.ordemmod.mixin.cliente.AbstractContainerScreenAccessor;
 
 /**
  * O inventário no mesmo visual da HUD: painel de vidro escuro com borda fina, casas escuras e textos na fonte do mod.
- * Vale para o inventário do jogador e para baús/barris (ContainerScreen); as outras telas (fornalha, bancada,
- * criativo...) continuam do jogo, porque têm setas e abas desenhadas na textura delas.
+ * Vale para o inventário do jogador, para baús/barris (ContainerScreen) e para a bancada de trabalho (CraftingMenu);
+ * as outras telas (fornalha, criativo...) continuam do jogo, porque têm setas e abas desenhadas na textura delas.
  *
  * Como funciona: depois que o jogo desenha a textura dele, cobrimos tudo com o nosso painel e redesenhamos as casas
  * nas posições reais dos slots. Só existe no cliente.
  *
  * Fabric 26.2: no Forge eram os eventos ContainerScreenEvent.Render.Background/Foreground. O Fabric API não tem
  * equivalente, então {@link #fundo} e {@link #frente} são chamados pelos mixins em mixin/cliente
- * (InventoryScreenMixin, ContainerScreenMixin, AbstractContainerScreenMixin), no fim de extractBg e de extractLabels.
+ * (InventoryScreenMixin, ContainerScreenMixin, AbstractContainerScreenFundoMixin, AbstractContainerScreenMixin).
  */
 public final class InventarioOrdem {
     private InventarioOrdem() {
@@ -42,8 +43,12 @@ public final class InventarioOrdem {
     /** Mesma ideia da HUD: o centro das letras fica um pouco acima do topo da linha de texto. */
     private static final float CENTRO_GLIFO = -0.6F;
 
+    private static boolean bancada(AbstractContainerScreen<?> tela) {
+        return tela.getMenu() instanceof CraftingMenu;
+    }
+
     private static boolean aplica(AbstractContainerScreen<?> tela) {
-        return tela instanceof InventoryScreen || tela instanceof ContainerScreen;
+        return tela instanceof InventoryScreen || tela instanceof ContainerScreen || bancada(tela);
     }
 
     // ------------------------------------------------------------------ fundo (depois da textura do jogo)
@@ -66,6 +71,9 @@ public final class InventarioOrdem {
             caixa(g, x + 26, y + 8, 49, 70);
             DesenhoOP.entidade(g, x + 26, y + 8, x + 75, y + 78, 30, mx, my, Minecraft.getInstance().player);
             seta(g, x + 134, y + 36);
+        } else if (bancada(tela)) {
+            // a seta da grade 3x3 ate o resultado (a do jogo estava na textura que foi coberta)
+            seta(g, x + 92, y + 43);
         }
 
         for (Slot slot : tela.getMenu().slots) {
@@ -119,14 +127,18 @@ public final class InventarioOrdem {
         Font fonte = Minecraft.getInstance().font;
         int h = ((AbstractContainerScreenAccessor) tela).ordemmod$altura();
         String titulo = tela.getTitle().getString();
+        String inventario = Component.translatable("container.inventory").getString();
 
         // aqui o desenho já está deslocado para o canto do painel; os textos do jogo (cinza escuro, ilegíveis no
         // fundo escuro) são cobertos com a mesma cor do painel e reescritos na fonte do mod
         if (tela instanceof InventoryScreen) {
             rotulo(g, fonte, 97, 8, titulo, h);
+        } else if (bancada(tela)) {
+            rotulo(g, fonte, 28, 6, titulo, h);
+            rotulo(g, fonte, 8, h - 94, inventario, h);
         } else {
             rotulo(g, fonte, 8, 6, titulo, h);
-            rotulo(g, fonte, 8, h - 94, Component.translatable("container.inventory").getString(), h);
+            rotulo(g, fonte, 8, h - 94, inventario, h);
         }
     }
 
