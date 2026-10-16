@@ -5,6 +5,12 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 16/10/2026 (porte Fabric: correcao do build da 6e) -----------------------
+  Arquivos: titulo/TelaInicial, PORTE-FABRIC.md.
+  - Build do usuario (Windows) deu 5 erros so na TelaInicial: import de FontDescription (net.minecraft.network.chat),
+    OptionsScreen (pacote screens.options) e I18n.exists (-> Language.getInstance().has).
+  - Como testar: gradlew build de novo; colar o que aparecer.
+
 --- 15/10/2026 (porte Fabric: 6e2 parcial, botoes de vidro) --------------------
   Arquivos: tools/gerar_botoes.py (novo), assets/minecraft/textures/gui/sprites/widget/*.png e *.png.mcmeta (14 arquivos),
             PORTE-FABRIC.md.

@@ -168,6 +168,9 @@ A cena do Marcado (`TelaMarcado`), que vem ANTES da criacao quando o personagem 
 - Se os textos sairem deslocados: o jogo pode nao mover o desenho para o canto do painel dentro de `extractLabels` (a `InventarioOrdem.frente` assume que move).
 - O boneco usa `DesenhoOP.entidade` (nome do metodo do jogo nao conferido, ja listado na 6b).
 
+## Erros reais do build (15-16/10/2026)
+- 6e, `TelaInicial` (5 erros, corrigidos): `FontDescription` e de `net.minecraft.network.chat` (nao `client.gui.font`); `OptionsScreen` foi para `net.minecraft.client.gui.screens.options` (palpite, confirmar no proximo build); `I18n.exists` virou `Language.getInstance().has(chave)` (`net.minecraft.locale.Language`). O javac so reportou a `TelaInicial`, entao as demais etapas ainda podem mostrar erros na proxima rodada.
+
 ## Pontos de risco da 6e (escrita sem compilar)
 - `ScreenEvents.AFTER_INIT.register((cliente, tela, largura, altura) -> ...)` (pacote `net.fabricmc.fabric.api.client.screen.v1`) e `cliente.gui.screen()/setScreen`.
 - `Minecraft.getMusicManager().stopPlaying()` em `TemaInicial.tick` (calar a musica de menu do jogo; o nome do metodo nao foi conferido). Se falhar, apague so essa linha: o tema do mod toca por cima da musica do jogo.

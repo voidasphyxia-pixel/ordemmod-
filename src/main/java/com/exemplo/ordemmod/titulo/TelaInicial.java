@@ -19,14 +19,14 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.gui.font.FontDescription;
-import net.minecraft.client.gui.screens.OptionsScreen;
+import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.client.gui.screens.multiplayer.SafetyScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
-import net.minecraft.client.resources.language.I18n;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -80,7 +80,7 @@ public class TelaInicial extends Screen {
 
         Item(String chave, String fallback, boolean principal, Runnable acao) {
             this.chave = chave;
-            String t = I18n.exists(chave) ? Component.translatable(chave).getString() : fallback;
+            String t = Language.getInstance().has(chave) ? Component.translatable(chave).getString() : fallback;
             this.rotulo = t.replace("...", "").replace("\u2026", "").trim().toUpperCase(Locale.ROOT);
             this.principal = principal;
             this.acao = acao;
