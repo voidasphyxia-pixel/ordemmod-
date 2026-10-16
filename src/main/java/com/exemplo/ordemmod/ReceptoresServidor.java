@@ -79,6 +79,8 @@ public final class ReceptoresServidor {
                 melhorarPericia(jogador, p, m.indice());
             } else if (m.acao() == PacoteArvore.TREINAMENTO) {
                 treinamento(jogador, p, m.indice(), m.indice2());
+            } else if (m.acao() == PacoteArvore.ATRIBUTO) {
+                subirAtributo(jogador, p, m.indice());
             }
             enviarFicha(jogador); // manda a ficha atualizada: a tela aberta se redesenha sozinha
         });
@@ -119,6 +121,35 @@ public final class ReceptoresServidor {
     private static Pericia periciaDe(int indice) {
         Pericia[] todas = Pericia.values();
         return indice >= 0 && indice < todas.length ? todas[indice] : null;
+    }
+
+    /** Gasta 1 ponto de atributo (NEX 20/50/80/95) num atributo, ate o maximo natural (5). O servidor confere tudo. */
+    private static void subirAtributo(ServerPlayer jogador, Personagem p, int indice) {
+        Atributo[] todos = Atributo.values();
+        if (indice < 0 || indice >= todos.length) {
+            return;
+        }
+        Atributo atributo = todos[indice];
+        if (p.atributos.getPontosLivres() <= 0) {
+            Avisos.enviar(jogador, "Você não tem pontos de atributo para gastar.", ChatFormatting.RED);
+            return;
+        }
+        if (p.atributos.get(atributo) >= Atributos.MAXIMO_NATURAL) {
+            Avisos.enviar(jogador, atributo.getSigla() + " já está no máximo (" + Atributos.MAXIMO_NATURAL + ").",
+                    ChatFormatting.RED);
+            return;
+        }
+        int peAntes = p.pe.getMaximo();
+        if (!p.atributos.subir(atributo)) {
+            return;
+        }
+        // Presença e Vigor mudam PE e vida máximos: o PE novo já vem disponível e a vida é reaplicada no jogador
+        p.pe.setMaximo(p.esforcoMaximo());
+        p.pe.recuperar(p.pe.getMaximo() - peAntes);
+        EventosOrdem.aplicar(jogador, p);
+        SalvamentoOrdem.salvar(jogador, p);
+        Avisos.enviar(jogador, atributo.getSigla() + " agora é " + p.atributos.get(atributo)
+                + " (" + p.atributos.getPontosLivres() + " ponto(s) restante(s))", ChatFormatting.GREEN);
     }
 
     private static void melhorarPericia(ServerPlayer jogador, Personagem p, int indice) {

@@ -38,7 +38,9 @@ public final class SalvamentoOrdem {
             int melhoriasVeterano,
             int melhoriasExpert,
             int treinosExtras,
-            Map<String, Integer> repeticoes) {
+            Map<String, Integer> repeticoes,
+            // ausente = save de antes dos pontos de atributo (veja deDados)
+            Optional<Integer> pontosAtributo) {
 
         public static final Codec<DadosSalvos> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Codec.STRING.fieldOf("classe").forGetter(DadosSalvos::classe),
@@ -60,7 +62,8 @@ public final class SalvamentoOrdem {
                 Codec.INT.optionalFieldOf("melhorias_expert", 0).forGetter(DadosSalvos::melhoriasExpert),
                 Codec.INT.optionalFieldOf("treinos_extras", 0).forGetter(DadosSalvos::treinosExtras),
                 Codec.unboundedMap(Codec.STRING, Codec.INT).optionalFieldOf("repeticoes", Map.of())
-                        .forGetter(DadosSalvos::repeticoes)
+                        .forGetter(DadosSalvos::repeticoes),
+                Codec.INT.optionalFieldOf("pontos_atributo").forGetter(DadosSalvos::pontosAtributo)
         ).apply(i, DadosSalvos::new));
     }
 
@@ -96,7 +99,8 @@ public final class SalvamentoOrdem {
                 p.pericias.getMelhoriasVeterano(),
                 p.pericias.getMelhoriasExpert(),
                 p.pericias.getTreinosExtras(),
-                Map.copyOf(p.habilidades.getRepeticoes()));
+                Map.copyOf(p.habilidades.getRepeticoes()),
+                Optional.of(p.atributos.getPontosLivres()));
     }
 
     /** Dados salvos -> personagem. Retorna null se os dados estao estragados. Java puro. */
@@ -115,6 +119,8 @@ public final class SalvamentoOrdem {
             }
             p.setCriado(d.criado());
             p.nex.setNex(d.nex());
+            // save de antes dos pontos de atributo: dá os dos marcos de NEX que ele já passou
+            p.atributos.restaurarPontos(d.pontosAtributo().orElseGet(() -> Atributos.pontosAteNex(p.nex.getNex())));
             p.pe.setMaximo(p.esforcoMaximo());
             p.pe.restaurarTudo();
             p.pe.gastar(p.pe.getMaximo() - d.pe());

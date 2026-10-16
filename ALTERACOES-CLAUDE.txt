@@ -5,6 +5,23 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 16/10/2026 (BUG do NEX: pontos de atributo e limite 5) -----------------------
+  Problema: ao chegar nos NEX que liberam atributo, nao dava para subir nada alem do 3: o mod nao concedia ponto
+  nenhum e os botoes "+" da ficha eram so desenho (nao havia pacote nem logica no servidor).
+  Arquivos: Atributos, Personagem, SalvamentoOrdem, PacoteArvore, PacoteFicha, ReceptoresServidor, TelaFicha.
+  - Atributos: marcos NEX 20/50/80/95 (1 ponto cada), contador de pontos livres, subir(atributo) ate MAXIMO_NATURAL (5),
+    pontosAteNex() para saves antigos. A criacao continua limitada a 3 (MAXIMO_NA_CRIACAO).
+  - Personagem.ganharNex: ao chegar num marco, concede o ponto (tambem pelo /ordem nex).
+  - SalvamentoOrdem: novo campo "pontos_atributo" (opcional). Save sem ele ganha os pontos dos marcos ja passados.
+  - PacoteArvore.ATRIBUTO + ReceptoresServidor.subirAtributo: o servidor confere saldo e limite 5, recalcula PE (Presenca)
+    e vida (Vigor), salva e avisa. PacoteFicha manda "pontosAtributo".
+  - TelaFicha: "+" clicavel (verde quando da para gastar, apagado sem pontos ou no 5), contador no painel,
+    texto ao passar o mouse, bolinha verde na aba ATRIBUTO.
+  - Testado em Java puro (Personagem/Atributos): marcos, limite 5, 99% sem 5o ponto. NAO compilado no Fabric,
+    SalvamentoOrdem e TelaFicha NAO testados no jogo.
+  - Como testar: /ordem nex repetido ate NEX 20 -> aba ATRIBUTO mostra "PONTOS ...: 1", clicar no "+" de um atributo em 3 -> vira 4;
+    repetir ate 5 (o "+" apaga); sair e entrar no mundo (pontos e valores persistem).
+
 --- 16/10/2026 (simbolos: criacao e Marcado) ------------------------------------
   Arquivos: TelaCriacao, marcado/TelaMarcado, assets/ordemmod/textures/gui/marcado/simbolo_marcado.png (novo).
   - Tela de criacao: o desenho atras do pentagono agora e o simbolo da tela inicial (titulo/simbolo_maior.png, 1024 px),

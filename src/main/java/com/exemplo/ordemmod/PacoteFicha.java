@@ -38,6 +38,7 @@ public record PacoteFicha(CompoundTag dados) implements CustomPacketPayload {
             atributos[a.ordinal()] = p.atributos.get(a);
         }
         t.putIntArray("atributos", atributos);
+        t.putInt("pontosAtributo", p.atributos.getPontosLivres());
 
         byte[] graus = new byte[Pericia.values().length];
         byte[] deOrigem = new byte[Pericia.values().length];

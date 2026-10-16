@@ -251,7 +251,7 @@ public class Personagem {
         }
     }
 
-    /** Sobe NEX em %. Cada marco atingido dá SAN, pontos de habilidade e libera habilidades. */
+    /** Sobe NEX em %. Cada marco atingido dá SAN, pontos de habilidade e libera habilidades (e pontos de atributo nos NEX 20/50/80/95). */
     public boolean ganharNex(int porcento) {
         boolean subiu = false;
         for (int i = 0; i < porcento; i++) {
@@ -260,6 +260,9 @@ public class Personagem {
                 sanidade += classe.sanidadeMaxima(n) - classe.sanidadeMaxima(n - 1);
                 habilidades.aoSubirDeNivel(n);
                 pericias.aoSubirDeNivel(n);
+                if (Atributos.ehMarco(nex.getNex())) { // NEX 20%, 50%, 80% e 95%: pontos para distribuir nos atributos
+                    atributos.conceder(Atributos.PONTOS_POR_MARCO);
+                }
                 subiu = true;
             }
         }

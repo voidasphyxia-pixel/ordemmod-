@@ -35,8 +35,9 @@ import net.minecraft.util.Util;
  * Os dados chegam prontos do servidor ({@link PacoteFicha}); os cliques que mudam o personagem voltam
  * para o servidor em {@link PacoteArvore}, que confere tudo de novo antes de aceitar.
  *
- * Os botões "+" do pentágono já existem na tela, mas ainda não fazem nada: quando o mod passar a conceder
- * pontos de atributo (marcos de NEX 20%, 50%, 80% e 95%), é aqui que eles serão ligados.
+ * Os botões "+" do pentágono gastam os pontos de atributo que chegam nos marcos de NEX 20%, 50%, 80% e 95%
+ * ({@link Atributos#MARCOS_NEX}): o clique vai ao servidor em {@link PacoteArvore#subirAtributo}, que confere o saldo
+ * e o limite de {@link Atributos#MAXIMO_NATURAL}.
  *
  * Fabric 26.2 (6b): render() virou extractRenderState(GuiGraphicsExtractor, ...); a entrada recebe MouseButtonEvent/KeyEvent;
  * o NBT usa getXxxOr/getListOrEmpty; Rede.CANAL.sendToServer virou ReceptoresCliente.enviar; as formas livres (pentágono,
@@ -59,7 +60,7 @@ public class TelaFicha extends Screen {
     private static final int COR_SETA = 0xFF3A3A44;
 
     /** NEX em que o personagem ganha pontos para distribuir nos atributos. */
-    private static final int[] MARCOS_ATRIBUTO = {20, 50, 80, 95};
+    private static final int[] MARCOS_ATRIBUTO = Atributos.MARCOS_NEX;
     /** Níveis em que a trilha libera um poder (NEX 10%, 40%, 65% e 99%). */
     private static final int[] NIVEIS_TRILHA = {2, 8, 13, 20};
 
@@ -521,6 +522,16 @@ public class TelaFicha extends Screen {
                 }
                 return true;
             }
+            if (aba == ABA_ATRIBUTO) {
+                int mais = indiceDoMais(mx, my);
+                if (mais >= 0) {
+                    if (podeSubirAtributo(mais)) {
+                        ReceptoresCliente.enviar(PacoteArvore.subirAtributo(Atributo.values()[mais]));
+                        clique();
+                    }
+                    return true;
+                }
+            }
             for (int i = alvos.size() - 1; i >= 0; i--) {
                 Alvo a = alvos.get(i);
                 if (!dentro(mx, my, a.x(), a.y(), a.w(), a.h())) {
@@ -703,6 +714,7 @@ public class TelaFicha extends Screen {
     /** Bolinha verde na aba quando há algo para fazer nela (pontos para gastar, trilha para escolher...). */
     private boolean abaTemNovidade(int i) {
         return switch (i) {
+            case ABA_ATRIBUTO -> inteiro("pontosAtributo") > 0;
             case ABA_PERICIA -> inteiro("melhoriasVeterano") + inteiro("melhoriasExpert") > 0;
             case ABA_PODERES -> inteiro("pontosHabilidade") > 0;
             case ABA_TRILHA -> inteiro("trilha") < 0 && inteiro("nivel") >= Trilha.NIVEL_MINIMO;
@@ -784,13 +796,31 @@ public class TelaFicha extends Screen {
             if (Math.abs(mx - lx) <= 14 && Math.abs(my - ly) <= 16) {
                 atributoSobMouse = i;
             }
-            if (mx >= lx + 12 && mx < lx + 23 && my >= ly + DESLOC_MAIS && my < ly + DESLOC_MAIS + 11) {
-                atributoSobMouse = i;
-                maisSobMouse = true;
-            }
+        }
+        int mais = indiceDoMais(mx, my);
+        if (mais >= 0) {
+            atributoSobMouse = mais;
+            maisSobMouse = true;
         }
         desenharPentagono(g);
         desenharInfoAtributo(g);
+    }
+
+    /** O índice do atributo cujo botão "+" está sob o mouse, ou -1. */
+    private int indiceDoMais(double mx, double my) {
+        for (int i = 0; i < Atributo.values().length; i++) {
+            double lx = pontoX(i, pentRaio + RAIO_ROTULO);
+            double ly = pontoY(i, pentRaio + RAIO_ROTULO);
+            if (mx >= lx + 12 && mx < lx + 23 && my >= ly + DESLOC_MAIS && my < ly + DESLOC_MAIS + 11) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** Tem ponto para gastar e o atributo ainda não chegou ao máximo natural (o servidor confere de novo). */
+    private boolean podeSubirAtributo(int i) {
+        return inteiro("pontosAtributo") > 0 && atributos[i] < Atributos.MAXIMO_NATURAL;
     }
 
     private void desenharInfoAtributo(GuiGraphicsExtractor g) {
@@ -803,7 +833,8 @@ public class TelaFicha extends Screen {
         int nex = inteiro("nex");
 
         recortar(g, cx + 1, infoY + 1, cw - 2, h - 2);
-        texto(g, "PONTOS PARA DISTRIBUIR NOS ATRIBUTOS", x, y, COR_APAGADO);
+        int pontos = inteiro("pontosAtributo");
+        texto(g, ajustar("PONTOS PARA DISTRIBUIR NOS ATRIBUTOS: " + pontos, w), x, y, pontos > 0 ? COR_OK : COR_APAGADO);
         y += 13;
         // os NEX em que chegam pontos: já liberado (verde), o próximo (dourado) e os que faltam (apagado)
         boolean proximoMarcado = false;
@@ -823,8 +854,20 @@ public class TelaFicha extends Screen {
         y += ALTURA_CHIP + 6;
 
         if (maisSobMouse) {
-            paragrafo(g, "Ainda não disponível: os pontos chegam nos NEX acima e serão gastos nos botões \"+\".",
-                    x, y, w, COR_OSSO, yMax);
+            Atributo a = Atributo.values()[atributoSobMouse];
+            int atual = atributos[atributoSobMouse];
+            String aviso;
+            int corAviso = COR_OSSO;
+            if (atual >= Atributos.MAXIMO_NATURAL) {
+                aviso = nomeAtributo(a) + " já está no máximo (" + Atributos.MAXIMO_NATURAL + ").";
+                corAviso = COR_APAGADO;
+            } else if (pontos <= 0) {
+                aviso = "Sem pontos para gastar agora. " + proximoAtributo();
+                corAviso = COR_APAGADO;
+            } else {
+                aviso = "Clique para gastar 1 ponto em " + nomeAtributo(a) + " (" + atual + " → " + (atual + 1) + ").";
+            }
+            paragrafo(g, aviso, x, y, w, corAviso, yMax);
         } else if (atributoSobMouse >= 0) {
             Atributo a = Atributo.values()[atributoSobMouse];
             texto(g, ajustar(nomeAtributo(a).toUpperCase(java.util.Locale.ROOT) + "  " + atributos[atributoSobMouse], w),
@@ -1526,9 +1569,11 @@ public class TelaFicha extends Screen {
             int bx = (int) lx + 12;
             int by = (int) ly + DESLOC_MAIS;
             boolean sobreMais = sobre && maisSobMouse;
-            g.fill(bx, by, bx + 11, by + 11, sobreMais ? COR_APAGADO : COR_BORDA);
+            boolean ativo = podeSubirAtributo(i); // verde quando dá para gastar um ponto; apagado sem pontos ou no máximo
+            int bordaMais = ativo ? (sobreMais ? COR_OSSO : COR_OK) : (sobreMais ? COR_APAGADO : COR_BORDA);
+            g.fill(bx, by, bx + 11, by + 11, bordaMais);
             g.fill(bx + 1, by + 1, bx + 10, by + 10, COR_ZONA);
-            textoNaCaixa(g, "+", bx + 5.5F - FonteOP.largura(font, "+") / 2F, by, 11, COR_APAGADO);
+            textoNaCaixa(g, "+", bx + 5.5F - FonteOP.largura(font, "+") / 2F, by, 11, ativo ? COR_OK : COR_APAGADO);
         }
     }
 

@@ -10,11 +10,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  * - APRENDER: gasta 1 ponto de habilidade numa habilidade de classe (pelo id);
  * - TRILHA: escolhe a trilha (pelo indice no enum {@link Trilha}); nao da para trocar depois;
  * - MELHORAR: gasta uma melhoria de grau (2 + Intelecto nos NEX 35% e 70%) numa pericia (pelo indice em {@link Pericia});
- * - TREINAMENTO: poder Treinamento em Pericia: escolhe duas pericias (pelos indices) e sobe cada uma um grau.
+ * - TREINAMENTO: poder Treinamento em Pericia: escolhe duas pericias (pelos indices) e sobe cada uma um grau;
+ * - ATRIBUTO: gasta 1 ponto de atributo (NEX 20%, 50%, 80% e 95%) num atributo (pelo indice em {@link Atributo}), ate 5.
  * O servidor NUNCA confia no que chega: confere tudo de novo antes de mexer no personagem (veja ReceptoresServidor).
  *
  * @param id      id da habilidade (so na acao APRENDER)
- * @param indice  indice da trilha (TRILHA) ou da pericia (MELHORAR e TREINAMENTO)
+ * @param indice  indice da trilha (TRILHA), da pericia (MELHORAR e TREINAMENTO) ou do atributo (ATRIBUTO)
  * @param indice2 segunda pericia (so na acao TREINAMENTO)
  */
 public record PacoteArvore(int acao, String id, int indice, int indice2) implements CustomPacketPayload {
@@ -22,6 +23,7 @@ public record PacoteArvore(int acao, String id, int indice, int indice2) impleme
     public static final int TRILHA = 1;
     public static final int MELHORAR = 2;
     public static final int TREINAMENTO = 3;
+    public static final int ATRIBUTO = 4;
 
     public static final CustomPacketPayload.Type<PacoteArvore> TYPE = Rede.tipo("arvore");
     public static final StreamCodec<RegistryFriendlyByteBuf, PacoteArvore> CODEC =
@@ -41,6 +43,10 @@ public record PacoteArvore(int acao, String id, int indice, int indice2) impleme
 
     public static PacoteArvore treinamento(Pericia primeira, Pericia segunda) {
         return new PacoteArvore(TREINAMENTO, "", primeira.ordinal(), segunda.ordinal());
+    }
+
+    public static PacoteArvore subirAtributo(Atributo atributo) {
+        return new PacoteArvore(ATRIBUTO, "", atributo.ordinal(), -1);
     }
 
     public static void escrever(PacoteArvore m, FriendlyByteBuf buffer) {
