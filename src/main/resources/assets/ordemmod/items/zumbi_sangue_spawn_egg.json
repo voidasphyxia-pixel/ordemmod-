@@ -1,16 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "ordemmod:item/zumbi_sangue_spawn_egg",
-    "tints": [
-      {
-        "type": "minecraft:constant",
-        "value": 4851720
-      },
-      {
-        "type": "minecraft:constant",
-        "value": 12852766
-      }
-    ]
+    "model": "ordemmod:item/zumbi_sangue_spawn_egg"
   }
 }
