@@ -5,6 +5,16 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 16/10/2026 (porte Fabric: 6e2, fundo de nevoa nos menus + correcao do inventario) ---
+  Arquivos: titulo/FundoMenu (novo), mixin/cliente/ScreenMixin (novo), mixin/cliente/{InventoryScreenMixin,
+            ContainerScreenMixin} (nome do metodo corrigido), ordemmod.client.mixins.json, build.gradle,
+            titulo/EstiloMenu e EstiloTexturas (APAGADOS), PORTE-FABRIC.md.
+  - Pedido do usuario (capturas): Um jogador, Multijogador e Opcoes tinham o fundo do jogo. Agora o fundo do jogo e
+    cancelado e trocado por preto + nevoa + poeira + vinheta (as mesmas da tela inicial); campos de texto ganham a borda do mod.
+  - Inventario: o metodo e extractBackground(g, float, int, int), nao extractBg (o mixin nao aplicava).
+  - Como testar: abrir Um jogador / Multijogador / Opcoes / Criar mundo (fundo com nevoa e particulas); abrir o inventario (E)
+    e um bau (painel escuro). NAO testado.
+
 --- 16/10/2026 (porte Fabric: 2a correcao do build da 6e) --------------------
   Arquivos: titulo/TelaInicial, PORTE-FABRIC.md.
   - OptionsScreen agora tem construtor (Screen, Options, boolean): passa true (como o menu principal do jogo).

@@ -14,7 +14,7 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 /** Inventario do jogador: o painel do mod por cima da textura do jogo (extractBg) e os textos (extractLabels). */
 @Mixin(InventoryScreen.class)
 public abstract class InventoryScreenMixin {
-    @Inject(method = "extractBg", at = @At("TAIL"), require = 0)
+    @Inject(method = "extractBackground(Lnet/minecraft/client/gui/GuiGraphicsExtractor;FII)V", at = @At("TAIL"), require = 0)
     private void ordemmod$fundo(GuiGraphicsExtractor g, float parcial, int mx, int my, CallbackInfo ci) {
         InventarioOrdem.fundo((AbstractContainerScreen<?>) (Object) this, g, mx, my);
     }

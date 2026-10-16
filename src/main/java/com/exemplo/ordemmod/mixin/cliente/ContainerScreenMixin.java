@@ -14,7 +14,7 @@ import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 /** Baus e barris: o painel do mod por cima da textura do jogo. Os textos vem do AbstractContainerScreenMixin. */
 @Mixin(ContainerScreen.class)
 public abstract class ContainerScreenMixin {
-    @Inject(method = "extractBg", at = @At("TAIL"), require = 0)
+    @Inject(method = "extractBackground(Lnet/minecraft/client/gui/GuiGraphicsExtractor;FII)V", at = @At("TAIL"), require = 0)
     private void ordemmod$fundo(GuiGraphicsExtractor g, float parcial, int mx, int my, CallbackInfo ci) {
         InventarioOrdem.fundo((AbstractContainerScreen<?>) (Object) this, g, mx, my);
     }
