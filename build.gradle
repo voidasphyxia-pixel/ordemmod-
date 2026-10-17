@@ -132,6 +132,8 @@ def nucleo = [
     // etapa 6b2: inventario em vidro escuro (mixins so de cliente, ordemmod.client.mixins.json)
     'InventarioOrdem', 'mixin/cliente/AbstractContainerScreenAccessor', 'mixin/cliente/AbstractContainerScreenMixin',
     'mixin/cliente/ContainerScreenMixin', 'mixin/cliente/InventoryScreenMixin',
+    // 17/10: estes dois estavam em ordemmod.client.mixins.json mas fora do build ("mixin was not found" no log)
+    'mixin/cliente/AbstractContainerScreenFundoMixin', 'mixin/cliente/CraftingScreenMixin',
     // etapa 6e2: fundo de nevoa/poeira nos menus do jogo (substitui o EstiloMenu do Forge)
     'titulo/FundoMenu', 'mixin/cliente/ScreenMixin',
     'OrdemMod'
@@ -166,7 +168,8 @@ java {
 //   gradlew empacotarModpack   -> gera build/modpack/OrdemParanormal-modpack-<versao>.zip: o modpack inteiro com o
 //                                 jar do seu mod, TACZ e GeckoLib dentro (e so extrair na pasta .minecraft).
 // O Fabric API, o Forge Config API Port, o GeckoLib e o TACZ ja vem pelo gradle (dependencies acima); por isso as copias
-// deles que estao em modpack/overrides/mods NAO vao para run/mods (mod duplicado derruba o jogo).
+// deles que estao em modpack/overrides/mods NAO vao para run/mods (mod duplicado derruba o jogo). O modernfix tambem fica
+// de fora do runClient (crash "STATIC modifier of @Overwrite method createUserApiService"); no zip empacotado ele vai normalmente.
 // ---------------------------------------------------------------------------------------
 def pastaRun = layout.projectDirectory.dir('run').asFile
 
@@ -178,7 +181,8 @@ tasks.register('prepararModpack', Copy) {
     }
     from('modpack/overrides/mods') {
         into 'mods'
-        exclude 'fabric-api*', 'ForgeConfigAPIPort*', 'geckolib*', '*tacz*', '*TACZ*', 'automodpack*', '*.disabled'
+        exclude 'fabric-api*', 'ForgeConfigAPIPort*', 'geckolib*', '*tacz*', '*TACZ*', 'automodpack*', '*.disabled',
+                'modernfix*' // o modernfix tem um mixin de ambiente de desenvolvimento que quebra o Minecraft 26.2 no runClient
     }
     into pastaRun
     // nao sobrescreve o que ja existe em run/ (seus ajustes de config/options feitos dentro do jogo ficam)

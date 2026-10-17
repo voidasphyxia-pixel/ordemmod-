@@ -5,6 +5,14 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 17/10/2026 (runClient: crash do modernfix e 2 mixins fora do build) ---------
+  Log do usuario (2o runClient, loader 0.19.5 ok): crash "Mixin apply for mod modernfix failed ... devenv.MinecraftMixin ...
+  STATIC modifier of @Overwrite method createUserApiService" (mixin de ambiente de dev do modernfix; nao e culpa do Ordem).
+  Tambem: "The specified mixin ...AbstractContainerScreenFundoMixin / CraftingScreenMixin was not found": estavam em
+  ordemmod.client.mixins.json mas fora da lista 'nucleo' do build.gradle.
+  Arquivos: build.gradle (runClient nao copia modernfix*; nucleo inclui os dois mixins), ALTERACOES-CLAUDE.txt.
+  NAO compilado aqui. Como testar: .\gradlew.bat runClient (apague run\mods\modernfix*.jar se ele ja foi copiado).
+
 --- 17/10/2026 (Fabric Loader 0.19.5) -----------------------------------------
   Erro no runClient: "Incompatible mods found": aitk, architectury e sway exigem Fabric Loader 0.19.5+ (havia 0.19.3).
   Arquivo: gradle.properties (loader_version 0.19.3 -> 0.19.5). Como testar: .\gradlew.bat runClient de novo.
