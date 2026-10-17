@@ -43,13 +43,6 @@ então foram **desvinculadas** (ficam como "Não definida"; dá para religar no 
 - O TACZ e o GeckoLib (não estão no pack; veja acima) e o `automodpack`.
 - Seus saves e o `soundDevice` (foi limpo do `options.txt` para não prender o áudio ao seu dispositivo).
 
-## Packs desligados de propósito
-`FA+Player`, `FA+Player_Expressions` e `Just 3d armors` ficam **desligados** no `options.txt` (os arquivos continuam na pasta `resourcepacks/`).
-No teste do `runClient` na 26.2 o boneco do jogador aparece com cabeça e braços soltos voando (inclusive na tela de criação). Esses três
-trocam o modelo do jogador (`emf/cem/player.jem` e `optifine/cem/player_*`) e foram feitos para o 1.21.x; o `Just 3d armors` ainda é
-marcado como incompatível (pack_format 46–75). Para religar, ative no menu de Pacotes de Recursos quando houver versão para 26.2.
-Se você já tinha rodado o `runClient`, apague `run\options.txt` para ele pegar esta versão do arquivo.
-
 ## Pendências
 - Gerar um `.mrpack`/packwiz de verdade (com links e hashes) precisa de acesso ao Modrinth, que está bloqueado onde eu trabalho; faça pelo Modrinth App (Exportar) depois que o teste passar.
 - Possíveis conflitos de mixin do Ordem (telas de inventário e `LivingEntity`) com mods como Punchy, Not Enough Animations, Controlling, Bedrockify e BetterF3 só aparecem rodando o jogo: se travar, mande o `latest.log`.
