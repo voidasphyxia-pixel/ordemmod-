@@ -5,22 +5,20 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
---- 16/10/2026 (icones das trilhas de combatente com borda "ladrao") ------------
-  Pedido: trocar os icones das habilidades das 5 trilhas de combatente pelas artes novas (zip "Trilhas combatente")
-  e criar uma borda estilizada "ladrao".
-  Arquivos: textures/gui/poderes/<id>.png (20 icones), IconesOP.java, tools/gerar_icones_trilhas_combatente.py (novo).
+--- 16/10/2026 (icones das trilhas de combatente) -------------------------------
+  Pedido: trocar os icones das habilidades das 5 trilhas de combatente pelas artes novas (zip "Trilhas combatente"),
+  mantendo a borda padrao (a moldura dourada/verde/cinza ja e desenhada pela TelaFicha; os PNGs nao tem borda propria).
+  Arquivos: textures/gui/poderes/<id>.png (20 icones, 128x128), IconesOP.java, tools/gerar_icones_trilhas_combatente.py (novo).
   - 20 icones substituidos: Aniquilador (a_favorita, tecnica_secreta, tecnica_sublime, maquina_de_guerra),
     Comandante de Campo (inspirar_confianca, estrategista, brecha_na_guarda, oficial_comandante),
     Guerreiro (tecnica_letal, revidar, forca_opressora, potencia_maxima),
     Operacoes Especiais (iniciativa_aprimorada, ataque_extra, surto_de_adrenalina, sempre_alerta),
     Tropa de Choque (casca_grossa, cai_dentro, duro_de_matar, inquebravel). "Maquina de matar" -> id maquina_de_guerra.
-  - Borda "ladrao" (interpretacao do Claude): moldura de ferro escuro desgastado, filete e rebites de bronze,
-    adagas cruzadas no topo e gazua em losango embaixo, cantos arredondados. PNG 128x128 com fundo transparente.
   - IconesOP: antes assumia textura 16x16 (so mostraria um canto de arte maior); agora le o tamanho do PNG
     (cabecalho IHDR) e desenha a textura inteira. Icones 16x16 antigos continuam funcionando.
   - NAO compilado nem testado no jogo.
-  - Como testar: gradlew runClient -> ficha -> aba Trilha/Habilidades de um combatente; conferir os icones (16 e 32 px).
-  - Para refazer/ajustar a borda: python3 tools/gerar_icones_trilhas_combatente.py "<pasta Trilhas combatente>".
+  - Como testar: gradlew runClient -> ficha -> aba Trilha/Habilidades de um combatente.
+  - Refazer: python3 tools/gerar_icones_trilhas_combatente.py "<pasta Trilhas combatente>".
 
 --- 16/10/2026 (BUG do NEX: pontos de atributo e limite 5) -----------------------
   Problema: ao chegar nos NEX que liberam atributo, nao dava para subir nada alem do 3: o mod nao concedia ponto
