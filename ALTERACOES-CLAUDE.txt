@@ -5,6 +5,14 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 17/10/2026 (boneco do jogador com cabeca e bracos soltos) ---------------------
+  Sintoma (prints do usuario): cabeca/bracos flutuando em volta do jogador, ate na TelaCriacao. O codigo do Ordem nao mexe no
+  modelo do jogador (grep em src/main/java: nenhum PlayerModel/Renderer proprio). Os resourcepacks FA+Player-v1.1 e
+  FA+Player_Expressions-v1.2 trazem emf/cem/player.jem (modelo do jogador via EMF) e sao pack_format 15 (1.21.x); Just 3d armors
+  (optifine/cem/player_*) esta marcado incompativel. Causa mais provavel: modelo de jogador do EMF/FA nao bate com o da 26.2.
+  Arquivos: modpack/overrides/options.txt (3 packs removidos de resourcePacks), modpack/README.md.
+  NAO confirmado no jogo. Como testar: apagar run\options.txt e rodar .\gradlew.bat runClient; se o boneco ficar normal, era isso.
+
 --- 17/10/2026 (runClient: crash do modernfix e 2 mixins fora do build) ---------
   Log do usuario (2o runClient, loader 0.19.5 ok): crash "Mixin apply for mod modernfix failed ... devenv.MinecraftMixin ...
   STATIC modifier of @Overwrite method createUserApiService" (mixin de ambiente de dev do modernfix; nao e culpa do Ordem).
