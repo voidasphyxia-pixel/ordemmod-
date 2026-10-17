@@ -88,7 +88,6 @@ sodium-fabric-0.9.1+mc26.2.jar
 softimprints-fabric-26.2-2.8.0.jar
 sound-physics-remastered-fabric-1.5.1+26.2.jar
 soundculling-1.0.2.jar
-SubtleEffects-fabric-26.2-1.14.3.jar
 sway-2.4.5-fabric+26.2.jar
 swinginglanterns-fabric-26.2-2.0.1.jar
 tightfire-26.2-1.0-SNAPSHOT.jar
