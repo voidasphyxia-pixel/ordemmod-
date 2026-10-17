@@ -1,0 +1,10 @@
+{
+  "locked": false,
+  "name": "test",
+  "overrides": {},
+  "packIds": [
+    "file/FreshAnimations_v1.10.5.zip",
+    "punchy:punchy",
+    "vanilla"
+  ]
+}

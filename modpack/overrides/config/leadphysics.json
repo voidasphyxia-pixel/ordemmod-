@@ -1,0 +1,6 @@
+{
+  "enabled": true,
+  "renderMode": "THREE_D",
+  "physicsAmplitude": 1.0,
+  "blockCollision": true
+}

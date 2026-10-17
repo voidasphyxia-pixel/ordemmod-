@@ -1,0 +1,9 @@
+{
+  "modEnabled": true,
+  "showSpeedometer": false,
+  "scrollSpeed": 0.1,
+  "maxSpeed": 0.1,
+  "minSpeed": 0.05,
+  "scrollStep": 0.02,
+  "acceleration": 0.1
+}

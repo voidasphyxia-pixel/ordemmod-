@@ -1,0 +1,472 @@
+{
+  "enabled": true,
+  "removeRenderPass": true,
+  "outline_size": 10.0,
+  "render_solid": false,
+  "render_solid_outline_color_rgb": [
+    171,
+    96,
+    218
+  ],
+  "render_equipment": false,
+  "equipment_outline_size": 20.0,
+  "render_equipment_solid": true,
+  "item_overrides": {
+    "minecraft:iron_chestplate": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:leather_chestplate": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:iron_leggings": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:leather_leggings": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:copper_leggings": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:chainmail_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:netherite_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:golden_boots": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:enchanted_golden_apple": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:experience_bottle": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:netherite_chestplate": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:iron_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:copper_chestplate": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:copper_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:chainmail_leggings": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:nether_star": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:turtle_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:diamond_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:diamond_boots": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:trident": {
+      "render": true,
+      "override_outline_size": false,
+      "outline_size": 6.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": true,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:golden_leggings": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:enchanted_book": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 0.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:leather_boots": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:copper_boots": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:diamond_chestplate": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:netherite_boots": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:iron_boots": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:leather_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:netherite_leggings": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 0.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:diamond_leggings": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:golden_chestplate": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:golden_helmet": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:fishing_rod": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:chainmail_chestplate": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    },
+    "minecraft:chainmail_boots": {
+      "render": false,
+      "override_outline_size": false,
+      "outline_size": 20.0,
+      "override_render_solid": false,
+      "render_solid": false,
+      "override_render_solid_outline_color": false,
+      "render_solid_outline_color": [
+        210,
+        150,
+        248
+      ]
+    }
+  },
+  "equipment_overrides": {}
+}

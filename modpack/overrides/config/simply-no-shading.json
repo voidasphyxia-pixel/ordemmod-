@@ -1,0 +1,10 @@
+{
+    "compatibilityMode": true,
+    "custom": {
+        "shadeBlocks": true,
+        "shadeClouds": false,
+        "shadeEntities": false
+    },
+    "preset": "custom",
+    "version": 1
+}

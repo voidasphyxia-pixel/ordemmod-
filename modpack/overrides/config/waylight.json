@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "autoEquipInDarkness": true,
+  "autoUnequipInBrightness": false,
+  "firstPersonLight": true,
+  "debugAnchorGizmo": false,
+  "extinguishUnderwater": true,
+  "autoLightThreshold": 7,
+  "motionIntensity": 100,
+  "firstPersonHandMotion": "physics",
+  "lanternType": "normal",
+  "lanternPosition": "left_hand"
+}

@@ -1,0 +1,14 @@
+#Fri May 08 16:28:36 WEST 2026
+Godrays=true
+Refractions=true
+SSAO=true
+TAA=true
+animationSpeed=0.25
+emissive_B=0.7
+emissive_G=1.7
+gamma=2.4
+grays_intensity=0.35
+grays_quality=2
+shadowDistance=110.0
+shadowMapResolution=2048
+skyReflection=true
