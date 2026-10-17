@@ -16,11 +16,13 @@ if (-not (Test-Path $Instancia)) { throw "Pasta nao encontrada: $Instancia" }
 $opt = Join-Path $Instancia "options.txt"
 if (Test-Path $opt) { Copy-Item $opt "$opt.bak" -Force }
 Copy-Item -Path (Join-Path $aqui "overrides\*") -Destination $Instancia -Recurse -Force
-Write-Host "Configs, shaderpacks e options.txt copiados."
+Write-Host "Configs, shaderpacks, resourcepacks, mods e options.txt copiados."
 
 # 2) o mod Ordem (gradlew build) e o TACZ-Refabricated (libs/)
 $mods = Join-Path $Instancia "mods"
 New-Item -ItemType Directory -Force $mods | Out-Null
+# automodpack sincroniza mods com um servidor e pode apagar o jar do Ordem: nunca fica na instancia de teste
+Get-ChildItem $mods -Filter "automodpack*" -ErrorAction SilentlyContinue | Remove-Item -Force
 if ($PastaMods -ne "") {
     if (-not (Test-Path $PastaMods)) { throw "Pasta de mods nao encontrada: $PastaMods" }
     Get-ChildItem $PastaMods -Filter "*.jar" | Where-Object { $_.Name -notmatch "^automodpack" } | Copy-Item -Destination $mods -Force
@@ -35,6 +37,9 @@ $tacz = Get-ChildItem (Join-Path $raiz "libs") -Filter "TACZ-Refabricated*.jar" 
 if ($tacz) { Copy-Item $tacz.FullName $mods -Force; Write-Host "TACZ copiado: $($tacz.Name)" }
 else { Write-Warning "TACZ-Refabricated*.jar nao esta em libs\. Coloque o jar dele em $mods manualmente." }
 
+if (-not (Get-ChildItem $mods -Filter "*tacz*.jar" -ErrorAction SilentlyContinue)) {
+    Write-Warning "TACZ-Refabricated nao esta em mods\. O Ordem Mod exige: coloque o jar dele la (e em libs\ para compilar)."
+}
 if (-not (Get-ChildItem $mods -Filter "geckolib*.jar" -ErrorAction SilentlyContinue)) {
     Write-Warning "GeckoLib (5.5.3+ para 26.2) nao esta em mods\. O Ordem Mod precisa dele: baixe no Modrinth/CurseForge e coloque la."
 }
