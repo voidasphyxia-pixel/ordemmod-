@@ -12,13 +12,21 @@ numa instância do Minecraft junto com o mod Ordem e o TACZ-Refabricated.
 | `mods-lista.txt` | Lista dos 103 mods (todos 26.2) do seu modpack atual, só os nomes dos `.jar` |
 | `instalar.ps1` / `instalar.bat` | Copia tudo para a instância e põe o mod Ordem + TACZ em `mods/` |
 
-## Como testar (os mods e resourcepacks já estão em `overrides/`)
-1. `git pull` na sua pasta do projeto.
-2. Coloque o jar do **TACZ-Refabricated** em `libs/` e rode `gradlew.bat build` (JDK 25). O jar do mod sai em `build/libs/`.
-3. Crie um perfil **Fabric 26.2** (Loader 0.19.3+) e abra a pasta `.minecraft` dele.
-4. Em `modpack/`: `instalar.bat "C:\...\.minecraft"` (copia tudo + o jar do Ordem + o TACZ; o automodpack é removido).
-5. Coloque na pasta `mods/` da instância o **GeckoLib 5.5.3+ (26.2)** — ele não está no pack.
-6. Abra o jogo, crie um mundo e teste `/ordem status` e as teclas R, G e K. Se travar, mande o `logs/latest.log`.
+## Como testar (mod + modpack são um projeto só)
+Pré-requisitos: **JDK 25** e o jar do **TACZ-Refabricated** em `libs/`. Na pasta do projeto (PowerShell, com `.\` na frente):
+
+- `.\gradlew.bat runClient` — abre o jogo **já com o modpack inteiro** (mods, configs, resourcepacks, shaders, `options.txt`) e com o
+  seu mod carregado direto do código. A primeira vez demora (baixa o Minecraft e prepara a pasta `run/`). Depois é só rodar de novo.
+  A pasta `run/` é a instância de teste; os arquivos que já existem lá não são sobrescritos (seus ajustes ficam).
+- `.\gradlew.bat empacotarModpack` — gera `build\modpack\OrdemParanormal-modpack-<versão>.zip` com o modpack completo + o jar do mod
+  + TACZ + GeckoLib. Para jogar fora do Gradle, extraia o zip na pasta `.minecraft` de um perfil Fabric 26.2.
+
+O Fabric API, o Forge Config API Port, o GeckoLib e o TACZ já vêm pelo Gradle; por isso as cópias deles dentro de
+`overrides/mods` são ignoradas no `runClient` (mod duplicado derruba o jogo).
+
+> `instalar.bat` / `instalar.ps1` continuam aí só como alternativa para copiar o modpack para uma instância já existente.
+
+Dentro do jogo: crie um mundo e teste `/ordem status` e as teclas R, G e K. Se travar, mande o `run\logs\latest.log`.
 
 ## Dependências obrigatórias do Ordem Mod (`fabric.mod.json`)
 `fabricloader >= 0.19.3`, `minecraft >= 26.2`, `java >= 25`, `fabric-api`, `geckolib >= 5.5.3`, `tacz >= 1.1.8`

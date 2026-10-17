@@ -158,3 +158,57 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
     withSourcesJar()
 }
+
+// ---------------------------------------------------------------------------------------
+// MODPACK INTEGRADO (pasta modpack/): o mod e o modpack viram um projeto so.
+//   gradlew runClient          -> abre o jogo JA com o modpack (mods, configs, resourcepacks, shaders, options),
+//                                 e o seu mod carregado do codigo-fonte (sem precisar copiar jar nenhum).
+//   gradlew empacotarModpack   -> gera build/modpack/OrdemParanormal-modpack-<versao>.zip: o modpack inteiro com o
+//                                 jar do seu mod, TACZ e GeckoLib dentro (e so extrair na pasta .minecraft).
+// O Fabric API, o Forge Config API Port, o GeckoLib e o TACZ ja vem pelo gradle (dependencies acima); por isso as copias
+// deles que estao em modpack/overrides/mods NAO vao para run/mods (mod duplicado derruba o jogo).
+// ---------------------------------------------------------------------------------------
+def pastaRun = layout.projectDirectory.dir('run').asFile
+
+tasks.register('prepararModpack', Copy) {
+    group = 'ordemmod'
+    description = 'Copia o modpack (modpack/overrides) para a pasta run/ usada pelo runClient (so o que ainda nao existe la).'
+    from('modpack/overrides') {
+        exclude 'mods/**'
+    }
+    from('modpack/overrides/mods') {
+        into 'mods'
+        exclude 'fabric-api*', 'ForgeConfigAPIPort*', 'geckolib*', '*tacz*', '*TACZ*', 'automodpack*', '*.disabled'
+    }
+    into pastaRun
+    // nao sobrescreve o que ja existe em run/ (seus ajustes de config/options feitos dentro do jogo ficam)
+    eachFile { details ->
+        if (new File(pastaRun, details.relativePath.pathString).exists()) {
+            details.exclude()
+        }
+    }
+    includeEmptyDirs = false
+}
+
+tasks.matching { it.name == 'runClient' }.configureEach {
+    dependsOn 'prepararModpack'
+}
+
+tasks.register('empacotarModpack', Zip) {
+    group = 'ordemmod'
+    description = 'Gera o zip do modpack completo (com o jar do Ordem Mod, TACZ e GeckoLib) em build/modpack/.'
+    dependsOn tasks.named('jar')
+    archiveFileName = "OrdemParanormal-modpack-${project.version}.zip"
+    destinationDirectory = layout.buildDirectory.dir('modpack')
+    from('modpack/overrides') {
+        exclude 'mods/automodpack*', 'mods/*.disabled'
+    }
+    from(tasks.named('jar').flatMap { it.archiveFile }) {
+        into 'mods'
+    }
+    from({
+        configurations.runtimeClasspath.filter { it.name.startsWith('geckolib') || it.name.startsWith('TACZ-Refabricated') }
+    }) {
+        into 'mods'
+    }
+}

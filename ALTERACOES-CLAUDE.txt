@@ -5,6 +5,17 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 17/10/2026 (modpack integrado ao build: runClient e empacotarModpack) ------
+  Pedido: "incorporar o modpack nos arquivos do mod e virarem uma coisa so".
+  Arquivos: build.gradle (fim do arquivo), modpack/README.md.
+  - Task prepararModpack (Copy): copia modpack/overrides para run/ (so o que ainda nao existe la). Em overrides/mods ignora
+    fabric-api, ForgeConfigAPIPort, geckolib, tacz, automodpack e *.disabled (ja vem pelo gradle; duplicado derruba o jogo).
+    runClient passa a depender dela: o jogo abre ja com o modpack.
+  - Task empacotarModpack (Zip): build/modpack/OrdemParanormal-modpack-<versao>.zip = overrides + jar do mod + TACZ + GeckoLib.
+  - NAO compilado nem testado aqui (sem acesso ao Gradle/Mojang). Possiveis problemas: mods do pack que nao carregam no ambiente
+    de desenvolvimento do Loom; mixins do Ordem em conflito com outros mods. Se der erro: mandar run/logs/latest.log e a saida do gradle.
+  - Como testar: .\gradlew.bat runClient (JDK 25, TACZ em libs/).
+
 --- 17/10/2026 (modpack: pasta modpack/ para testar o mod) ---------------------
   Pedido: o usuario mandou config.zip, shaderpacks.zip e options.txt do modpack "fresh-smooth" (o fresh-smooth.zip nao chegou ao
   repositorio; resourcepacks tem 56 MB e ficaram de fora) e pediu que funcionasse com o mod.
