@@ -1,0 +1,25 @@
+{
+    HUD: {
+        hotbar: true,
+        hearts: true,
+        foodBar: true,
+        armourBar: true,
+        airBar: true,
+        experienceBar: true
+    },
+    animations: {
+        anvil: false,
+        cartographyTable: false,
+        dispenser: false,
+        dropper: false,
+        enchantingTable: false,
+        enderChest: false,
+        furnaceFire: false,
+        smithingTable: false,
+        stonecutter: false
+    },
+    customSprites: {
+        villagerButtons: true,
+        beaconButtons: true
+    }
+}

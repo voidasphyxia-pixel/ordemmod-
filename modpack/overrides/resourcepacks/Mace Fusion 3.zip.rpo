@@ -1,0 +1,5 @@
+{
+    maceVariant: "threeD",
+    spikes: true,
+    displayThreeD: false
+}

@@ -1,0 +1,10 @@
+{
+    pillagerModel: true,
+    vindicatorModel: true,
+    evokerModel: true,
+    evokerFangsModel: true,
+    vexModel: true,
+    ravagerModel: true,
+    witchModel: true,
+    illusionerModel: true
+}
