@@ -7,8 +7,9 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 --- 16/10/2026 (icones das trilhas de combatente) -------------------------------
   Pedido: trocar os icones das habilidades das 5 trilhas de combatente pelas artes novas (zip "Trilhas combatente"),
-  mantendo a borda padrao (a moldura dourada/verde/cinza ja e desenhada pela TelaFicha; os PNGs nao tem borda propria).
-  Arquivos: textures/gui/poderes/<id>.png (20 icones, 128x128), IconesOP.java, tools/gerar_icones_trilhas_combatente.py (novo).
+  com uma borda propria simples: moldura de ferro escuro desgastado + filete de bronze, cantos arredondados, SEM enfeites
+  (sem adagas, gazua ou rebites). A TelaFicha ainda desenha sua moldura colorida por fora.
+  Arquivos: textures/gui/poderes/<id>.png (20 icones, 128x128 com fundo transparente), IconesOP.java, tools/gerar_icones_trilhas_combatente.py (novo).
   - 20 icones substituidos: Aniquilador (a_favorita, tecnica_secreta, tecnica_sublime, maquina_de_guerra),
     Comandante de Campo (inspirar_confianca, estrategista, brecha_na_guarda, oficial_comandante),
     Guerreiro (tecnica_letal, revidar, forca_opressora, potencia_maxima),
