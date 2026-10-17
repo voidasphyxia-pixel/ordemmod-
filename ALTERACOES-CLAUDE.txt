@@ -5,6 +5,11 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 17/10/2026 (tela inicial: icones ainda apareciam nos botoes) -------------------
+  A 1a correcao tirou o "R" (§r) mas nao os icones: eram code points suplementares (U+F0000, par de surrogates) e o regex
+  por char [\uD800-\uDFFF] nao casa com pares. Agora TelaInicial.Item filtra por code point (PRIVATE_USE, SURROGATE, UNASSIGNED).
+  Arquivo: titulo/TelaInicial.java. NAO compilado aqui. Como testar: runClient -> botoes so com texto.
+
 --- 17/10/2026 (tela inicial: quadradinhos e "R" nos botoes) ------------------------
   Sintoma (print): botoes "UM JOGADOR [][]R", "OPCOESR"... O resourcepack "Icons v.1.14" sobrescreve menu.singleplayer etc. com
   glifos de icone (\uDB80\uDC00) e "§r" (ex.: '\uDB80\uDC00 Um jogador \uDB80\uDC00§r'). TelaInicial.Item desenha o rotulo letra a letra com

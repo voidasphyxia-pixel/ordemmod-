@@ -83,7 +83,14 @@ public class TelaInicial extends Screen {
             String t = Language.getInstance().has(chave) ? Component.translatable(chave).getString() : fallback;
             // Resourcepacks (ex.: "Icons") colocam glifos de icone (area privada/surrogates) e codigos de cor (§r) nos textos dos
             // botoes; como o texto aqui e desenhado letra a letra, isso virava quadradinhos e um "R" solto. Limpa tudo.
-            t = t.replaceAll("\u00a7.", "").replaceAll("[\\uE000-\\uF8FF\\uD800-\\uDFFF]", "");
+            t = t.replaceAll("\u00a7.", "");
+            StringBuilder limpo = new StringBuilder();
+            // por code point: os icones do pack ficam no plano 15 (par de surrogates), que um regex por char nao pega
+            t.codePoints().filter(cp -> {
+                int tipo = Character.getType(cp);
+                return tipo != Character.PRIVATE_USE && tipo != Character.SURROGATE && tipo != Character.UNASSIGNED;
+            }).forEach(limpo::appendCodePoint);
+            t = limpo.toString();
             this.rotulo = t.replace("...", "").replace("\u2026", "").trim().toUpperCase(Locale.ROOT);
             this.principal = principal;
             this.acao = acao;
