@@ -9,13 +9,13 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
   Pedido: o usuario mandou config.zip, shaderpacks.zip e options.txt do modpack "fresh-smooth" (o fresh-smooth.zip nao chegou ao
   repositorio; resourcepacks tem 56 MB e ficaram de fora) e pediu que funcionasse com o mod.
   Arquivos (todos novos, em modpack/): README.md, instalar.ps1, instalar.bat, overrides/config (278 arquivos),
-  overrides/shaderpacks (9 shaders + .txt), overrides/options.txt, referencia/modlist-antigo-1.21.5.json.
+  overrides/shaderpacks (9 shaders + .txt), overrides/options.txt, mods-lista.txt (103 mods 26.2 do usuario; sem GeckoLib e sem TACZ).
   - Limpeza: sem *.bak, caches (super_resolution, .puzzle_cache), spark, crash_assistant, sodium-fingerprint; shaders "Outdated",
     pastas geradas do Euphoria e logs de erro removidos; Astra Lex renomeado (nome vinha com caracteres quebrados).
   - options.txt: soundDevice limpo; teclas R/G/K (do Ordem) desvinculadas em Iris (reload, toggleShaders), Fancy Toasts,
     vanilla quickActions e Punchy (inspect_rework). Teclas F3+letra mantidas.
   - instalar.ps1: copia overrides para a instancia, backup do options.txt, copia o jar de build/libs e o TACZ-Refabricated de libs/.
-  - NAO testado no jogo. Falta: lista atual de mods (modlist antigo e do 1.21.5), resourcepacks.
+  - NAO testado no jogo. Falta: GeckoLib no pack, resourcepacks.
   - Como testar: ver modpack/README.md.
 
 --- 16/10/2026 (icones das trilhas de combatente) -------------------------------
