@@ -5,17 +5,24 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
---- 19/10/2026 (HUD: sons do uso e do "sem PE") ----------------------------------------
-  Pedido: usar sons nas duas animacoes. Nao tinha arquivo de som para isso e o Claude nao baixa audio daqui, entao os 2 sons foram
-  SINTETIZADOS (originais, sem amostras de terceiros) por tools/gerar_sons_habilidade.py (numpy + scipy + ffmpeg).
-  - sounds/habilidade/usar.ogg (0,62 s): sopro que sobe, baque grave (150 -> 46 Hz), brilho de sino escuro e ecos curtos.
-  - sounds/habilidade/sem_pe.ogg (0,42 s): dois zumbidos graves e secos, descendo e dessafinados (soa "negado").
-  - SonsOrdem: HABILIDADE_USAR ("habilidade.usar") e HABILIDADE_SEM_PE ("habilidade.sem_pe"); sounds.json com as 2 entradas.
-  - HabilidadesHud.aoApertarUsar toca o som junto com a animacao (SimpleSoundInstance.forUI, VOLUME_SOM = 0,6; o de uso varia o
-    pitch +-5% a cada vez). Mesmo gatilho (previsao do cliente) das animacoes.
-  Arquivos: tools/gerar_sons_habilidade.py (novo), sounds/habilidade/*.ogg (novos), sounds.json, SonsOrdem.java, HabilidadesHud.java.
-  NAO compilado nem OUVIDO no jogo (o Claude nao escuta o resultado): se o timbre/volume nao agradar, ajustar os numeros no script e
-  rodar de novo, ou trocar os .ogg por outros seus (mono, mesmo nome). Volume: VOLUME_SOM no topo de HabilidadesHud.
+--- 19/10/2026 (HUD: sons do uso e do "sem PE", feitos de GRAVACOES) --------------------
+  Pedido: usar sons nas duas animacoes; depois, "os sons parecem sinteticos e roboticos, faz mais organicos e verdadeiros".
+  A 1a versao era sintese pura (ondas) e soou robotica. Nao ha como baixar audio daqui nem ouvir o resultado, entao os sons agora
+  sao MONTADOS A PARTIR DE GRAVACOES que o mod ja tem (os espectrogramas foram analisados para escolher os trechos):
+  - tools/gerar_sons_habilidade.py (numpy + scipy + ffmpeg): corta/afina/mistura trechos de marcado/batimento_loop (batida de
+    coracao), marcado/sangue (textura umida) e marcado/sussuros_1/2 (sopro), mais uma sala curta (convolucao com ruido que decai).
+  - sounds/habilidade/usar_1..3.ogg (~0,65 s): o GOLPE (batida) cai no tempo 0, textura umida colada e o sussurro solta como sopro
+    logo depois. sounds/habilidade/sem_pe_1..3.ogg (~0,8 s): batimento duplo (lub-dub) mais grave e ABAFADO ("o coracao falha")
+    e um suspiro que se apaga. 3 variacoes de cada (cortes/afinacoes diferentes); o jogo sorteia uma por vez (sounds.json).
+  - O golpe fica no tempo zero de proposito: som de interface tem de bater com a animacao no instante da tecla.
+  - Niveis ~ os dos outros sons do mod (media ~ -22 dB, pico ~ -3 dB).
+  - SonsOrdem: HABILIDADE_USAR ("habilidade.usar") e HABILIDADE_SEM_PE ("habilidade.sem_pe"); sounds.json lista as 3 de cada.
+  - HabilidadesHud.aoApertarUsar toca o som junto com a animacao (SimpleSoundInstance.forUI, VOLUME_SOM = 0,8; pitch com variacao
+    pequena). Mesmo gatilho (previsao do cliente) das animacoes.
+  Arquivos: tools/gerar_sons_habilidade.py (novo), sounds/habilidade/*.ogg (6, novos), sounds.json, SonsOrdem.java, HabilidadesHud.java.
+  NAO compilado nem OUVIDO no jogo. Se alguma variacao nao agradar, apague a linha dela no sounds.json; para mexer no timbre, as
+  tabelas VARIACOES_USAR / VARIACOES_SEM_PE no topo do script (pitch, qual batida, qual sussurro, volume da textura, abafamento).
+  Alternativa mais "real" ainda: trocar os .ogg por gravacoes/biblioteca livre (mono, mesmo nome).
 
 --- 19/10/2026 (HUD: animacoes de uso e de "sem PE") ----------------------------------
   Pedido: leve animacao no icone ao USAR a habilidade e outra quando NAO da para usar por falta de PE.

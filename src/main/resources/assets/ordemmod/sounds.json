@@ -173,14 +173,26 @@
   "habilidade.usar": {
     "sounds": [
       {
-        "name": "ordemmod:habilidade/usar"
+        "name": "ordemmod:habilidade/usar_1"
+      },
+      {
+        "name": "ordemmod:habilidade/usar_2"
+      },
+      {
+        "name": "ordemmod:habilidade/usar_3"
       }
     ]
   },
   "habilidade.sem_pe": {
     "sounds": [
       {
-        "name": "ordemmod:habilidade/sem_pe"
+        "name": "ordemmod:habilidade/sem_pe_1"
+      },
+      {
+        "name": "ordemmod:habilidade/sem_pe_2"
+      },
+      {
+        "name": "ordemmod:habilidade/sem_pe_3"
       }
     ]
   }
