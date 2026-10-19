@@ -1,17 +1,21 @@
 package com.exemplo.ordemmod;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 
 /**
  * Os slots de habilidades ativas no canto inferior esquerdo da tela: PENTAGONOS (ponta para cima) empilhados em
  * diagonal, no estilo dos slots hexagonais de outro HUD, so que cada um mostra o simbolo da habilidade COBRINDO a forma
- * inteira (o icone e recortado pelo contorno do pentagono, nao fica uma caixinha quadrada dentro).
+ * inteira.
  *
  *  - 1o (grande): a habilidade ATUAL, a que a tecla USAR (R) dispara agora;
  *  - 2o (menor): a PROXIMA na fila, a que a tecla TROCAR (G) escolhe;
@@ -20,9 +24,11 @@ import net.minecraft.util.Util;
  * Se o PE atual nao paga o custo, o icone escurece e a borda fica vermelha ("nao da para ativar agora").
  * O numero no canto de baixo e o custo em PE (como o "6" no slot do print de referencia).
  *
- * Como o pentagono e desenhado: o jogo so sabe pintar retangulos, entao a forma sai linha por linha (1 px de altura):
- * para cada linha calculo onde o contorno comeca e termina, pinto a borda e, por dentro, o icone recortado so nesse
- * trecho (enableScissor). Sao ~30 linhas por slot, barato para uma HUD.
+ * Como o pentagono e desenhado (suave, sem degraus): cada slot sao TEXTURAS com bordas antialiased, geradas por
+ * tools/gerar_pentagonos.py em textures/gui/hud_habilidades/ — "<id>.png" (fundo escuro + icone ja recortado no
+ * pentagono), "moldura.png" (anel branco, pintado com a cor da borda) e "brilho.png" (halo dourado do slot atual).
+ * Cada PNG tem um .mcmeta com blur=true, entao o jogo filtra de forma suave ao reduzir para o tamanho da tela.
+ * Se um icone mudar em poderes/, rode o script de novo.
  *
  * Todas as medidas estao nas constantes abaixo para voce ajustar (tamanho, margem, deslocamento diagonal).
  * Chamado de HudOrdem.desenhar; so existe no cliente.
@@ -35,8 +41,6 @@ public final class HabilidadesHud {
     /** Raio do pentagono grande (atual) e dos menores (fila). Largura = 1,90 * raio, altura = 1,81 * raio. */
     private static final float RAIO_ATUAL = 17F;
     private static final float RAIO_FILA = 12.5F;
-    /** Espessura da borda (px). */
-    private static final float BORDA = 1.6F;
     /** Distancia da borda esquerda e da borda de baixo da tela ate o bloco de slots. */
     private static final int MARGEM_ESQ = 8;
     private static final int MARGEM_BAIXO = 10;
@@ -51,9 +55,49 @@ public final class HabilidadesHud {
     private static final int COR_DOURADO = 0xFFC2B48C;
     private static final int COR_SEM_PE = 0xFFB3261E;
     private static final int COR_BORDA_FILA = 0xFF6A6A78;
-    private static final int COR_FUNDO = 0xE0090910;
     private static final int COR_HALO = 0x99000000;
     private static final float ESCALA_CUSTO = 0.80F;
+
+    // ------------------------------------------------------------------ texturas (tamanhos = os PNGs gerados)
+    private static final int TEX_W = 192;
+    private static final int TEX_H = 183;
+    private static final int BRILHO_LADO = 256;
+    /** O PNG do brilho e um quadrado de lado 3,2 * raio, centrado no circuncentro (o pentagono dele tem ~1,15 raio). */
+    private static final float BRILHO_REL = 3.2F;
+
+    private static final Identifier MOLDURA = textura("moldura");
+    private static final Identifier BRILHO = textura("brilho");
+    private static final Identifier GENERICO = textura("generico");
+    private static final Map<String, Identifier> CACHE = new HashMap<>();
+
+    private static Identifier textura(String nome) {
+        return Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "textures/gui/hud_habilidades/" + nome + ".png");
+    }
+
+    /** O icone ja recortado do poder; se o PNG nao foi gerado, usa o generico. */
+    private static Identifier iconeDe(String id) {
+        Identifier achada = CACHE.get(id);
+        if (achada == null) {
+            Identifier candidata = textura(id);
+            boolean existe = Minecraft.getInstance().getResourceManager().getResource(candidata).isPresent();
+            achada = existe ? candidata : GENERICO;
+            CACHE.put(id, achada);
+        }
+        return achada;
+    }
+
+    // ------------------------------------------------------------------ geometria
+
+    private static final float COS18 = (float) Math.cos(Math.toRadians(18));
+    private static final float COS36 = (float) Math.cos(Math.toRadians(36));
+
+    private static float larguraDe(float r) {
+        return 2F * r * COS18;
+    }
+
+    private static float alturaDe(float r) {
+        return r * (1F + COS36);
+    }
 
     // ------------------------------------------------------------------ desenho
 
@@ -68,7 +112,7 @@ public final class HabilidadesHud {
         int sel = Mth.clamp(selecionada, 0, n - 1);
         float pulso = 0.5F + 0.5F * (float) Math.sin(Util.getMillis() / 400.0);
 
-        // empilha de baixo para cima: o 1o slot (atual) e o de cima, entao calculo a altura total primeiro
+        // empilha de cima para baixo: calculo a altura total primeiro, para o bloco ficar rente a margem de baixo
         float[] raio = new float[quantos];
         float total = 0F;
         for (int i = 0; i < quantos; i++) {
@@ -88,132 +132,39 @@ public final class HabilidadesHud {
             // cada passo da fila fica um pouco mais apagado
             float brilho = (paga ? 1F : 0.38F) * (atual ? 1F : (i == 1 ? 0.85F : 0.65F));
             int corBorda = !paga ? COR_SEM_PE : atual ? COR_OSSO : COR_BORDA_FILA;
-            pentagono(g, slot.id(), cx, cy, r, corBorda, brilho, atual, pulso, atual && paga);
+            pentagono(g, slot.id(), cx, cy, r, corBorda, brilho, pulso, atual && paga);
             // o custo fica no canto de baixo-direita (perto do vertice inferior direito, em cx + 0,59 r)
             custo(g, mc.font, slot.custo(), cx + 0.59F * r + 4F, y + alturaDe(r) + 1F, paga);
             y += alturaDe(r) + VAO;
         }
     }
 
-    // ------------------------------------------------------------------ geometria do pentagono
-
-    // Pentagono regular com a ponta para cima: vertices em -90, -18, 54, 126, 198 graus, centro no circuncentro.
-    private static final float[] ANG = {-90F, -18F, 54F, 126F, 198F};
-    private static final float COS18 = (float) Math.cos(Math.toRadians(18));
-    private static final float COS36 = (float) Math.cos(Math.toRadians(36));
-
-    private static float larguraDe(float r) {
-        return 2F * r * COS18;
-    }
-
-    private static float alturaDe(float r) {
-        return r * (1F + COS36);
-    }
-
-    /** Onde a linha horizontal y cruza o pentagono de centro (cx, cy) e raio r: {xEsq, xDir}, ou null se nao cruza. */
-    private static float[] extensao(float cx, float cy, float r, float y) {
-        float min = Float.MAX_VALUE;
-        float max = -Float.MAX_VALUE;
-        for (int k = 0; k < 5; k++) {
-            double a0 = Math.toRadians(ANG[k]);
-            double a1 = Math.toRadians(ANG[(k + 1) % 5]);
-            float x0 = cx + r * (float) Math.cos(a0);
-            float y0 = cy + r * (float) Math.sin(a0);
-            float x1 = cx + r * (float) Math.cos(a1);
-            float y1 = cy + r * (float) Math.sin(a1);
-            if ((y0 <= y && y < y1) || (y1 <= y && y < y0)) {
-                float x = x0 + (y - y0) / (y1 - y0) * (x1 - x0);
-                min = Math.min(min, x);
-                max = Math.max(max, x);
-            }
-        }
-        return min <= max ? new float[] { min, max } : null;
-    }
-
-    /**
-     * Um pentagono completo: brilho por tras (so o atual), borda, fundo escuro e o icone recortado.
-     * {@code r} e o raio externo; o icone ocupa o pentagono de dentro (r - BORDA) por inteiro.
-     */
+    /** Um pentagono completo: brilho por tras (so o atual), icone com fundo (ja recortado) e a moldura por cima. */
     private static void pentagono(GuiGraphicsExtractor g, String idIcone, float cx, float cy, float r, int corBorda,
-            float brilho, boolean atual, float pulso, boolean brilha) {
-        // 1) brilho suave em volta do atual que da para usar: pentagono um pouco maior, bem transparente
+            float brilho, float pulso, boolean brilha) {
+        // 1) brilho suave em volta do atual que da para usar
         if (brilha) {
-            int alfa = 0x26 + Math.round(0x22 * pulso);
-            preencher(g, cx, cy, r + 2.6F, (alfa << 24) | (COR_DOURADO & 0xFFFFFF));
+            int lado = Math.round(r * BRILHO_REL);
+            int alfa = 0x55 + Math.round(0x44 * pulso);
+            blit(g, BRILHO, Math.round(cx - lado / 2F), Math.round(cy - lado / 2F), lado, lado, BRILHO_LADO,
+                    BRILHO_LADO, (alfa << 24) | (COR_DOURADO & 0xFFFFFF));
         }
-        // 2) borda = pentagono externo cheio; depois o interno por cima (sobra so o contorno)
-        preencher(g, cx, cy, r, corBorda);
-        float ri = r - BORDA;
-        preencher(g, cx, cy, ri, COR_FUNDO);
-        // 3) o icone, recortado linha por linha pelo pentagono interno. O quadrado do icone cobre o pentagono inteiro:
-        //    lado = largura do pentagono interno, centrado no CENTRO DA CAIXA (nao no circuncentro).
-        float lado = larguraDe(ri);
-        float caixaCy = cy - r + alturaDe(ri) / 2F + BORDA; // meio da caixa do pentagono interno
-        int ix = Math.round(cx - lado / 2F);
-        int iy = Math.round(caixaCy - lado / 2F);
-        int tam = Math.round(lado);
-        int topo = (int) Math.floor(cy - ri);
-        int base = (int) Math.ceil(cy - ri + alturaDe(ri));
-        for (int py = topo; py < base; py++) {
-            float[] e = extensao(cx, cy, ri, py + 0.5F);
-            if (e == null) {
-                continue;
-            }
-            int xa = Math.round(e[0]);
-            int xb = Math.round(e[1]);
-            if (xb <= xa) {
-                continue;
-            }
-            g.enableScissor(xa, py, xb, py + 1);
-            IconesOP.desenhar(g, idIcone, ix, iy, tam, brilho);
-            g.disableScissor();
-        }
-        // 4) a selecionada ganha um fio claro por cima da borda (a ponta do pentagono marca "e esta")
-        if (atual) {
-            int topoBorda = 0x30FFFFFF;
-            contorno(g, cx, cy, r, topoBorda);
-        }
+        // 2) caixa do pentagono: largura x altura, com a ponta em cy - r
+        int x = Math.round(cx - larguraDe(r) / 2F);
+        int y = Math.round(cy - r);
+        int w = Math.round(larguraDe(r));
+        int h = Math.round(alturaDe(r));
+        // 3) icone + fundo (o PNG ja vem recortado no pentagono interno); o escurecimento vai como tinta cinza
+        int v = Mth.clamp(Math.round(brilho * 255F), 0, 255);
+        blit(g, iconeDe(idIcone), x, y, w, h, TEX_W, TEX_H, 0xFF000000 | (v << 16) | (v << 8) | v);
+        // 4) moldura por cima, com a cor da borda
+        blit(g, MOLDURA, x, y, w, h, TEX_W, TEX_H, corBorda);
     }
 
-    /** Pinta o pentagono inteiro (de centro cx,cy e raio r) com uma cor, uma linha de 1 px por vez. */
-    private static void preencher(GuiGraphicsExtractor g, float cx, float cy, float r, int argb) {
-        int topo = (int) Math.floor(cy - r);
-        int base = (int) Math.ceil(cy - r + alturaDe(r));
-        for (int py = topo; py < base; py++) {
-            float[] e = extensao(cx, cy, r, py + 0.5F);
-            if (e == null) {
-                continue;
-            }
-            int xa = Math.round(e[0]);
-            int xb = Math.round(e[1]);
-            if (xb > xa) {
-                g.fill(xa, py, xb, py + 1, argb);
-            }
-        }
-    }
-
-    /** Um fio de 1 px so no contorno (a diferenca entre dois pentagonos), usado como reflexo da borda do atual. */
-    private static void contorno(GuiGraphicsExtractor g, float cx, float cy, float r, int argb) {
-        float ri = r - 1F;
-        int topo = (int) Math.floor(cy - r);
-        int base = (int) Math.ceil(cy - r + alturaDe(r));
-        for (int py = topo; py < base; py++) {
-            float[] e = extensao(cx, cy, r, py + 0.5F);
-            if (e == null) {
-                continue;
-            }
-            float[] d = extensao(cx, cy, ri, py + 0.5F);
-            int xa = Math.round(e[0]);
-            int xb = Math.round(e[1]);
-            if (d == null) {
-                g.fill(xa, py, xb, py + 1, argb);
-            } else {
-                int da = Math.round(d[0]);
-                int db = Math.round(d[1]);
-                g.fill(xa, py, Math.max(xa, da), py + 1, argb);
-                g.fill(Math.min(xb, db), py, xb, py + 1, argb);
-            }
-        }
+    /** Textura inteira esticada em w x h (o filtro suave vem do .mcmeta de cada PNG). */
+    private static void blit(GuiGraphicsExtractor g, Identifier tex, int x, int y, int w, int h, int texW, int texH,
+            int tinta) {
+        g.blit(RenderPipelines.GUI_TEXTURED, tex, x, y, 0F, 0F, w, h, texW, texH, texW, texH, tinta);
     }
 
     /** O custo em PE no canto de baixo-direita do slot, com halo escuro para ler sobre qualquer icone. */

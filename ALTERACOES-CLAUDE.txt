@@ -5,6 +5,21 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 19/10/2026 (HUD: pentagonos SUAVES, sem degraus) -------------------------------
+  Pedido: o pentagono estava pixelado (a forma era montada com linhas de 1 px da interface); queria mais liso, combinando com a
+  estetica dos menus. Agora cada slot e feito de TEXTURAS com bordas antialiased (192x183), filtradas com blur pelo jogo.
+  - tools/gerar_pentagonos.py (novo): gera em textures/gui/hud_habilidades/ a moldura.png (anel branco, tingido pela cor da borda),
+    o brilho.png (halo dourado do slot atual) e um <id>.png por poder (fundo escuro + icone recortado no pentagono interno,
+    com zoom de 1,12 para cortar a moldura propria dos PNGs de 128 px). Cada PNG tem .mcmeta com blur=true.
+    Rode `python3 tools/gerar_pentagonos.py` sempre que um icone de poderes/ mudar ou for criado.
+  - HabilidadesHud.java reescrito: sem varredura de linhas/enableScissor; desenha brilho -> icone (tinta cinza = escurecer) ->
+    moldura (tinta = cor da borda) com g.blit. Mesmo layout, constantes e logica (atual/fila/sem PE/custo). A borda agora e
+    proporcional ao raio (no slot pequeno fica um pouco mais fina). Sem PNG gerado para um poder, usa generico.png.
+    Removido o "fio claro" extra por cima da borda do atual.
+  Arquivos: tools/gerar_pentagonos.py, HabilidadesHud.java, textures/gui/hud_habilidades/* (88 arquivos).
+  NAO compilado aqui. Como testar: .\gradlew.bat runClient -> pentagonos com borda lisa. Se a borda ainda parecer serrilhada, o
+  blur do .mcmeta nao foi aplicado: me avisar (alternativa: textura maior ou desenhar com escala fracionaria).
+
 --- 19/10/2026 (HUD: pentagonos das habilidades ativas, canto inferior esquerdo) ---
   Pedido: slots no estilo dos hexagonos do print de referencia, mostrando o simbolo das habilidades ativaveis (qual da para
   usar agora e qual e a proxima da fila), com o icone COBRINDO a forma toda. Teste inicial com PENTAGONOS (ponta para cima).
