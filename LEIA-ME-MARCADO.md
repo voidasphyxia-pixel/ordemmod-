@@ -69,3 +69,5 @@ Cole no começo do novo chat: "Continue a cena do Marcado do ordemmod a partir d
 Para ficar leve, ele **não inclui** `libs/` (os .jar de TACZ, Epic Fight e GeckoLib) nem `run/`. Copie esses jars da sua pasta original para `libs/` antes de rodar o Gradle.
 
 **Porte Fabric 26.2 (15/10/2026):** a tela inicial (`titulo/TelaInicial`, `TemaInicial`, `EventosTitulo`) foi portada na etapa 6e, ainda sem compilar. Faltam o visual dos menus do jogo (6e2), o `InventarioOrdem` (6b2) e a etapa 7. Detalhes em `PORTE-FABRIC.md`.
+
+**HUD do jogo, habilidades (19/10/2026):** pentágonos no canto inferior esquerdo com o ícone da habilidade atual e da fila (`HabilidadesHud`, dados via `PacoteStatus`). Não afeta a cena do Marcado. Ainda não compilado/testado; detalhes no `ALTERACOES-CLAUDE.txt`.

@@ -318,6 +318,12 @@ public class Personagem {
         return ativas.get(selecionada);
     }
 
+    /** Posição (na lista de ativas em uso) da habilidade selecionada; 0 se não há nenhuma. A HUD usa para montar a fila. */
+    public int indiceSelecionada() {
+        habilidadeSelecionada(); // corrige o índice se a lista encolheu
+        return selecionada;
+    }
+
     /** Passa para a próxima habilidade ativa (volta à primeira depois da última). */
     public void proximaHabilidade() {
         List<Habilidade> ativas = habilidades.getAtivas();

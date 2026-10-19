@@ -271,6 +271,9 @@ public final class HudOrdem {
             escrever(g, mc.font, t);
         }
         desenharItensHotbar(g, mc, largura, altura, jogador);
+
+        // pentagonos das habilidades ativas (atual + fila) no canto inferior esquerdo
+        HabilidadesHud.desenhar(g, mc, altura, s.habilidades(), s.selecionada(), s.pe());
     }
 
     /** Escurece de leve o pé da tela (transparente em cima, ~40% de preto embaixo), como a vinheta dos menus. */
