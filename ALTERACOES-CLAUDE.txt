@@ -5,6 +5,16 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 19/10/2026 (HUD: nome da habilidade selecionada) ---------------------------------
+  Pedido: mostrar o nome da habilidade selecionada ao lado do icone, sem ficar grande.
+  - PacoteStatus.Slot agora e (id, nome, custo): o servidor manda Habilidade.getNome() da melhor versao (a HUD nao tinha o nome).
+    Rede: escrever/ler ganharam um writeUtf/readUtf a mais por slot (cliente e servidor precisam estar na mesma versao do mod).
+  - HabilidadesHud.nome(): desenha o nome a DIREITA do pentagono do meio, centrado na vertical dele, em Cinzel Black (rotulo da
+    HUD), escala ESCALA_NOME = 0,72, cor osso com halo escuro (rosado se faltar PE), cortado em NOME_LARGURA_MAX = 84 px.
+    Constantes no topo: ESCALA_NOME, NOME_LARGURA_MAX, NOME_VAO (distancia ate a forma).
+  Arquivos: PacoteStatus.java, HabilidadesHud.java. NAO compilado aqui.
+  Como testar: runClient com habilidades ativas: o nome aparece ao lado do slot do meio e muda com G.
+
 --- 19/10/2026 (HUD: arco espelhado) ------------------------------------------------
   Pedido: arco espelhado: a do CENTRO mais para a direita e as outras (cima e baixo) mais para a esquerda.
   - HabilidadesHud: a selecionada (meio) agora fica DESLOCA_X (9 px) a direita; a proxima (cima) e a anterior (baixo) ficam

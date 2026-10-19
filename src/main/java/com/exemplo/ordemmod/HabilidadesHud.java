@@ -59,6 +59,10 @@ public final class HabilidadesHud {
     private static final int COR_BORDA_FILA = 0xFF6A6A78;
     private static final int COR_HALO = 0x99000000;
     private static final float ESCALA_CUSTO = 0.80F;
+    /** Nome da habilidade selecionada, ao lado do pentagono do meio: escala da letra, largura maxima e vao ate a forma. */
+    private static final float ESCALA_NOME = 0.72F;
+    private static final int NOME_LARGURA_MAX = 84;
+    private static final float NOME_VAO = 5F;
 
     // ------------------------------------------------------------------ texturas (tamanhos = os PNGs gerados)
     private static final int TEX_W = 192;
@@ -153,6 +157,9 @@ public final class HabilidadesHud {
             pentagono(g, slot.id(), cx, cy, r, corBorda, brilho, pulso, atual && paga);
             // o custo fica no canto de baixo-direita (perto do vertice inferior direito, em cx + 0,59 r)
             custo(g, mc.font, slot.custo(), cx + 0.59F * r + 4F, y + alturaDe(r) + 1F, paga);
+            if (atual) {
+                nome(g, mc.font, slot.nome(), cx + larguraDe(r) / 2F + NOME_VAO, cy, paga);
+            }
             y += alturaDe(r) + VAO;
         }
     }
@@ -183,6 +190,22 @@ public final class HabilidadesHud {
     private static void blit(GuiGraphicsExtractor g, Identifier tex, int x, int y, int w, int h, int texW, int texH,
             int tinta) {
         g.blit(RenderPipelines.GUI_TEXTURED, tex, x, y, 0F, 0F, w, h, texW, texH, texW, texH, tinta);
+    }
+
+    /** O nome da habilidade selecionada, a direita do pentagono do meio e centrado na vertical dele (cortado se for longo). */
+    private static void nome(GuiGraphicsExtractor g, Font fonte, String nome, float x, float yCentro, boolean paga) {
+        String texto = fonte.substrByWidth(FonteOP.rotulo(nome), Math.round(NOME_LARGURA_MAX / ESCALA_NOME)).getString();
+        float y = yCentro - 4F * ESCALA_NOME; // a fonte tem ~8 px de altura
+        int cor = paga ? COR_OSSO : 0xFFC9A09A;
+        float[][] halo = { { -0.9F, 0F }, { 0.9F, 0F }, { 0F, -0.9F }, { 0F, 0.9F } };
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(ESCALA_NOME, ESCALA_NOME);
+        for (float[] o : halo) {
+            FonteOP.desenharRotulo(g, fonte, texto, o[0], o[1], COR_HALO, false);
+        }
+        FonteOP.desenharRotulo(g, fonte, texto, 0F, 0F, cor, false);
+        g.pose().popMatrix();
     }
 
     /** O custo em PE no canto de baixo-direita do slot, com halo escuro para ler sobre qualquer icone. */

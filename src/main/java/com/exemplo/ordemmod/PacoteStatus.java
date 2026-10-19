@@ -17,8 +17,8 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int nex, int nivel,
         List<Slot> habilidades, int selecionada) implements CustomPacketPayload {
 
-    /** Uma habilidade ativa na fila da HUD: id (da melhor versao, e o nome do icone) e custo em PE. */
-    public record Slot(String id, int custo) {
+    /** Uma habilidade ativa na fila da HUD: id (da melhor versao, e o nome do icone), nome para exibir e custo em PE. */
+    public record Slot(String id, String nome, int custo) {
     }
 
     public static final CustomPacketPayload.Type<PacoteStatus> TYPE = Rede.tipo("status");
@@ -29,7 +29,7 @@ public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int
         List<Slot> fila = new ArrayList<>();
         for (Habilidade h : p.habilidades.getAtivas()) {
             Habilidade efetiva = p.habilidades.melhorVersao(h);
-            fila.add(new Slot(efetiva.getId(), efetiva.getCustoPe()));
+            fila.add(new Slot(efetiva.getId(), efetiva.getNome(), efetiva.getCustoPe()));
         }
         return new PacoteStatus(p.getSanidade(), p.sanidadeMaxima(), p.pe.getAtual(), p.pe.getMaximo(),
                 p.nex.getNex(), p.nivel(), List.copyOf(fila), p.indiceSelecionada());
@@ -45,6 +45,7 @@ public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int
         buffer.writeVarInt(m.habilidades.size());
         for (Slot s : m.habilidades) {
             buffer.writeUtf(s.id());
+            buffer.writeUtf(s.nome());
             buffer.writeVarInt(s.custo());
         }
         buffer.writeVarInt(m.selecionada);
@@ -60,7 +61,7 @@ public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int
         int n = buffer.readVarInt();
         List<Slot> fila = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            fila.add(new Slot(buffer.readUtf(), buffer.readVarInt()));
+            fila.add(new Slot(buffer.readUtf(), buffer.readUtf(), buffer.readVarInt()));
         }
         int selecionada = buffer.readVarInt();
         return new PacoteStatus(sanidade, sanidadeMax, pe, peMax, nex, nivel, List.copyOf(fila), selecionada);
