@@ -169,5 +169,19 @@
         "name": "ordemmod:marcado/distorcao"
       }
     ]
+  },
+  "habilidade.usar": {
+    "sounds": [
+      {
+        "name": "ordemmod:habilidade/usar"
+      }
+    ]
+  },
+  "habilidade.sem_pe": {
+    "sounds": [
+      {
+        "name": "ordemmod:habilidade/sem_pe"
+      }
+    ]
   }
 }

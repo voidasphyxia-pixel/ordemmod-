@@ -8,7 +8,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 
@@ -73,6 +75,8 @@ public final class HabilidadesHud {
     private static final float TREMOR_PX = 3F;
     private static final float TREMOR_CICLOS = 3F;
     private static final int COR_FLASH_FALHA = 0xFFFF3B30;
+    /** Volume dos dois sons (1 = o do arquivo). */
+    private static final float VOLUME_SOM = 0.6F;
 
     /** Momento (Util.getMillis) em que cada animacao comecou; -1 = nenhuma em andamento. */
     private static long inicioUso = -1L;
@@ -91,9 +95,17 @@ public final class HabilidadesHud {
         }
         if (peUltimo >= custoSelecionada) {
             inicioUso = Util.getMillis();
+            // pitch com uma variacao pequena para nao soar identico a cada uso
+            tocar(SonsOrdem.HABILIDADE_USAR, 0.95F + 0.1F * (float) Math.random(), VOLUME_SOM);
         } else {
             inicioFalha = Util.getMillis();
+            tocar(SonsOrdem.HABILIDADE_SEM_PE, 1.0F, VOLUME_SOM);
         }
+    }
+
+    /** Toca um som de interface (nao vem de um ponto do mundo, entao ouve-se igual em qualquer lugar). */
+    private static void tocar(SoundEvent som, float pitch, float volume) {
+        Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(som, pitch, volume));
     }
 
     /** Progresso 0..1 de uma animacao que comecou em {@code inicio}; 1 = terminou (ou nunca comecou). */

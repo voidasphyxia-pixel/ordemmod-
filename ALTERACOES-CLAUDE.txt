@@ -5,6 +5,18 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 19/10/2026 (HUD: sons do uso e do "sem PE") ----------------------------------------
+  Pedido: usar sons nas duas animacoes. Nao tinha arquivo de som para isso e o Claude nao baixa audio daqui, entao os 2 sons foram
+  SINTETIZADOS (originais, sem amostras de terceiros) por tools/gerar_sons_habilidade.py (numpy + scipy + ffmpeg).
+  - sounds/habilidade/usar.ogg (0,62 s): sopro que sobe, baque grave (150 -> 46 Hz), brilho de sino escuro e ecos curtos.
+  - sounds/habilidade/sem_pe.ogg (0,42 s): dois zumbidos graves e secos, descendo e dessafinados (soa "negado").
+  - SonsOrdem: HABILIDADE_USAR ("habilidade.usar") e HABILIDADE_SEM_PE ("habilidade.sem_pe"); sounds.json com as 2 entradas.
+  - HabilidadesHud.aoApertarUsar toca o som junto com a animacao (SimpleSoundInstance.forUI, VOLUME_SOM = 0,6; o de uso varia o
+    pitch +-5% a cada vez). Mesmo gatilho (previsao do cliente) das animacoes.
+  Arquivos: tools/gerar_sons_habilidade.py (novo), sounds/habilidade/*.ogg (novos), sounds.json, SonsOrdem.java, HabilidadesHud.java.
+  NAO compilado nem OUVIDO no jogo (o Claude nao escuta o resultado): se o timbre/volume nao agradar, ajustar os numeros no script e
+  rodar de novo, ou trocar os .ogg por outros seus (mono, mesmo nome). Volume: VOLUME_SOM no topo de HabilidadesHud.
+
 --- 19/10/2026 (HUD: animacoes de uso e de "sem PE") ----------------------------------
   Pedido: leve animacao no icone ao USAR a habilidade e outra quando NAO da para usar por falta de PE.
   - TeclasOrdem: ao apertar USAR (R) chama HabilidadesHud.aoApertarUsar(). E uma previsao do CLIENTE (compara o PE da ultima HUD

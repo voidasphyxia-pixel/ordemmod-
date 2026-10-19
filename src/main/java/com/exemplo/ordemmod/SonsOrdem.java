@@ -27,6 +27,10 @@ public final class SonsOrdem {
     public static final SoundEvent CRITICO = som("critico");
     public static final SoundEvent FALHA_CRITICA = som("falha_critica");
 
+    /** HUD de habilidades: som ao usar uma habilidade e som de "sem PE" (arquivos em sounds/habilidade/). */
+    public static final SoundEvent HABILIDADE_USAR = som("habilidade.usar");
+    public static final SoundEvent HABILIDADE_SEM_PE = som("habilidade.sem_pe");
+
     /** Tema em laco da tela inicial (arquivo sounds/menu/tema_inicial.ogg). */
     public static final SoundEvent TEMA_INICIAL = som("menu.tema_inicial");
 
