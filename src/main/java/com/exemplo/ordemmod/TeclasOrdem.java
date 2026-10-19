@@ -40,6 +40,7 @@ public final class TeclasOrdem {
             return;
         }
         while (USAR.consumeClick()) {
+            HabilidadesHud.aoApertarUsar(); // anima o slot: uso ou "sem PE"
             ReceptoresCliente.enviar(new PacoteHabilidade(PacoteHabilidade.USAR));
         }
         while (TROCAR.consumeClick()) {

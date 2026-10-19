@@ -5,6 +5,20 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 19/10/2026 (HUD: animacoes de uso e de "sem PE") ----------------------------------
+  Pedido: leve animacao no icone ao USAR a habilidade e outra quando NAO da para usar por falta de PE.
+  - TeclasOrdem: ao apertar USAR (R) chama HabilidadesHud.aoApertarUsar(). E uma previsao do CLIENTE (compara o PE da ultima HUD
+    com o custo do slot selecionado); o servidor continua conferindo e mandando o aviso de texto. Nao ha pacote novo.
+  - HabilidadesHud (so o slot do meio):
+      USO (380 ms): "pop" de escala (+16% no inicio, volta ao normal), clarao dourado atras que cresce e some, moldura branca
+        que volta a cor normal.
+      SEM PE (450 ms): tremida horizontal amortecida (3 px, 3 balancos; o slot inteiro, com custo e nome, balanca), clarao
+        vermelho atras, icone pisca em vermelho e moldura vai a vermelho vivo e volta.
+    Constantes no topo: DUR_USO, POP_USO, DUR_FALHA, TREMOR_PX, TREMOR_CICLOS, COR_FLASH_FALHA.
+  Arquivos: HabilidadesHud.java, TeclasOrdem.java. NAO compilado aqui.
+  Como testar: runClient; aperte R com PE suficiente (pop dourado) e depois gaste o PE e aperte R de novo (tremida vermelha).
+  Limitacao: se o servidor recusar por outro motivo (PE desatualizado no cliente), a animacao pode nao bater com o resultado.
+
 --- 19/10/2026 (HUD: nome da habilidade selecionada) ---------------------------------
   Pedido: mostrar o nome da habilidade selecionada ao lado do icone, sem ficar grande.
   - PacoteStatus.Slot agora e (id, nome, custo): o servidor manda Habilidade.getNome() da melhor versao (a HUD nao tinha o nome).

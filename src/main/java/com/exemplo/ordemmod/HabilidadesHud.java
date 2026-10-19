@@ -64,6 +64,54 @@ public final class HabilidadesHud {
     private static final int NOME_LARGURA_MAX = 84;
     private static final float NOME_VAO = 5F;
 
+    // ------------------------------------------------------------------ animacoes (so o slot do meio)
+    /** USO: "pop" de escala + clarao dourado que cresce e some. Duracao em ms e quanto o pentagono incha no inicio. */
+    private static final float DUR_USO = 380F;
+    private static final float POP_USO = 0.16F;
+    /** SEM PE: tremida horizontal amortecida + flash vermelho. Duracao em ms, amplitude (px) e numero de balancos. */
+    private static final float DUR_FALHA = 450F;
+    private static final float TREMOR_PX = 3F;
+    private static final float TREMOR_CICLOS = 3F;
+    private static final int COR_FLASH_FALHA = 0xFFFF3B30;
+
+    /** Momento (Util.getMillis) em que cada animacao comecou; -1 = nenhuma em andamento. */
+    private static long inicioUso = -1L;
+    private static long inicioFalha = -1L;
+    /** Custo e PE do slot selecionado, guardados a cada quadro para a tecla saber se deu para usar. */
+    private static int custoSelecionada = -1;
+    private static int peUltimo = 0;
+
+    /**
+     * A tecla USAR (R) foi apertada: dispara a animacao de uso (se o PE paga o custo da selecionada) ou a de "sem PE".
+     * E uma previsao do cliente (o servidor confere de novo); chamada de TeclasOrdem.
+     */
+    public static void aoApertarUsar() {
+        if (custoSelecionada < 0) {
+            return; // sem habilidades ativas na HUD
+        }
+        if (peUltimo >= custoSelecionada) {
+            inicioUso = Util.getMillis();
+        } else {
+            inicioFalha = Util.getMillis();
+        }
+    }
+
+    /** Progresso 0..1 de uma animacao que comecou em {@code inicio}; 1 = terminou (ou nunca comecou). */
+    private static float progresso(long inicio, float duracao) {
+        if (inicio < 0L) {
+            return 1F;
+        }
+        return Mth.clamp((Util.getMillis() - inicio) / duracao, 0F, 1F);
+    }
+
+    /** Mistura duas cores ARGB (t = 0 da {@code a}, t = 1 da {@code b}). */
+    private static int misturar(int a, int b, float t) {
+        int r = Math.round(Mth.lerp(t, (a >> 16) & 0xFF, (b >> 16) & 0xFF));
+        int gr = Math.round(Mth.lerp(t, (a >> 8) & 0xFF, (b >> 8) & 0xFF));
+        int bl = Math.round(Mth.lerp(t, a & 0xFF, b & 0xFF));
+        return 0xFF000000 | (r << 16) | (gr << 8) | bl;
+    }
+
     // ------------------------------------------------------------------ texturas (tamanhos = os PNGs gerados)
     private static final int TEX_W = 192;
     private static final int TEX_H = 183;
@@ -115,6 +163,10 @@ public final class HabilidadesHud {
             return; // sem habilidades ativas, nao aparece nada
         }
         int sel = Mth.clamp(selecionada, 0, n - 1);
+        custoSelecionada = fila.get(sel).custo();
+        peUltimo = pe;
+        float tUso = progresso(inicioUso, DUR_USO);
+        float tFalha = progresso(inicioFalha, DUR_FALHA);
         float pulso = 0.5F + 0.5F * (float) Math.sin(Util.getMillis() / 400.0);
 
         // de cima para baixo: PROXIMA, SELECIONADA (no meio, grande), ANTERIOR. Com 1 habilidade so aparece a do meio;
@@ -149,12 +201,19 @@ public final class HabilidadesHud {
             boolean atual = papel[i] == PAPEL_ATUAL;
             // arco espelhado: a selecionada (meio) avanca DESLOCA_X para a direita; a de cima e a de baixo ficam mais a esquerda
             float cx = MARGEM_ESQ + larguraAtual / 2F + (atual ? DESLOCA_X : 0F);
+            if (atual && tFalha < 1F) {
+                // tremida: seno amortecido (o slot inteiro, com custo e nome, balanca de um lado para o outro)
+                cx += TREMOR_PX * (1F - tFalha) * (float) Math.sin(tFalha * TREMOR_CICLOS * 2.0 * Math.PI);
+            }
             float cy = y + r; // a ponta fica em y e o centro (circuncentro) r abaixo dela
             boolean paga = pe >= slot.custo();
             // a proxima fica um pouco apagada e a anterior mais ainda
             float brilho = (paga ? 1F : 0.38F) * (atual ? 1F : (papel[i] == PAPEL_PROXIMA ? 0.85F : 0.65F));
             int corBorda = !paga ? COR_SEM_PE : atual ? COR_OSSO : COR_BORDA_FILA;
-            pentagono(g, slot.id(), cx, cy, r, corBorda, brilho, pulso, atual && paga);
+            // animacoes so no slot do meio: 1 = no auge do efeito, 0 = sem efeito
+            float fUso = atual ? 1F - tUso : 0F;
+            float fFalha = atual ? 1F - tFalha : 0F;
+            pentagono(g, slot.id(), cx, cy, r, corBorda, brilho, pulso, atual && paga, fUso, fFalha);
             // o custo fica no canto de baixo-direita (perto do vertice inferior direito, em cx + 0,59 r)
             custo(g, mc.font, slot.custo(), cx + 0.59F * r + 4F, y + alturaDe(r) + 1F, paga);
             if (atual) {
@@ -166,7 +225,7 @@ public final class HabilidadesHud {
 
     /** Um pentagono completo: brilho por tras (so o atual), icone com fundo (ja recortado) e a moldura por cima. */
     private static void pentagono(GuiGraphicsExtractor g, String idIcone, float cx, float cy, float r, int corBorda,
-            float brilho, float pulso, boolean brilha) {
+            float brilho, float pulso, boolean brilha, float fUso, float fFalha) {
         // 1) brilho suave em volta do atual que da para usar
         if (brilha) {
             int lado = Math.round(r * BRILHO_REL);
@@ -174,16 +233,41 @@ public final class HabilidadesHud {
             blit(g, BRILHO, Math.round(cx - lado / 2F), Math.round(cy - lado / 2F), lado, lado, BRILHO_LADO,
                     BRILHO_LADO, (alfa << 24) | (COR_DOURADO & 0xFFFFFF));
         }
-        // 2) caixa do pentagono: largura x altura, com a ponta em cy - r
-        int x = Math.round(cx - larguraDe(r) / 2F);
-        int y = Math.round(cy - r);
-        int w = Math.round(larguraDe(r));
-        int h = Math.round(alturaDe(r));
-        // 3) icone + fundo (o PNG ja vem recortado no pentagono interno); o escurecimento vai como tinta cinza
+        // 1b) USO: clarao dourado que cresce e some (atras do icone)
+        if (fUso > 0F) {
+            float crescer = 1F + 0.45F * (1F - fUso);
+            int lado = Math.round(r * BRILHO_REL * crescer);
+            int alfa = Math.round(0xDD * fUso * fUso);
+            blit(g, BRILHO, Math.round(cx - lado / 2F), Math.round(cy - lado / 2F), lado, lado, BRILHO_LADO,
+                    BRILHO_LADO, (alfa << 24) | 0xFFE9A8);
+        }
+        // 1c) SEM PE: clarao vermelho (fixo, so esmaece)
+        if (fFalha > 0F) {
+            int lado = Math.round(r * BRILHO_REL * 0.95F);
+            int alfa = Math.round(0xCC * fFalha);
+            blit(g, BRILHO, Math.round(cx - lado / 2F), Math.round(cy - lado / 2F), lado, lado, BRILHO_LADO,
+                    BRILHO_LADO, (alfa << 24) | (COR_FLASH_FALHA & 0xFFFFFF));
+        }
+        // 2) caixa do pentagono: largura x altura, com a ponta em cy - r. No USO ela "incha" em volta do centro da caixa.
+        float escala = 1F + POP_USO * fUso * fUso;
+        int w = Math.round(larguraDe(r) * escala);
+        int h = Math.round(alturaDe(r) * escala);
+        int x = Math.round(cx - w / 2F);
+        int y = Math.round(cy - r + alturaDe(r) / 2F - h / 2F);
+        // 3) icone + fundo (o PNG ja vem recortado no pentagono interno); o escurecimento vai como tinta. Na falha o
+        //    canal vermelho sobe e os outros ficam como estavam, entao o icone pisca em vermelho.
         int v = Mth.clamp(Math.round(brilho * 255F), 0, 255);
-        blit(g, iconeDe(idIcone), x, y, w, h, TEX_W, TEX_H, 0xFF000000 | (v << 16) | (v << 8) | v);
-        // 4) moldura por cima, com a cor da borda
-        blit(g, MOLDURA, x, y, w, h, TEX_W, TEX_H, corBorda);
+        int vr = Mth.clamp(Math.round(Math.max(brilho, 0.85F * fFalha) * 255F), 0, 255);
+        blit(g, iconeDe(idIcone), x, y, w, h, TEX_W, TEX_H, 0xFF000000 | (vr << 16) | (v << 8) | v);
+        // 4) moldura por cima, com a cor da borda (branca no auge do uso, vermelho vivo no auge da falha)
+        int cor = corBorda;
+        if (fUso > 0F) {
+            cor = misturar(corBorda, 0xFFFFFFFF, fUso);
+        }
+        if (fFalha > 0F) {
+            cor = misturar(corBorda, COR_FLASH_FALHA, fFalha);
+        }
+        blit(g, MOLDURA, x, y, w, h, TEX_W, TEX_H, cor);
     }
 
     /** Textura inteira esticada em w x h (o filtro suave vem do .mcmeta de cada PNG). */
