@@ -13,14 +13,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 
 /**
- * Os slots de habilidades ativas no canto inferior esquerdo da tela: PENTAGONOS (ponta para cima) empilhados em
- * diagonal, no estilo dos slots hexagonais de outro HUD, so que cada um mostra o simbolo da habilidade COBRINDO a forma
- * inteira.
- *
- *  - 1o (grande): a habilidade ATUAL, a que a tecla USAR (R) dispara agora;
- *  - 2o (menor): a PROXIMA na fila, a que a tecla TROCAR (G) escolhe;
- *  - 3o (menor, mais apagado): a seguinte a essa.
- * A fila e circular (depois da ultima volta a primeira), igual a Personagem.proximaHabilidade().
+ * Os slots de habilidades ativas no canto inferior esquerdo da tela: PENTAGONOS (ponta para cima) empilhados na
+ * vertical, no estilo dos slots hexagonais de outro HUD, so que cada um mostra o simbolo da habilidade COBRINDO a forma
+ * inteira. De cima para baixo:
+ *  - PROXIMA (menor): a que a tecla TROCAR (G) escolhe;
+ *  - SELECIONADA (no meio, grande): a que a tecla USAR (R) dispara agora;
+ *  - ANTERIOR (menor, mais apagada): a que estava antes dela.
+ * A fila e circular (depois da ultima volta a primeira), igual a Personagem.proximaHabilidade(). Com 1 habilidade so
+ * aparece a do meio; com 2, so a do meio e a de cima.
  * Se o PE atual nao paga o custo, o icone escurece e a borda fica vermelha ("nao da para ativar agora").
  * O numero no canto de baixo e o custo em PE (como o "6" no slot do print de referencia).
  *
@@ -46,10 +46,12 @@ public final class HabilidadesHud {
     private static final int MARGEM_BAIXO = 10;
     /** Vao vertical entre um pentagono e o seguinte. */
     private static final int VAO = 3;
-    /** Quanto cada slot da fila anda para a direita em relacao ao anterior (a diagonal do print de referencia). */
+    /** Quanto os slots de cima e de baixo ficam deslocados para a direita em relacao ao selecionado (do meio). */
     private static final int DESLOCA_X = 9;
-    /** Quantas habilidades aparecem no maximo (atual + fila). */
-    private static final int MAX_SLOTS = 3;
+    /** Papel de cada slot na pilha (de cima para baixo: proxima, atual, anterior). */
+    private static final int PAPEL_ATUAL = 0;
+    private static final int PAPEL_PROXIMA = 1;
+    private static final int PAPEL_ANTERIOR = 2;
 
     private static final int COR_OSSO = 0xFFEDE8DC;
     private static final int COR_DOURADO = 0xFFC2B48C;
@@ -108,29 +110,45 @@ public final class HabilidadesHud {
         if (n == 0) {
             return; // sem habilidades ativas, nao aparece nada
         }
-        int quantos = Math.min(n, MAX_SLOTS);
         int sel = Mth.clamp(selecionada, 0, n - 1);
         float pulso = 0.5F + 0.5F * (float) Math.sin(Util.getMillis() / 400.0);
 
-        // empilha de cima para baixo: calculo a altura total primeiro, para o bloco ficar rente a margem de baixo
+        // de cima para baixo: PROXIMA, SELECIONADA (no meio, grande), ANTERIOR. Com 1 habilidade so aparece a do meio;
+        // com 2, a "proxima" e a "anterior" sao a mesma, entao so a de cima aparece.
+        int[] indice = new int[3];
+        int[] papel = new int[3];
+        int quantos = 0;
+        if (n >= 2) {
+            indice[quantos] = (sel + 1) % n;
+            papel[quantos++] = PAPEL_PROXIMA;
+        }
+        indice[quantos] = sel;
+        papel[quantos++] = PAPEL_ATUAL;
+        if (n >= 3) {
+            indice[quantos] = (sel - 1 + n) % n;
+            papel[quantos++] = PAPEL_ANTERIOR;
+        }
+
+        // calculo a altura total primeiro, para o bloco ficar rente a margem de baixo
         float[] raio = new float[quantos];
         float total = 0F;
         for (int i = 0; i < quantos; i++) {
-            raio[i] = i == 0 ? RAIO_ATUAL : RAIO_FILA;
+            raio[i] = papel[i] == PAPEL_ATUAL ? RAIO_ATUAL : RAIO_FILA;
             total += alturaDe(raio[i]) + (i > 0 ? VAO : 0);
         }
         float y = altura - MARGEM_BAIXO - total;
         float larguraAtual = larguraDe(RAIO_ATUAL);
 
         for (int i = 0; i < quantos; i++) {
-            PacoteStatus.Slot slot = fila.get((sel + i) % n);
+            PacoteStatus.Slot slot = fila.get(indice[i]);
             float r = raio[i];
-            float cx = MARGEM_ESQ + larguraAtual / 2F + DESLOCA_X * i;
+            boolean atual = papel[i] == PAPEL_ATUAL;
+            // a selecionada fica mais para a esquerda; a de cima e a de baixo recuam DESLOCA_X para a direita (um arco)
+            float cx = MARGEM_ESQ + larguraAtual / 2F + (atual ? 0F : DESLOCA_X);
             float cy = y + r; // a ponta fica em y e o centro (circuncentro) r abaixo dela
             boolean paga = pe >= slot.custo();
-            boolean atual = i == 0;
-            // cada passo da fila fica um pouco mais apagado
-            float brilho = (paga ? 1F : 0.38F) * (atual ? 1F : (i == 1 ? 0.85F : 0.65F));
+            // a proxima fica um pouco apagada e a anterior mais ainda
+            float brilho = (paga ? 1F : 0.38F) * (atual ? 1F : (papel[i] == PAPEL_PROXIMA ? 0.85F : 0.65F));
             int corBorda = !paga ? COR_SEM_PE : atual ? COR_OSSO : COR_BORDA_FILA;
             pentagono(g, slot.id(), cx, cy, r, corBorda, brilho, pulso, atual && paga);
             // o custo fica no canto de baixo-direita (perto do vertice inferior direito, em cx + 0,59 r)

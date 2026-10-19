@@ -5,6 +5,15 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 19/10/2026 (HUD: selecionada no meio, proxima em cima, anterior embaixo) ---------
+  Pedido: a habilidade selecionada fica no MEIO; a que vem na sequencia fica EM CIMA; a anterior fica EMBAIXO.
+  - HabilidadesHud.desenhar: pilha de cima para baixo = PROXIMA (pequena, 85% de brilho), SELECIONADA (grande, no meio),
+    ANTERIOR (pequena, 65%). A fila continua circular. Com 1 habilidade aparece so a do meio; com 2, so meio + cima (a
+    proxima e a anterior seriam a mesma). A selecionada fica mais a esquerda e a de cima/baixo recuam DESLOCA_X (9 px) para a
+    direita (um arco, em vez da diagonal anterior). Constante MAX_SLOTS removida; entraram PAPEL_ATUAL/PROXIMA/ANTERIOR.
+  Arquivo: HabilidadesHud.java. NAO compilado aqui. Como testar: runClient com 3+ habilidades ativas; G avanca (a de cima passa
+  para o meio, a do meio vai para baixo). Ajustes possiveis: DESLOCA_X = 0 para alinhar tudo na mesma coluna.
+
 --- 19/10/2026 (HUD: pentagonos SUAVES, sem degraus) -------------------------------
   Pedido: o pentagono estava pixelado (a forma era montada com linhas de 1 px da interface); queria mais liso, combinando com a
   estetica dos menus. Agora cada slot e feito de TEXTURAS com bordas antialiased (192x183), filtradas com blur pelo jogo.
