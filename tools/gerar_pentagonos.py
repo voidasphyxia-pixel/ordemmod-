@@ -29,7 +29,7 @@ LARG = 192                      # largura da textura do pentagono (px); o jogo r
 SS = 4                          # supersampling para as bordas
 BORDA_REL = 1.6 / 17.0          # espessura da borda / raio (o slot grande tem raio 17 e borda 1,6)
 FUNDO = (9, 9, 16, 0xE0)        # mesmo COR_FUNDO do HabilidadesHud
-ZOOM_ICONE = 1.12               # amplia o icone para cortar a moldura propria dos PNGs de 128 px
+ZOOM_ICONE = 1.18               # amplia o icone para cortar a moldura propria dos PNGs de 128 px
 
 C18 = math.cos(math.radians(18))
 C36 = math.cos(math.radians(36))

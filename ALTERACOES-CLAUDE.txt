@@ -5,6 +5,15 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 19/10/2026 (HUD: arco espelhado) ------------------------------------------------
+  Pedido: arco espelhado: a do CENTRO mais para a direita e as outras (cima e baixo) mais para a esquerda.
+  - HabilidadesHud: a selecionada (meio) agora fica DESLOCA_X (9 px) a direita; a proxima (cima) e a anterior (baixo) ficam
+    alinhadas mais a esquerda (antes era o contrario). Mesmo valor de DESLOCA_X; 0 = tudo na mesma coluna.
+  - tools/gerar_pentagonos.py: ZOOM_ICONE 1,12 -> 1,18 (sobrava um filete dourado da moldura dos PNGs de 128 px na borda do
+    recorte); texturas de hud_habilidades/ regeneradas.
+  Arquivos: HabilidadesHud.java, tools/gerar_pentagonos.py, textures/gui/hud_habilidades/*.
+  NAO compilado aqui. Como testar: runClient com 3+ habilidades ativas; o slot do meio deve ficar mais a direita.
+
 --- 19/10/2026 (HUD: selecionada no meio, proxima em cima, anterior embaixo) ---------
   Pedido: a habilidade selecionada fica no MEIO; a que vem na sequencia fica EM CIMA; a anterior fica EMBAIXO.
   - HabilidadesHud.desenhar: pilha de cima para baixo = PROXIMA (pequena, 85% de brilho), SELECIONADA (grande, no meio),

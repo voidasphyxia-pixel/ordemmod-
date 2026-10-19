@@ -46,7 +46,7 @@ public final class HabilidadesHud {
     private static final int MARGEM_BAIXO = 10;
     /** Vao vertical entre um pentagono e o seguinte. */
     private static final int VAO = 3;
-    /** Quanto os slots de cima e de baixo ficam deslocados para a direita em relacao ao selecionado (do meio). */
+    /** Quanto o slot selecionado (do meio) fica deslocado para a direita em relacao aos de cima e de baixo (arco espelhado). */
     private static final int DESLOCA_X = 9;
     /** Papel de cada slot na pilha (de cima para baixo: proxima, atual, anterior). */
     private static final int PAPEL_ATUAL = 0;
@@ -143,8 +143,8 @@ public final class HabilidadesHud {
             PacoteStatus.Slot slot = fila.get(indice[i]);
             float r = raio[i];
             boolean atual = papel[i] == PAPEL_ATUAL;
-            // a selecionada fica mais para a esquerda; a de cima e a de baixo recuam DESLOCA_X para a direita (um arco)
-            float cx = MARGEM_ESQ + larguraAtual / 2F + (atual ? 0F : DESLOCA_X);
+            // arco espelhado: a selecionada (meio) avanca DESLOCA_X para a direita; a de cima e a de baixo ficam mais a esquerda
+            float cx = MARGEM_ESQ + larguraAtual / 2F + (atual ? DESLOCA_X : 0F);
             float cy = y + r; // a ponta fica em y e o centro (circuncentro) r abaixo dela
             boolean paga = pe >= slot.custo();
             // a proxima fica um pouco apagada e a anterior mais ainda
