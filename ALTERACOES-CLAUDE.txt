@@ -5,6 +5,18 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 20/10/2026 (CORRECAO: braco da Armadura de Sangue cruzava o peito para dentro) --------
+  Problema (video do teste no jogo): ao levantar, o braco com a armadura cruzava o peito para DENTRO em vez de abrir para o lado; as
+  gotas apareciam do lado oposto ao do braco. O jogo compilou e a entidade/comando funcionaram; o erro era so de sinal nas animacoes.
+  Causa: o GeckoLib espelha o eixo X do modelo. Com isso a rotacao em Z e em Y sai invertida e o X de "position" nao inverte; o gerador
+  tinha assumido o contrario (SINAL_ROT=(1,1,1), SINAL_POS=(-1,1,1)).
+  Correcao: tools/gerar_armadura_sangue.py agora usa SINAL_ROT=(1,-1,-1) e SINAL_POS=(1,1,1) e os 2 JSON foram gerados de novo
+  (armadura_sangue.geo.json e armadura_sangue.animation.json). Nenhum codigo Java mudou.
+  Como testar: git pull, runClient, /ordem armadura: o braco deve abrir PARA O LADO (para fora), a armadura se formar ao redor dele e
+  nos ombros/peito, e as gotas sairem em volta da armadura. Se ainda sair algo ao contrario, inverter so o sinal do eixo correspondente
+  no topo do script e rodar `python tools/gerar_armadura_sangue.py` (rotacao do braco = Z; giro da cabeca = Y; inclinacao do tronco = X).
+  Arquivos: tools/gerar_armadura_sangue.py, os 2 JSON gerados. NAO conferido no jogo depois da correcao.
+
 --- 20/10/2026 (TESTE: Armadura de Sangue tocando por comando) --------------------------
   Pedido: deixar a animacao da Armadura de Sangue (feita no Blender, Steve + armadura de sangue) pronta para tocar por um comando, so
   para teste, e a armadura ficar no modelo depois que a animacao termina.

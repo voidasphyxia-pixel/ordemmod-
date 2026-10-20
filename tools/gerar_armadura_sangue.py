@@ -17,8 +17,7 @@ Depende de: numpy e Pillow.
 
 SE ALGO FICAR AO CONTRARIO NO JOGO (braco subindo para dentro, placas vindo de dentro para fora...):
 inverta o sinal correspondente em SINAL_ROT / SINAL_POS aqui embaixo e rode de novo. Nao precisa mexer em
-mais nada. (As convencoes de sinal do Bedrock/GeckoLib para rotacao e posicao nao puderam ser conferidas no
-jogo ao gerar estes arquivos.)
+mais nada. (Os sinais atuais ja foram corrigidos depois do 1o teste no jogo; veja o comentario la embaixo.)
 """
 import bisect
 import json
@@ -43,8 +42,11 @@ FPS = 24
 FRAME_FIM = 90             # a animacao dura (90-1)/24 = 3,71 s
 
 # Sinais das conversoes Blender -> arquivo do GeckoLib (veja o aviso no topo).
-SINAL_ROT = (1, 1, 1)      # (x, y, z): multiplica os angulos escritos no arquivo
-SINAL_POS = (-1, 1, 1)     # (x, y, z): o X de "position" nas animacoes Bedrock e invertido
+# CONFERIDO NO JOGO (20/10/2026, 1o teste com (1,1,1) e (-1,1,1)): o braco cruzava o peito para DENTRO (Z invertido) e as gotas
+# apareciam do lado oposto (X da posicao invertido). O GeckoLib espelha o eixo X do modelo, entao Y e Z de rotacao invertem
+# e o X de posicao NAO inverte. Valores atuais = esse ajuste.
+SINAL_ROT = (1, -1, -1)    # (x, y, z): multiplica os angulos escritos no arquivo
+SINAL_POS = (1, 1, 1)      # (x, y, z): multiplica os deslocamentos de "position"
 
 NOME_ANIM = "animation.armadura_sangue.formar"
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
