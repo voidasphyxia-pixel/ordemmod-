@@ -285,17 +285,12 @@ public class Personagem {
     }
 
     /**
-     * Só a parte de habilidades da antiga barra de texto: a habilidade selecionada e os efeitos rodando.
-     * (Vida, SAN, PE e NEX agora são barras na HUD.) Vazio se não há nada para mostrar.
+     * A linha de texto acima das barras (barra de ação): só os efeitos rodando. Vazio se não há nenhum.
+     * (Vida, SAN, PE e NEX são barras na HUD; o nome da habilidade selecionada não aparece mais aqui, e sim ao lado do
+     * pentágono do meio em HabilidadesHud — antes esta linha trazia "> Nome (custo PE)".)
      */
     public String linhaDeHabilidades() {
-        Habilidade escolhida = habilidadeSelecionada();
-        String texto = escolhida != null ? "> " + escolhida.getNome() + " (" + escolhida.getCustoPe() + " PE)" : "";
-        String ativos = efeitosNaTela();
-        if (ativos.isEmpty()) {
-            return texto;
-        }
-        return texto.isEmpty() ? ativos : texto + "  |  " + ativos;
+        return efeitosNaTela();
     }
 
     private String sufixoDoEstado() {

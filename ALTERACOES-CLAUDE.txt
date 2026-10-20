@@ -5,6 +5,14 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 19/10/2026 (HUD: tira o nome da habilidade do texto acima das barras) ----------------
+  Pedido: o nome da habilidade nao deve mais aparecer em cima das barras de status (agora ele aparece ao lado do pentagono do meio).
+  A linha vinha de Personagem.linhaDeHabilidades() -> EventosOrdem.atualizarTela -> sendOverlayMessage (barra de acao): "> Nome (custo PE)"
+  + efeitos ativos. Agora a linha traz SO os efeitos ativos (efeitosNaTela()); sem efeitos, a barra de acao fica vazia (a mensagem vazia
+  limpa o texto antigo). Personagem.barra(float) (texto completo, usado so fora da HUD) nao mudou.
+  Arquivo: Personagem.java. NAO compilado aqui. Como testar: runClient com habilidades ativas: nada de "> Nome (PE)" acima das barras;
+  o nome so ao lado do pentagono do meio; efeitos ativos (ex.: bonus temporarios) continuam aparecendo no texto, se houver.
+
 --- 19/10/2026 (BUILD: HabilidadesHud fora da lista 'nucleo' do build.gradle) ------------
   Erro do usuario no runClient: "cannot find symbol: variable HabilidadesHud" em HudOrdem.java:276 e TeclasOrdem.java:43. Causa: o
   build.gradle so compila os arquivos listados em `nucleo` (sourceSets.main.java.include) e o HabilidadesHud.java (criado hoje) nao
