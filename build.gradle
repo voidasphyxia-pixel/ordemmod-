@@ -121,6 +121,7 @@ def nucleo = [
     'ItensOrdem',
     // etapa 6a
     'FonteOP', 'TeclasOrdem', 'AvisoOrdem', 'RolagemHud', 'HudOrdem',
+    'HabilidadesHud', // pentagonos das habilidades ativas (HudOrdem e TeclasOrdem usam; 19/10/2026)
     'ReceptoresCliente', 'ClienteCriacao', 'ClienteFicha', 'ClienteTeste',
     // etapa 6b: tela do dado e ficha (+ DesenhoOP, IconesOP, DescricoesOP e o VfxMarcado do fundo)
     'DesenhoOP', 'IconesOP', 'DescricoesOP', 'marcado/VfxMarcado', 'TelaTeste', 'TelaFicha',

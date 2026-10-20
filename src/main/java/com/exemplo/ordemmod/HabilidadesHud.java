@@ -95,11 +95,11 @@ public final class HabilidadesHud {
         }
         if (peUltimo >= custoSelecionada) {
             inicioUso = Util.getMillis();
-            // o jogo ja sorteia 1 de 3 gravacoes (sounds.json); o pitch varia um pouco mais para nao soar igual a cada uso
-            tocar(SonsOrdem.HABILIDADE_USAR, 0.95F + 0.1F * (float) Math.random(), VOLUME_SOM);
+            // batida de coracao; pitch com variacao minima (+-3%) para nao soar identico a cada uso
+            tocar(SonsOrdem.HABILIDADE_USAR, 0.97F + 0.06F * (float) Math.random(), VOLUME_SOM);
         } else {
             inicioFalha = Util.getMillis();
-            tocar(SonsOrdem.HABILIDADE_SEM_PE, 0.97F + 0.06F * (float) Math.random(), VOLUME_SOM);
+            tocar(SonsOrdem.HABILIDADE_SEM_PE, 1.0F, VOLUME_SOM); // glitch (trecho de marcado/glitch)
         }
     }
 

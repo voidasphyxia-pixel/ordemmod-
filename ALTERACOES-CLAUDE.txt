@@ -5,24 +5,27 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
---- 19/10/2026 (HUD: sons do uso e do "sem PE", feitos de GRAVACOES) --------------------
-  Pedido: usar sons nas duas animacoes; depois, "os sons parecem sinteticos e roboticos, faz mais organicos e verdadeiros".
-  A 1a versao era sintese pura (ondas) e soou robotica. Nao ha como baixar audio daqui nem ouvir o resultado, entao os sons agora
-  sao MONTADOS A PARTIR DE GRAVACOES que o mod ja tem (os espectrogramas foram analisados para escolher os trechos):
-  - tools/gerar_sons_habilidade.py (numpy + scipy + ffmpeg): corta/afina/mistura trechos de marcado/batimento_loop (batida de
-    coracao), marcado/sangue (textura umida) e marcado/sussuros_1/2 (sopro), mais uma sala curta (convolucao com ruido que decai).
-  - sounds/habilidade/usar_1..3.ogg (~0,65 s): o GOLPE (batida) cai no tempo 0, textura umida colada e o sussurro solta como sopro
-    logo depois. sounds/habilidade/sem_pe_1..3.ogg (~0,8 s): batimento duplo (lub-dub) mais grave e ABAFADO ("o coracao falha")
-    e um suspiro que se apaga. 3 variacoes de cada (cortes/afinacoes diferentes); o jogo sorteia uma por vez (sounds.json).
-  - O golpe fica no tempo zero de proposito: som de interface tem de bater com a animacao no instante da tecla.
-  - Niveis ~ os dos outros sons do mod (media ~ -22 dB, pico ~ -3 dB).
-  - SonsOrdem: HABILIDADE_USAR ("habilidade.usar") e HABILIDADE_SEM_PE ("habilidade.sem_pe"); sounds.json lista as 3 de cada.
-  - HabilidadesHud.aoApertarUsar toca o som junto com a animacao (SimpleSoundInstance.forUI, VOLUME_SOM = 0,8; pitch com variacao
-    pequena). Mesmo gatilho (previsao do cliente) das animacoes.
-  Arquivos: tools/gerar_sons_habilidade.py (novo), sounds/habilidade/*.ogg (6, novos), sounds.json, SonsOrdem.java, HabilidadesHud.java.
-  NAO compilado nem OUVIDO no jogo. Se alguma variacao nao agradar, apague a linha dela no sounds.json; para mexer no timbre, as
-  tabelas VARIACOES_USAR / VARIACOES_SEM_PE no topo do script (pitch, qual batida, qual sussurro, volume da textura, abafamento).
-  Alternativa mais "real" ainda: trocar os .ogg por gravacoes/biblioteca livre (mono, mesmo nome).
+--- 19/10/2026 (BUILD: HabilidadesHud fora da lista 'nucleo' do build.gradle) ------------
+  Erro do usuario no runClient: "cannot find symbol: variable HabilidadesHud" em HudOrdem.java:276 e TeclasOrdem.java:43. Causa: o
+  build.gradle so compila os arquivos listados em `nucleo` (sourceSets.main.java.include) e o HabilidadesHud.java (criado hoje) nao
+  estava na lista, entao HudOrdem/TeclasOrdem nao o enxergavam. Arquivo estava no GitHub; faltava incluir.
+  Correcao: 'HabilidadesHud' adicionado ao nucleo (etapa 6a, junto de HudOrdem). LICAO: todo .java novo precisa entrar nessa lista.
+  Como o HabilidadesHud nunca tinha sido compilado, revisei o arquivo inteiro contra as APIs ja usadas em IconesOP/FonteOP/AudioMarcado.
+  Arquivo: build.gradle. Como testar: .\gradlew.bat runClient (se aparecer erro NOVO em HabilidadesHud/PacoteStatus, mandar a saida).
+
+--- 19/10/2026 (HUD: sons = UMA batida de coracao ao usar, GLITCH ao faltar PE) ---------
+  Pedido: "use so um som de batida de coracao para usar a habilidade e o som de glitch ao sem PE" (antes: 3 variacoes montadas com
+  sussurro/textura; antes ainda: sintese, que soou robotica). Agora sem camadas, direto das gravacoes do mod:
+  - sounds/habilidade/usar.ogg (0,24 s): UM "lub" limpo de marcado/batimento_loop (corte antes do "dub", que vem 0,27 s depois).
+  - sounds/habilidade/sem_pe.ogg (0,50 s): trecho inicial do marcado/glitch.ogg, sem os ~0,13 s de silencio do comeco; o original tem
+    1,9 s e ficaria longo/irritante a cada tecla negada (GLITCH_DURACAO no script muda isso).
+  - Gerados por tools/gerar_sons_habilidade.py (so corta/aplica fade/normaliza; CONFIG no topo). Niveis: usar media -20 dB/pico -4,4 dB;
+    sem_pe media -21 dB/pico -3 dB (os outros sons do mod: media ~ -22 dB).
+  - sounds.json: "habilidade.usar" -> habilidade/usar e "habilidade.sem_pe" -> habilidade/sem_pe (1 arquivo cada; sem sorteio).
+  - HabilidadesHud.aoApertarUsar: usar toca a batida (pitch +-3%); sem PE toca o glitch (pitch 1,0). VOLUME_SOM = 0,8.
+  - Removidos usar_1..3.ogg e sem_pe_1..3.ogg (versao anterior). Tirado tools/__pycache__ do git (+ .gitignore).
+  Arquivos: tools/gerar_sons_habilidade.py, sounds/habilidade/usar.ogg e sem_pe.ogg, sounds.json, HabilidadesHud.java, .gitignore.
+  NAO ouvido no jogo. Como testar: runClient; R com PE (batida) e R sem PE (glitch curto).
 
 --- 19/10/2026 (HUD: animacoes de uso e de "sem PE") ----------------------------------
   Pedido: leve animacao no icone ao USAR a habilidade e outra quando NAO da para usar por falta de PE.
