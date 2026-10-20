@@ -43,6 +43,32 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
   filamentos viram cadeias de cubos (nao ha curva no Minecraft); a skin do Steve e uma pintura simples (troque o PNG, mesmo layout 64x64,
   mantendo a linha y=36 da paleta). A armadura ainda e uma ENTIDADE separada, nao uma camada do jogador (veja ARMADURA-DE-SANGUE.md).
 
+--- 20/10/2026 (tela inicial: CORRENTES puxadas e girando, em varias camadas) --------------
+  Pedido: varias correntes passando na tela inicial, umas mais na frente e outras ao fundo desfocadas, como se fossem constantemente
+  puxadas e girando (referencia: render de uma corrente de elos retangulares de pedra cinza-azulada com faces de baixo avermelhadas).
+  ACHADO: o codigo e as texturas JA estavam no diretorio de trabalho, sem commit e sem registro (feitos de madrugada, 00h24). Foram
+  VERIFICADOS (nao refeitos): constantes de atlas do Java x as do gerador (batem), ligacao na TelaInicial, matematica da animacao
+  (reproduzida em Python para ver o resultado) e o build.gradle.
+  - titulo/CorrentesFundo.java (novo): 7 correntes em 3 camadas. FUNDO (3): pequenas, escuras e bem desfocadas, atras do simbolo.
+    MEIO (2): desfoque leve, em cima e embaixo, na frente do simbolo. FRENTE (2): grandes e nitidas, coladas nas laterais, depois da
+    vinheta e antes do logo/botoes. Cada uma e uma faixa de ladrilhos (2 elos) que rola pela distancia "puxada": velocidade
+    vel*(base + amp*sen^4), ou seja anda em TRANCOS (puxa, afrouxa, puxa), cada corrente com seu periodo/fase/sentido. GIRA em torno do
+    proprio eixo (24 quadros de 0 a 90 graus; a 90 graus a corrente e igual a de 0 deslocada 1 passo, entao gira sem fim; dois quadros
+    vizinhos se misturam para o giro ficar liso). Balanco leve do angulo, "bob" vertical e paralaxe com o mouse (parX/parY). Tudo
+    relativo a altura/largura da tela (funciona em qualquer escala de interface). Tabela CORRENTES no topo para mexer em cada uma.
+  - tools/gerar_correntes.py (novo): renderiza a corrente em 3D (ray casting) nos 24 quadros -> correntes_nitida.png (1408x720),
+    correntes_media.png e correntes_fundo.png (704x360; metade da resolucao + desfoque leve/forte), com .mcmeta blur=true.
+    ILUMINACAO AJUSTADA hoje: medido contra a referencia, a corrente saia com brilho medio 46 (ref. 89) e 18% de pixels avermelhados
+    (ref. 8%). luz() agora: 1,42*(0,46 + d1*(0,62;0,64;0,70)) + d2*(0,34;0,035;0,03) -> brilho ~80-90, cor media ~(87,81,92) (ref.
+    (88,85,93)), vermelho discreto. Texturas regeneradas (as constantes de atlas nao mudaram).
+  - TelaInicial.desenharFundo: chama CorrentesFundo.desenhar nas 3 camadas (FUNDO apos a nevoa, MEIO apos o simbolo, FRENTE apos a vinheta).
+  - build.gradle: 'titulo/CorrentesFundo' no nucleo (lembrete: todo .java novo precisa entrar nessa lista).
+  Arquivos: titulo/CorrentesFundo.java, titulo/TelaInicial.java, build.gradle, tools/gerar_correntes.py,
+  textures/gui/titulo/correntes_{nitida,media,fundo}.png (+ .mcmeta).
+  NAO compilado aqui. Como testar: .\gradlew.bat runClient -> tela inicial com correntes nas 3 profundidades, andando em trancos e
+  girando. Se aparecer erro, mandar a saida do gradle. Ajustes possiveis depois de ver: velocidade/trancos (vel, base, amp, periodo),
+  giro (giroBase, giroPuxa), tom (escurece), posicoes/angulos, quantidade de correntes, e a vermelhidao (luz() no gerador).
+
 --- 19/10/2026 (HUD: tira o nome da habilidade do texto acima das barras) ----------------
   Pedido: o nome da habilidade nao deve mais aparecer em cima das barras de status (agora ele aparece ao lado do pentagono do meio).
   A linha vinha de Personagem.linhaDeHabilidades() -> EventosOrdem.atualizarTela -> sendOverlayMessage (barra de acao): "> Nome (custo PE)"

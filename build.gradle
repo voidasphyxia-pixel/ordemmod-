@@ -132,6 +132,7 @@ def nucleo = [
     // etapa 6d: cena do Marcado
     'marcado/AudioMarcado', 'marcado/TelaMarcado',
     'titulo/TelaInicial', 'titulo/TemaInicial', 'titulo/EventosTitulo',
+    'titulo/CorrentesFundo', // correntes puxadas e girando na tela inicial (20/10/2026)
     // etapa 6b2: inventario em vidro escuro (mixins so de cliente, ordemmod.client.mixins.json)
     'InventarioOrdem', 'mixin/cliente/AbstractContainerScreenAccessor', 'mixin/cliente/AbstractContainerScreenMixin',
     'mixin/cliente/ContainerScreenMixin', 'mixin/cliente/InventoryScreenMixin',

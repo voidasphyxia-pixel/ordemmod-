@@ -233,6 +233,8 @@ public class TelaInicial extends Screen {
     private void desenharFundo(GuiGraphicsExtractor g, float t, float bg) {
         g.fill(0, 0, width, height, COR_FUNDO);
         VfxMarcado.NEVOA.desenhar(g, t, 0.34F * bg, 0, 0, width, height);
+        // correntes do FUNDO: pequenas, escuras e bem desfocadas, atras do simbolo
+        CorrentesFundo.desenhar(g, CorrentesFundo.Camada.FUNDO, t, bg, width, height, parX, parY);
 
         float respira = 0.8F + 0.2F * (float) Math.sin(t * 1.2F);
         float cx = width / 2F + parX;
@@ -247,9 +249,14 @@ public class TelaInicial extends Screen {
                     DesenhoOP.argb(ALFA_SIMBOLO * respira * bg, 0.85F, 0.90F, 1F));
         }
 
+        // correntes do MEIO: desfoque leve, na frente do simbolo
+        CorrentesFundo.desenhar(g, CorrentesFundo.Camada.MEIO, t, bg, width, height, parX, parY);
+
         VfxMarcado.POEIRA.desenhar(g, t, 0.55F * bg, 0, 0, width, height);
         g.fillGradient(0, 0, width, height / 3, 0xDD000000, 0x00000000);
         g.fillGradient(0, height * 2 / 3, width, height, 0x00000000, 0xDD000000);
+        // correntes da FRENTE: nitidas e grandes, nas laterais; depois da vinheta (nao escurecem) e antes do logo e dos botoes
+        CorrentesFundo.desenhar(g, CorrentesFundo.Camada.FRENTE, t, bg, width, height, parX, parY);
     }
 
     private void desenharLogo(GuiGraphicsExtractor g, float t, float ui) {
