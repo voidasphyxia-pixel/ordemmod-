@@ -82,6 +82,18 @@ public class EfeitosAtivos {
         return total;
     }
 
+    /**
+     * Bônus de dano de UM efeito (pelo id da habilidade que o gerou) para um tipo de dano.
+     * 0 se esse efeito não está ativo ou não afeta o tipo. Usado pela Potência Máxima (dobra o Ataque Especial).
+     */
+    public double bonusDanoDoEfeito(String id, TipoDano tipo) {
+        Ativo<EfeitoDano> ativo = danos.get(id);
+        if (ativo == null || !ativo.efeito.afeta(tipo)) {
+            return 0;
+        }
+        return ativo.efeito.getBonusDano();
+    }
+
     /** Dano final depois dos efeitos ativos. Passe o dano já com os bônus de atributos. */
     public double danoFinal(double dano, TipoDano tipo) {
         return dano + bonusDano(tipo);
