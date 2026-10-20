@@ -15,6 +15,10 @@ import java.util.Random;
 public class HabilidadesDoPersonagem {
     public static final int CUSTO_EM_PONTOS = 1;
     public static final int PONTOS_POR_NIVEL = 1;
+    /** Defesa que todo personagem tem de base: 10 + Agilidade (depois somam os poderes e os efeitos ativos). */
+    public static final int DEFESA_BASE = 10;
+    /** NEX 50%: o Combatente ganha a Versatilidade (um poder a mais, além do ponto normal do nível). */
+    public static final int NIVEL_VERSATILIDADE = 10;
 
     private final ClasseOP classe;
     private final Atributos atributos; // os atributos do personagem (usados nos requisitos)
@@ -35,10 +39,14 @@ public class HabilidadesDoPersonagem {
     /**
      * Chame quando o personagem chegar a um marco de NEX (passe o nível novo).
      * Dá os pontos de habilidade e libera as versões aprimoradas.
+     * No NEX 50% o Combatente ganha 1 ponto extra (Versatilidade).
      * Retorna as habilidades liberadas automaticamente agora.
      */
     public List<Habilidade> aoSubirDeNivel(int nivel) {
         pontos += PONTOS_POR_NIVEL;
+        if (classe == ClasseOP.COMBATENTE && nivel == NIVEL_VERSATILIDADE) {
+            pontos += PONTOS_POR_NIVEL;
+        }
         return liberarAutomaticas(nivel);
     }
 
@@ -69,6 +77,16 @@ public class HabilidadesDoPersonagem {
 
     public boolean temAprendida(Habilidade habilidade) {
         return aprendidas.contains(habilidade);
+    }
+
+    /** Já aprendeu a habilidade com esse id? (para poderes com regra especial, como Tiro Certeiro). */
+    public boolean temAprendidaPorId(String id) {
+        for (Habilidade habilidade : aprendidas) {
+            if (habilidade.getId().equals(id)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Quantas vezes uma habilidade repetível foi aprendida (0 se nunca; 1 para as comuns já aprendidas). */
@@ -275,11 +293,15 @@ public class HabilidadesDoPersonagem {
     /**
      * Bônus de dano permanente das passivas em uso para um tipo de dano.
      * Versões substituídas não contam, então as evoluções não acumulam com as antigas.
+     * Tiro Certeiro soma a Agilidade ao dano à distância.
      */
     public double bonusDanoPassivo(TipoDano tipo) {
         double total = 0;
         for (Habilidade passiva : getPassivas()) {
             total += passiva.bonusDanoPassivoPara(tipo);
+        }
+        if (tipo == TipoDano.A_DISTANCIA && temAprendidaPorId(CatalogoHabilidades.ID_TIRO_CERTEIRO)) {
+            total += atributos.get(Atributo.AGILIDADE);
         }
         return total;
     }
@@ -296,10 +318,15 @@ public class HabilidadesDoPersonagem {
     /**
      * Dano final de um ataque. Passe o dano base já com o bônus de atributos (Força).
      * Ordem: multiplica o dano base pelas passivas em %, depois soma os bônus fixos
-     * (passivas e efeitos ativos como o Ataque Especial).
+     * (passivas e efeitos ativos como o Ataque Especial). Com Potência Máxima, o bônus do Ataque Especial
+     * em ataques corpo a corpo vale em dobro. O dano nunca fica abaixo de 0 (penalidades como a do Combate Defensivo).
      */
     public double danoFinal(double danoBase, TipoDano tipo, EfeitosAtivos efeitos) {
-        return danoBase * multiplicadorDano(tipo) + bonusDanoPassivo(tipo) + efeitos.bonusDano(tipo);
+        double dano = danoBase * multiplicadorDano(tipo) + bonusDanoPassivo(tipo) + efeitos.bonusDano(tipo);
+        if (tipo == TipoDano.CORPO_A_CORPO && temAprendidaPorId(CatalogoHabilidades.ID_POTENCIA_MAXIMA)) {
+            dano += efeitos.bonusDanoDoEfeito(CatalogoHabilidades.ID_ATAQUE_ESPECIAL, tipo);
+        }
+        return Math.max(0, dano);
     }
 
     /** Vida extra das passivas em uso para esse nível (2 pontos = 1 coração). */
@@ -408,14 +435,27 @@ public class HabilidadesDoPersonagem {
         return Math.min(1.0, total);
     }
 
-    /** Defesa total (passivas + efeitos ativos), sem proteção pesada. */
+    /** Bônus de defesa total (passivas + efeitos ativos), SEM a base 10 + Agilidade, sem proteção pesada. */
     public int defesaTotal(EfeitosAtivos efeitos) {
         return defesaTotal(efeitos, false);
     }
 
-    /** Defesa total: passivas em uso + efeitos temporários ativos. */
+    /** Bônus de defesa total: passivas em uso + efeitos temporários ativos (sem a base 10 + Agilidade). */
     public int defesaTotal(EfeitosAtivos efeitos, boolean usandoProtecaoPesada) {
         return bonusDefesa(usandoProtecaoPesada) + efeitos.bonusDefesa();
+    }
+
+    /** A Defesa do personagem: 10 + Agilidade + bônus de poderes e efeitos ativos, sem proteção pesada. */
+    public int defesa(EfeitosAtivos efeitos) {
+        return defesa(efeitos, false);
+    }
+
+    /**
+     * A Defesa do personagem: base 10 + Agilidade, mais todos os bônus de defesa (passivas e efeitos ativos).
+     * Passe true em usandoProtecaoPesada se o personagem está com proteção pesada equipada.
+     */
+    public int defesa(EfeitosAtivos efeitos, boolean usandoProtecaoPesada) {
+        return DEFESA_BASE + atributos.get(Atributo.AGILIDADE) + defesaTotal(efeitos, usandoProtecaoPesada);
     }
 
     /** Chance total de resistir a efeitos (passivas + efeitos ativos), sem proteção pesada. */
