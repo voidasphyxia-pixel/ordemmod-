@@ -254,7 +254,16 @@ public class Pericias {
 
     /** Rola o teste da perícia contra a DT. bonusExtra serve para situações (+5 de vantagem, -5 de pressa...). */
     public ResultadoTeste testar(Pericia pericia, int dt, int bonusExtra, Random random) {
-        int valor = atributos.get(pericia.getAtributo());
+        return testar(pericia, dt, bonusExtra, 0, random);
+    }
+
+    /**
+     * Igual ao anterior, mas o atributo usado nos dados é no mínimo {@code atributoMinimo}.
+     * Serve para Presteza Atlética e Incansável (Força ou Agilidade no lugar do atributo-base da perícia):
+     * se o atributo-base for maior, ele é mantido.
+     */
+    public ResultadoTeste testar(Pericia pericia, int dt, int bonusExtra, int atributoMinimo, Random random) {
+        int valor = Math.max(atributos.get(pericia.getAtributo()), atributoMinimo);
         // atributo 0: 2 dados, fica com o menor; atributo N (1 ou mais): N dados, fica com o maior
         int quantidade = valor == 0 ? 2 : valor;
         List<Integer> dados = new ArrayList<>();
