@@ -117,6 +117,8 @@ def nucleo = [
     // etapa 5b
     'entidade/EntidadesOrdem', 'entidade/ZumbiSangueEntity', 'entidade/ZumbiSangueAtaqueGoal',
     'cliente/ClienteEntidades', 'cliente/ZumbiSangueRenderer',
+    // teste da Armadura de Sangue (/ordem armadura; 20/10/2026)
+    'entidade/ArmaduraSangueEntity', 'cliente/ArmaduraSangueRenderer',
     // etapa 5c
     'ItensOrdem',
     // etapa 6a

@@ -15,5 +15,6 @@ public final class ClienteEntidades {
 
     public static void registrar() {
         EntityRendererRegistry.register(EntidadesOrdem.ZUMBI_SANGUE, ZumbiSangueRenderer::new);
+        EntityRendererRegistry.register(EntidadesOrdem.ARMADURA_SANGUE, ArmaduraSangueRenderer::new);
     }
 }

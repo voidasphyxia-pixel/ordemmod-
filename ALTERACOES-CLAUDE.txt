@@ -5,6 +5,32 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 20/10/2026 (TESTE: Armadura de Sangue tocando por comando) --------------------------
+  Pedido: deixar a animacao da Armadura de Sangue (feita no Blender, Steve + armadura de sangue) pronta para tocar por um comando, so
+  para teste, e a armadura ficar no modelo depois que a animacao termina.
+  O que foi feito (mesmo padrao do Zumbi de Sangue, GeckoLib 5):
+  - NOVA entidade ordemmod:armadura_sangue (ArmaduraSangueEntity): um Steve de cubos, sem IA, intocavel, sem despawn. Toca
+    animation.armadura_sangue.formar (3,7 s) com thenPlayAndHold: no fim FICA na pose final com a armadura. Renderer: ArmaduraSangueRenderer.
+  - COMANDO: /ordem armadura (cria na sua frente, virada para voce; se ja existir uma perto, troca por uma nova = repete a animacao)
+    e /ordem armadura limpar. Tambem funciona /summon ordemmod:armadura_sangue.
+  - Assets GERADOS por tools/gerar_armadura_sangue.py (porte da animacao do Blender: 281 ossos = Steve + 46 placas + 14 espinhos
+    + filamentos em cadeia de cubos + 70 gotas): geckolib/models/entity/armadura_sangue.geo.json, geckolib/animations/entity/
+    armadura_sangue.animation.json, textures/entity/armadura_sangue.png (Steve de cores lisas PROVISORIO + paleta de sangue na linha y=36).
+  - Registro: EntidadesOrdem (tipo + atributos), ClienteEntidades (renderer), EventosOrdem (comando), lang pt_br/en_us, e build.gradle
+    (os 2 .java novos entraram na lista 'nucleo'; sem isso da "cannot find symbol").
+  Arquivos: entidade/ArmaduraSangueEntity.java, cliente/ArmaduraSangueRenderer.java, entidade/EntidadesOrdem.java,
+    cliente/ClienteEntidades.java, EventosOrdem.java, build.gradle, lang/*.json, os 3 assets acima, tools/gerar_armadura_sangue.py,
+    ARMADURA-DE-SANGUE.md (notas para adaptar ao jogador).
+  NAO compilado nem testado no jogo (aqui nao ha Minecraft/Gradle). Como testar: .\gradlew.bat runClient, entrar num mundo e digitar
+  /ordem armadura. Deve aparecer um Steve 3 blocos a frente: inclina o tronco, levanta o braco para o lado, o sangue cresce, as placas
+  e espinhos se encaixam e ele fica parado com a armadura. Se der erro de compilacao, mandar a saida do build.
+  SE ALGO SAIR AO CONTRARIO (braco subindo para dentro, placas vindo de dentro para fora): abrir tools/gerar_armadura_sangue.py, inverter o
+  sinal em SINAL_ROT (rotacoes) ou SINAL_POS (deslocamentos) no topo e rodar `python tools/gerar_armadura_sangue.py` de novo. Os sinais
+  das convencoes Bedrock/GeckoLib nao puderam ser conferidos no jogo.
+  Limitacoes conhecidas: a mudanca de cor sangue-liquido -> carapaca (material do Blender) nao existe aqui (as cores sao fixas); os
+  filamentos viram cadeias de cubos (nao ha curva no Minecraft); a skin do Steve e uma pintura simples (troque o PNG, mesmo layout 64x64,
+  mantendo a linha y=36 da paleta). A armadura ainda e uma ENTIDADE separada, nao uma camada do jogador (veja ARMADURA-DE-SANGUE.md).
+
 --- 19/10/2026 (HUD: tira o nome da habilidade do texto acima das barras) ----------------
   Pedido: o nome da habilidade nao deve mais aparecer em cima das barras de status (agora ele aparece ao lado do pentagono do meio).
   A linha vinha de Personagem.linhaDeHabilidades() -> EventosOrdem.atualizarTela -> sendOverlayMessage (barra de acao): "> Nome (custo PE)"

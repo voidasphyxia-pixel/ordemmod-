@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import com.exemplo.ordemmod.entidade.ArmaduraSangueEntity;
 import com.exemplo.ordemmod.marcado.PerfilMarcado;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -294,6 +295,20 @@ public class EventosOrdem {
             SalvamentoOrdem.salvar(j, p);
             return ok(ctx, "Personagem marcado como criado (provisorio, ate a tela de criacao da etapa 6).");
         }));
+
+        // TESTE da Armadura de Sangue: /ordem armadura (toca a animacao na sua frente e deixa a pose final) | limpar
+        raiz.then(Commands.literal("armadura")
+                .executes(ctx -> {
+                    ServerPlayer j = ctx.getSource().getPlayerOrException();
+                    ArmaduraSangueEntity.invocarPara(j);
+                    return ok(ctx, "Armadura de Sangue: a animação toca na sua frente (uns 4 segundos) e o modelo fica parado"
+                            + " na pose final. Use /ordem armadura de novo para repetir ou /ordem armadura limpar.");
+                })
+                .then(Commands.literal("limpar").executes(ctx -> {
+                    ServerPlayer j = ctx.getSource().getPlayerOrException();
+                    int n = ArmaduraSangueEntity.limparPerto(j);
+                    return ok(ctx, "Armaduras de teste removidas: " + n);
+                })));
 
         dispatcher.register(raiz);
     }

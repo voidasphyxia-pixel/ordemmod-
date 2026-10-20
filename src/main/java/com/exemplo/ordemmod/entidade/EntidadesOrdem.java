@@ -26,6 +26,8 @@ public final class EntidadesOrdem {
     }
 
     public static final EntityType<ZumbiSangueEntity> ZUMBI_SANGUE = registrarZumbiSangue();
+    /** Armadura de Sangue (versao de teste, /ordem armadura). */
+    public static final EntityType<ArmaduraSangueEntity> ARMADURA_SANGUE = registrarArmaduraSangue();
 
     private static EntityType<ZumbiSangueEntity> registrarZumbiSangue() {
         ResourceKey<EntityType<?>> chave = ResourceKey.create(Registries.ENTITY_TYPE,
@@ -38,8 +40,20 @@ public final class EntidadesOrdem {
         return Registry.register(BuiltInRegistries.ENTITY_TYPE, chave, tipo);
     }
 
+    private static EntityType<ArmaduraSangueEntity> registrarArmaduraSangue() {
+        ResourceKey<EntityType<?>> chave = ResourceKey.create(Registries.ENTITY_TYPE,
+                Identifier.fromNamespaceAndPath(OrdemMod.MOD_ID, "armadura_sangue"));
+        EntityType<ArmaduraSangueEntity> tipo = EntityType.Builder
+                .<ArmaduraSangueEntity>of(ArmaduraSangueEntity::new, MobCategory.MISC)
+                .sized(0.6F, 1.8F)
+                .clientTrackingRange(8)
+                .build(chave);
+        return Registry.register(BuiltInRegistries.ENTITY_TYPE, chave, tipo);
+    }
+
     /** Chamado no OrdemMod.onInitialize: carrega a classe (registra o tipo acima) e registra os atributos. */
     public static void registrar() {
         FabricDefaultAttributeRegistry.register(ZUMBI_SANGUE, ZumbiSangueEntity.criarAtributos());
+        FabricDefaultAttributeRegistry.register(ARMADURA_SANGUE, ArmaduraSangueEntity.criarAtributos());
     }
 }
