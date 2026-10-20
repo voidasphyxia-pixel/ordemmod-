@@ -36,6 +36,12 @@ public class EfeitosAtivos {
         defesas.put(id, new Ativo<>(efeito, ticks));
     }
 
+    /** Encerra na hora os efeitos (de dano e de defesa) desse id. */
+    public void remover(String id) {
+        danos.remove(id);
+        defesas.remove(id);
+    }
+
     /** Faz o tempo passar 1 tick e remove os efeitos que acabaram. */
     public void tick() {
         avancar(danos);

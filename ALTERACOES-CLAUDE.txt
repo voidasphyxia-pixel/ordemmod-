@@ -5,6 +5,33 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 20/10/2026 (FUNCIONAL: Armadura de Sangue no PERSONAGEM) ---------------------------------
+  Pedido: "vamos fazer a armadura de sangue ficar funcional no personagem".
+  O que foi feito (v1: entidade presa ao jogador; NAO e ainda uma camada do modelo do jogador):
+  - NOVA habilidade ATIVA "Armadura de Sangue" (id armadura_de_sangue, Ocultista, nivel 1, 3 PE) no CatalogoHabilidades. Efeito: +5 de
+    defesa por 180 s. ATENCAO: custo/defesa/duracao sao PROVISORIOS (nao vieram das regras oficiais); ajuste na linha da habilidade.
+  - NOVA entidade ordemmod:armadura_sangue_jogador (ArmaduraSangueJogadorEntity, filha da de teste): guarda o id do dono (dado
+    sincronizado), copia posicao e giro do jogador todo tick (servidor e cliente), nao e alvo de mira, nao e salva e some sozinha se o
+    dono morrer/sair/trocar de dimensao. Toca a animacao de formacao e fica na pose final.
+  - EventosOrdem.aoTick chama ArmaduraSangueJogadorEntity.sincronizar(jogador, efeitoAtivo): enquanto o efeito "armadura_de_sangue" estiver
+    em EfeitosAtivos a armadura existe; quando acaba (180 s) ela e removida. Usar a habilidade de novo reinicia o tempo.
+  - NOVO renderer ArmaduraSangueJogadorRenderer: usa a posicao suavizada do dono (sem atraso), escala 0,9375 (igual ao jogador) e NAO
+    desenha em primeira pessoa (a camera nao fica cheia de placas).
+  - Modelo "para o personagem" gerado pelo mesmo script (tools/gerar_armadura_sangue.py agora grava as duas versoes): sem os cubos do
+    Steve e sem a inclinacao do tronco/cabeca/bracos; so a armadura anima. Arquivos armadura_sangue_jogador.geo.json /
+    .animation.json / textura. Os arquivos da versao de teste NAO foram alterados.
+  - EfeitosAtivos.remover(id). Comandos de teste: /ordem armadura vestir (veste sem classe/PE/aprender), /ordem armadura tirar.
+  LIMITACOES CONHECIDAS: a armadura nao acompanha o balanco dos bracos/pernas do jogador (fica rigida na pose de repouso do corpo; o
+  braco da armadura nao levanta); em 3a pessoa as placas do braco ficam no lado do modelo, pode precisar espelhar. Camada de verdade no
+  modelo do jogador fica para a proxima etapa. Se o dono morre com o efeito ativo, a armadura volta a aparecer ao renascer (efeito segue).
+  Arquivos: CatalogoHabilidades, EfeitosAtivos, EventosOrdem, entidade/{ArmaduraSangueJogadorEntity,EntidadesOrdem},
+  cliente/{ArmaduraSangueJogadorRenderer,ClienteEntidades}, lang pt_br/en_us, build.gradle (2 classes novas no nucleo),
+  tools/gerar_armadura_sangue.py e os 3 assets novos.
+  Como testar (NAO COMPILADO AQUI): git pull, .\gradlew.bat runClient. 1) /ordem armadura vestir -> aperte F5 (3a pessoa): a armadura
+  se forma em volta de voce e acompanha ao andar/girar; em 1a pessoa nao aparece. /ordem armadura tirar -> some. 2) Pela habilidade:
+  precisa ser Ocultista com ponto: /ordem aprender armadura_de_sangue, selecione-a na HUD e use a tecla de usar (gasta 3 PE).
+  Se o gradlew der erro, mande a saida: os pontos de risco sao snapTo, estado.x/y/z, estado.isInvisible e DataTickets.INVISIBLE_TO_PLAYER.
+
 --- 20/10/2026 (CORRECAO: braco da Armadura de Sangue cruzava o peito para dentro) --------
   Problema (video do teste no jogo): ao levantar, o braco com a armadura cruzava o peito para DENTRO em vez de abrir para o lado; as
   gotas apareciam do lado oposto ao do braco. O jogo compilou e a entidade/comando funcionaram; o erro era so de sinal nas animacoes.

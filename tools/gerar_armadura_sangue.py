@@ -719,18 +719,34 @@ def gerar_textura(caminho):
 # ------------------------------------------------------------------------------------------------
 # Saida
 # ------------------------------------------------------------------------------------------------
-def montar():
+OSSOS_STEVE = ("root", "body", "head", "left_arm", "right_arm", "left_leg", "right_leg")
+
+
+def montar(jogador=False):
+    """jogador=True: versao para vestir no PERSONAGEM (entidade ordemmod:armadura_sangue_jogador).
+    Sem os cubos do Steve (o corpo e o do proprio jogador) e sem a inclinacao do tronco / cabeca / bracos / raiz:
+    os ossos de corpo ficam parados na pose de repouso e so a armadura (placas, espinhos, filamentos, gotas) anima."""
+    BONES.clear()
+    ANIM_OSSOS.clear()
+    RAIO_X.clear()
+    RNG.seed(SEED)
     criar_steve()
     animar_corpo()
     criar_placas()
     criar_espinhos()
     criar_filamentos()
     criar_gotas()
+    if jogador:
+        for osso in BONES:
+            if osso["name"] in OSSOS_STEVE:
+                osso.pop("cubes", None)
+        for nome in OSSOS_STEVE:
+            ANIM_OSSOS.pop(nome, None)
     geo = {
         "format_version": "1.12.0",
         "minecraft:geometry": [{
             "description": {
-                "identifier": "geometry.armadura_sangue",
+                "identifier": "geometry.armadura_sangue_jogador" if jogador else "geometry.armadura_sangue",
                 "texture_width": 64, "texture_height": 64,
                 "visible_bounds_width": 5, "visible_bounds_height": 4, "visible_bounds_offset": [0, 1, 0],
             },
@@ -825,14 +841,17 @@ if __name__ == "__main__":
         preview(destino)
         print("preview em", destino)
         sys.exit(0)
-    for sub, dados in (("geckolib/models/entity/armadura_sangue.geo.json", geo),
-                       ("geckolib/animations/entity/armadura_sangue.animation.json", anim)):
-        caminho = os.path.join(ASSETS, *sub.split("/"))
-        os.makedirs(os.path.dirname(caminho), exist_ok=True)
-        with open(caminho, "w", encoding="utf-8") as fh:
-            json.dump(dados, fh, ensure_ascii=False, separators=(",", ":"))
-        print("gravado:", os.path.relpath(caminho, RAIZ), "(%d KB)" % (os.path.getsize(caminho) // 1024))
-    tex = os.path.join(ASSETS, "textures", "entity", "armadura_sangue.png")
-    os.makedirs(os.path.dirname(tex), exist_ok=True)
-    gerar_textura(tex)
-    print("gravado:", os.path.relpath(tex, RAIZ))
+    for jog in (False, True):
+        sufixo = "_jogador" if jog else ""
+        geo, anim = montar(jog)
+        for sub, dados in (("geckolib/models/entity/armadura_sangue%s.geo.json" % sufixo, geo),
+                           ("geckolib/animations/entity/armadura_sangue%s.animation.json" % sufixo, anim)):
+            caminho = os.path.join(ASSETS, *sub.split("/"))
+            os.makedirs(os.path.dirname(caminho), exist_ok=True)
+            with open(caminho, "w", encoding="utf-8") as fh:
+                json.dump(dados, fh, ensure_ascii=False, separators=(",", ":"))
+            print("gravado:", os.path.relpath(caminho, RAIZ), "(%d KB)" % (os.path.getsize(caminho) // 1024))
+        tex = os.path.join(ASSETS, "textures", "entity", "armadura_sangue%s.png" % sufixo)
+        os.makedirs(os.path.dirname(tex), exist_ok=True)
+        gerar_textura(tex)
+        print("gravado:", os.path.relpath(tex, RAIZ))

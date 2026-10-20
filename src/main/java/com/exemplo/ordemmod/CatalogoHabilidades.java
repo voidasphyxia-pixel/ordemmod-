@@ -12,6 +12,8 @@ import java.util.Set;
 public final class CatalogoHabilidades {
     /** O poder repetível que treina / melhora perícias (tem tratamento especial na ficha). */
     public static final String ID_TREINAMENTO_PERICIA = "treinamento_pericia";
+    /** A habilidade que veste a Armadura de Sangue no personagem (o EventosOrdem liga a armadura enquanto o efeito dura). */
+    public static final String ID_ARMADURA_SANGUE = "armadura_de_sangue";
 
     public static final List<Habilidade> TODAS = List.of(
         // Combatente
@@ -121,6 +123,11 @@ public final class CatalogoHabilidades {
         // Ocultista
         new Habilidade("escudo_mental", "Escudo Mental", "Exemplo: protege a mente.",
                 TipoHabilidade.ATIVA, ClasseOP.OCULTISTA, 1, 3),
+        // PROVISORIO: custo, defesa e duracao NAO sao das regras oficiais; ajuste aqui (PE, bonus de defesa, segundos).
+        new Habilidade(ID_ARMADURA_SANGUE, "Armadura de Sangue",
+                "Gasta 3 PE: o sangue se forma em uma armadura sobre o corpo por 3 minutos e dá +5 de defesa.",
+                TipoHabilidade.ATIVA, ClasseOP.OCULTISTA, 1, 3)
+                .comEfeitoAoUsar((id, atributos, efeitos) -> efeitos.ativar(id, new EfeitoDefesa(5, 0.0, 180))),
         new Habilidade("sentir_outro_lado", "Sentir o Outro Lado", "Exemplo: sente o paranormal por perto.",
                 TipoHabilidade.PASSIVA, ClasseOP.OCULTISTA, 2, 0),
         new Habilidade("mente_blindada", "Mente Blindada", "Exemplo: mente mais resistente.",

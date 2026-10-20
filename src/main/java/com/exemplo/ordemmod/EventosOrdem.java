@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.exemplo.ordemmod.entidade.ArmaduraSangueEntity;
+import com.exemplo.ordemmod.entidade.ArmaduraSangueJogadorEntity;
 import com.exemplo.ordemmod.marcado.PerfilMarcado;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -149,6 +150,8 @@ public class EventosOrdem {
         Personagem p = de(jogador);
         p.pe.tick(p.classe);
         p.efeitos.tick();
+        // Armadura de Sangue: existe enquanto o efeito da habilidade estiver ativo
+        ArmaduraSangueJogadorEntity.sincronizar(jogador, p.efeitos.estaAtivo(CatalogoHabilidades.ID_ARMADURA_SANGUE));
         if (jogador.tickCount % 20 == 0 && !jogador.isCreative() && !jogador.isSpectator()) {
             int luz = jogador.level().getMaxLocalRawBrightness(jogador.blockPosition());
             p.passarSegundo(luz <= LUZ_ESCURO, luz >= LUZ_CLARO);
@@ -304,6 +307,17 @@ public class EventosOrdem {
                     return ok(ctx, "Armadura de Sangue: a animação toca na sua frente (uns 4 segundos) e o modelo fica parado"
                             + " na pose final. Use /ordem armadura de novo para repetir ou /ordem armadura limpar.");
                 })
+                // atalho de teste: veste/tira a armadura NO PERSONAGEM sem precisar da classe, do PE nem de aprender
+                .then(Commands.literal("vestir").executes(ctx -> {
+                    ServerPlayer j = ctx.getSource().getPlayerOrException();
+                    de(j).efeitos.ativar(CatalogoHabilidades.ID_ARMADURA_SANGUE, new EfeitoDefesa(5, 0.0, 180));
+                    return ok(ctx, "Armadura de Sangue vestida (+5 de defesa por 180 s). Para tirar: /ordem armadura tirar.");
+                }))
+                .then(Commands.literal("tirar").executes(ctx -> {
+                    ServerPlayer j = ctx.getSource().getPlayerOrException();
+                    de(j).efeitos.remover(CatalogoHabilidades.ID_ARMADURA_SANGUE);
+                    return ok(ctx, "Armadura de Sangue removida.");
+                }))
                 .then(Commands.literal("limpar").executes(ctx -> {
                     ServerPlayer j = ctx.getSource().getPlayerOrException();
                     int n = ArmaduraSangueEntity.limparPerto(j);

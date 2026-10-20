@@ -1,6 +1,9 @@
 # Armadura de Sangue: do Blender para o mod
 
-Estado (20/10/2026): **versao de teste**. `/ordem armadura` cria um Steve de cubos 3 blocos a sua frente, toca a formacao da
+Estado (20/10/2026): **v1 no personagem**: a habilidade "Armadura de Sangue" (Ocultista, 3 PE, provisoria) cria a entidade `armadura_sangue_jogador`,
+presa ao jogador enquanto o efeito dura; atalho de teste `/ordem armadura vestir` / `tirar`. Falta: camada de verdade no modelo do jogador
+(bracos/pernas acompanhando), sincronizar com a ficha/salvamento e valores oficiais. Abaixo, a versao de teste original.
+**Versao de teste**. `/ordem armadura` cria um Steve de cubos 3 blocos a sua frente, toca a formacao da
 armadura (3,7 s) e ele fica parado na pose final. `/ordem armadura limpar` remove.
 
 ## Como foi feito
