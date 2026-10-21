@@ -3,13 +3,20 @@ package com.exemplo.ordemmod.cliente;
 import com.exemplo.ordemmod.entidade.ArmaduraSangueJogadorEntity;
 import com.exemplo.ordemmod.entidade.EntidadesOrdem;
 import com.geckolib.constant.DataTickets;
+import com.geckolib.constant.dataticket.DataTicket;
 import com.geckolib.renderer.GeoEntityRenderer;
+import com.geckolib.renderer.base.BoneSnapshots;
 import com.geckolib.renderer.base.GeoRenderState;
+import com.geckolib.renderer.base.RenderPassInfo;
+import com.google.common.reflect.TypeToken;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -17,11 +24,21 @@ import net.minecraft.world.phys.Vec3;
  * Renderer da Armadura de Sangue vestida no personagem.
  *  - posicao: usa a posicao SUAVIZADA do dono (mesma que o jogo usa para desenhar o jogador), sem atraso;
  *  - em primeira pessoa nao desenha (placas e espinhos ficariam voando na frente da camera);
- *  - escala 0,9375 como o modelo do jogador.
+ *  - escala 0,9375 como o modelo do jogador;
+ *  - POSE: os ossos do Steve (head, body, left_arm, right_arm, left_leg, right_leg) copiam a pose do jogador
+ *    (balanco de bracos/pernas, ataque, olhar, agachar), como uma peca de armadura. As placas sao filhas desses
+ *    ossos, entao acompanham tudo. A animacao de formacao so mexe nas placas e continua tocando normal.
  * Arquivos: veja {@link ArmaduraSangueJogadorEntity}.
  */
 public class ArmaduraSangueJogadorRenderer
         extends GeoEntityRenderer<ArmaduraSangueJogadorEntity, LivingEntityRenderState> {
+
+    /** Pose do dono capturada em extractRenderState: [rotX,rotY,rotZ] de cada osso na ordem de OSSOS + agachar (0/1). */
+    private static final DataTicket<float[]> POSE_DONO =
+            DataTicket.create("ordemmod_pose_dono", new TypeToken<float[]>() {});
+
+    private static final int CABECA = 0, CORPO = 1, BRACO_E = 2, BRACO_D = 3, PERNA_E = 4, PERNA_D = 5;
+    private static final String[] OSSOS = {"head", "body", "left_arm", "right_arm", "left_leg", "right_leg"};
 
     public ArmaduraSangueJogadorRenderer(EntityRendererProvider.Context contexto) {
         super(contexto, EntidadesOrdem.ARMADURA_SANGUE_JOGADOR);
@@ -31,8 +48,7 @@ public class ArmaduraSangueJogadorRenderer
     }
 
     @Override
-    public void extractRenderState(ArmaduraSangueJogadorEntity entidade, LivingEntityRenderState estado,
-                                   float parcial) {
+    public void extractRenderState(ArmaduraSangueJogadorEntity entidade, LivingEntityRenderState estado, float parcial) {
         super.extractRenderState(entidade, estado, parcial);
         Entity dono = entidade.getDono();
         if (dono == null) {
@@ -42,10 +58,92 @@ public class ArmaduraSangueJogadorRenderer
         estado.x = p.x;
         estado.y = p.y;
         estado.z = p.z;
+
         Minecraft mc = Minecraft.getInstance();
         if (dono == mc.player && mc.options.getCameraType().isFirstPerson()) {
             estado.isInvisible = true;
             estado.addGeckolibData(DataTickets.INVISIBLE_TO_PLAYER, true);
+        }
+
+        if (dono instanceof LivingEntity vivo) {
+            estado.addGeckolibData(POSE_DONO, calcularPose(vivo, parcial));
+        }
+    }
+
+    /** Reproduz a pose basica do modelo humanoide do jogo (andar, ataque, olhar, agachar). */
+    private static float[] calcularPose(LivingEntity vivo, float parcial) {
+        float[] r = new float[OSSOS.length * 3 + 1];
+
+        float pos = vivo.walkAnimation.position(parcial);
+        float vel = Math.min(1.0F, vivo.walkAnimation.speed(parcial));
+        float idade = vivo.tickCount + parcial;
+        boolean agachado = vivo.isCrouching();
+
+        // cabeca: giro relativo ao corpo + inclinacao
+        float giroCabeca = Mth.wrapDegrees(
+                Mth.rotLerp(parcial, vivo.yHeadRotO, vivo.getYHeadRot())
+                        - Mth.rotLerp(parcial, vivo.yBodyRotO, vivo.yBodyRot));
+        giroCabeca = Mth.clamp(giroCabeca, -85.0F, 85.0F);
+        float inclina = Mth.lerp(parcial, vivo.xRotO, vivo.getXRot());
+        r[CABECA * 3] = inclina * Mth.DEG_TO_RAD;
+        r[CABECA * 3 + 1] = giroCabeca * Mth.DEG_TO_RAD;
+
+        // bracos e pernas (formula do HumanoidModel)
+        float c = pos * 0.6662F;
+        r[BRACO_D * 3] = Mth.cos(c + Mth.PI) * 2.0F * vel * 0.5F;
+        r[BRACO_E * 3] = Mth.cos(c) * 2.0F * vel * 0.5F;
+        r[PERNA_D * 3] = Mth.cos(c) * 1.4F * vel;
+        r[PERNA_E * 3] = Mth.cos(c + Mth.PI) * 1.4F * vel;
+
+        // balanco parado (respirar)
+        r[BRACO_D * 3 + 2] += Mth.cos(idade * 0.09F) * 0.05F + 0.05F;
+        r[BRACO_E * 3 + 2] -= Mth.cos(idade * 0.09F) * 0.05F + 0.05F;
+        r[BRACO_D * 3] += Mth.sin(idade * 0.067F) * 0.05F;
+        r[BRACO_E * 3] -= Mth.sin(idade * 0.067F) * 0.05F;
+
+        // ataque / usar item com o braco principal
+        float ataque = vivo.getAttackAnim(parcial);
+        if (ataque > 0.0F) {
+            float balanco = Mth.sin(ataque * Mth.PI) * 1.6F;
+            if (vivo.getMainArm() == HumanoidArm.RIGHT) {
+                r[BRACO_D * 3] -= 0.6F + balanco;
+                r[CORPO * 3 + 1] = Mth.sin(Mth.sqrt(ataque) * Mth.TWO_PI) * 0.2F;
+            } else {
+                r[BRACO_E * 3] -= 0.6F + balanco;
+                r[CORPO * 3 + 1] = -Mth.sin(Mth.sqrt(ataque) * Mth.TWO_PI) * 0.2F;
+            }
+        }
+
+        if (agachado) {
+            r[CORPO * 3] = 0.5F;
+            r[BRACO_D * 3] += 0.4F;
+            r[BRACO_E * 3] += 0.4F;
+        }
+        r[r.length - 1] = agachado ? 1.0F : 0.0F;
+        return r;
+    }
+
+    @Override
+    public void adjustModelBonesForRender(RenderPassInfo<LivingEntityRenderState> info, BoneSnapshots snapshots) {
+        super.adjustModelBonesForRender(info, snapshots);
+        float[] pose = info.renderState().getGeckolibData(POSE_DONO);
+        if (pose == null) {
+            return;
+        }
+        boolean agachado = pose[pose.length - 1] > 0.5F;
+
+        for (int i = 0; i < OSSOS.length; i++) {
+            final int k = i;
+            snapshots.get(OSSOS[i]).ifPresent(osso -> {
+                // mesma convencao do GeoArmorRenderer: (-xRot, -yRot, +zRot)
+                osso.setRotX(-pose[k * 3]).setRotY(-pose[k * 3 + 1]).setRotZ(pose[k * 3 + 2]);
+                // agachar: cabeca e corpo descem (bracos sao filhos do corpo e descem junto)
+                if (agachado && k == CABECA) {
+                    osso.setTranslateY(-4.2F);
+                } else if (agachado && k == CORPO) {
+                    osso.setTranslateY(-3.2F);
+                }
+            });
         }
     }
 

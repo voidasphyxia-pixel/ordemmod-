@@ -1,0 +1,13 @@
+(COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e depois apagar este arquivo)
+
+--- 20/10/2026 (CORRECAO: Armadura de Sangue acompanha bracos/torso/pernas do personagem) -------
+  Problema: a armadura tocava a formacao certinha, mas ficava rigida e nao seguia os movimentos do personagem.
+  O que foi feito (somente na branch main):
+  - ArmaduraSangueJogadorRenderer agora, a cada frame, copia a POSE do dono para os ossos head/body/left_arm/right_arm/left_leg/right_leg
+    da armadura (balanco ao andar, ataque, olhar para os lados/cima, agachar, respiracao). As placas sao filhas desses ossos e seguem junto.
+    Convencao igual ao GeoArmorRenderer do GeckoLib: rotacao (-x, -y, +z). Nao usa mixin nem modelo vanilla.
+  - A animacao de formacao continua tocando so nas placas (nao foi alterada).
+  LIMITACAO: o BRACO REAL do jogador nao levanta durante a formacao (exigiria mixin no modelo do jogador); a armadura segue o braco real.
+  COMO TESTAR: gradlew build / runClient; /ordem armadura vestir; F5 (3a pessoa); andar, correr, bater, olhar para cima/lados, agachar.
+  SE O BUILD FALHAR: mande o erro. Pontos de risco: vivo.walkAnimation.position/speed, yHeadRotO/yBodyRotO, getAttackAnim, getMainArm, DataTicket.create.
+  Se alguma placa ficar deslocada ~1 px ao mexer o braco: diferenca de pivo do modelo (braco x=+-6 vs 5 do vanilla); ajusto depois.
