@@ -101,7 +101,7 @@ public record PacoteFicha(CompoundTag dados) implements CustomPacketPayload {
         }
         raizes.sort(Comparator.comparingInt(Habilidade::getNivelMinimo));
         for (Habilidade raiz : raizes) {
-            Habilidade atual = p.habilidades.melhorVersao(raiz); // a versao mais forte ja aprendida
+            Habilidade atual = p.habilidades.versaoEquipada(raiz); // a versao equipada (por padrao, a mais forte ja aprendida)
             boolean aprendida = p.habilidades.temAprendida(raiz);
             // repetivel (Treinamento em Pericia): continua a venda mesmo depois de aprendida
             String motivo = aprendida && !raiz.isRepetivel() ? null : p.habilidades.motivoBloqueio(raiz, nivel);
@@ -154,6 +154,24 @@ public record PacoteFicha(CompoundTag dados) implements CustomPacketPayload {
             c.putString("evolucoes", evolucoes.toString());
             c.putInt("versoes", total);
             c.putInt("versaoAtual", liberadas);
+
+            // cada escalonamento (versao por % de NEX) vira um icone na tela; o jogador escolhe qual fica equipado,
+            // porque cada versao gasta um PE diferente
+            ListTag versoes = new ListTag();
+            for (Habilidade v : p.habilidades.cadeia(raiz)) {
+                CompoundTag vc = new CompoundTag();
+                vc.putString("id", v.getId());
+                vc.putString("nome", v.getNome());
+                vc.putString("descricao", v.getDescricao());
+                vc.putBoolean("ativa", v.isAtiva());
+                vc.putInt("custo", v.getCustoPe());
+                vc.putInt("nex", HabilidadesDoPersonagem.nexDoNivel(v.getNivelMinimo()));
+                vc.putBoolean("liberada", p.habilidades.temAprendida(v));
+                versoes.add(vc);
+            }
+            c.put("versaoLista", versoes);
+            c.putInt("versaoEquipada", aprendida ? p.habilidades.indiceEquipado(raiz) : -1);
+            c.putBoolean("equipavel", aprendida && !raiz.isRepetivel() && total > 1 && atual.isAtiva());
             lista.add(c);
         }
         return lista;

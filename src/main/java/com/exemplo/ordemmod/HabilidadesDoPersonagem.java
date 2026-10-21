@@ -26,6 +26,7 @@ public class HabilidadesDoPersonagem {
     private int pontos = PONTOS_POR_NIVEL; // o ponto do nível 1
     private Trilha trilha; // a trilha escolhida (null até o NEX 10%)
     private final Map<String, Integer> repeticoes = new HashMap<>(); // habilidades repetíveis: quantas vezes foram aprendidas
+    private final Map<String, Integer> equipadas = new HashMap<>(); // poder escalonável: qual versão o jogador equipou
 
     public HabilidadesDoPersonagem(ClasseOP classe, Atributos atributos) {
         this.classe = classe;
@@ -258,6 +259,79 @@ public class HabilidadesDoPersonagem {
         return atual;
     }
 
+    /** Todas as versões da cadeia, da primeira à mais forte (inclusive as que ainda não foram liberadas). */
+    public List<Habilidade> cadeia(Habilidade habilidade) {
+        List<Habilidade> lista = new ArrayList<>();
+        Habilidade atual = raiz(habilidade);
+        lista.add(atual);
+        boolean achou = true;
+        while (achou && lista.size() < 16) {
+            achou = false;
+            for (Habilidade h : CatalogoHabilidades.daClasse(classe)) {
+                if (atual.getId().equals(h.getEvolucaoDe())) {
+                    lista.add(h);
+                    atual = h;
+                    achou = true;
+                    break;
+                }
+            }
+        }
+        return lista;
+    }
+
+    /** Posição (0 = primeira versão) da versão que o jogador equipou; por padrão é a mais forte já liberada. */
+    public int indiceEquipado(Habilidade habilidade) {
+        List<Habilidade> cadeia = cadeia(habilidade);
+        Integer escolhido = equipadas.get(cadeia.get(0).getId());
+        if (escolhido != null && escolhido >= 0 && escolhido < cadeia.size() && temAprendida(cadeia.get(escolhido))) {
+            return escolhido;
+        }
+        return cadeia.indexOf(melhorVersao(habilidade));
+    }
+
+    /**
+     * A versão que vale ao usar o poder: a que o jogador equipou (ela define o gasto de PE) ou, se ele nunca
+     * escolheu, a mais forte já liberada.
+     */
+    public Habilidade versaoEquipada(Habilidade habilidade) {
+        List<Habilidade> cadeia = cadeia(habilidade);
+        int i = indiceEquipado(habilidade);
+        return i >= 0 && i < cadeia.size() ? cadeia.get(i) : melhorVersao(habilidade);
+    }
+
+    /**
+     * Equipa uma versão da cadeia (só as já liberadas). Escolher a mais forte volta ao padrão
+     * (acompanhar sozinho as próximas evoluções). Devolve false se a versão não existe ou ainda não foi liberada.
+     */
+    public boolean equiparVersao(Habilidade habilidade, int indice) {
+        List<Habilidade> cadeia = cadeia(habilidade);
+        if (indice < 0 || indice >= cadeia.size() || !temAprendida(cadeia.get(indice))) {
+            return false;
+        }
+        String raiz = cadeia.get(0).getId();
+        if (cadeia.get(indice).equals(melhorVersao(habilidade))) {
+            equipadas.remove(raiz);
+        } else {
+            equipadas.put(raiz, indice);
+        }
+        return true;
+    }
+
+    /** As escolhas guardadas (id da primeira versão -> posição da versão equipada), para salvar o jogo. */
+    public Map<String, Integer> getEquipadas() {
+        return Map.copyOf(equipadas);
+    }
+
+    /** Ao carregar o jogo salvo. */
+    public void restaurarEquipadas(Map<String, Integer> salvas) {
+        equipadas.clear();
+        for (Map.Entry<String, Integer> e : salvas.entrySet()) {
+            if (e.getValue() >= 0) {
+                equipadas.put(e.getKey(), e.getValue());
+            }
+        }
+    }
+
     /** A primeira versão da cadeia (ela mesma, se não for uma versão aprimorada). */
     private Habilidade raiz(Habilidade habilidade) {
         Habilidade atual = habilidade;
@@ -387,7 +461,7 @@ public class HabilidadesDoPersonagem {
         if (!temAprendida(habilidade)) {
             return false;
         }
-        Habilidade efetiva = melhorVersao(habilidade);
+        Habilidade efetiva = versaoEquipada(habilidade); // a versão escolhida na ficha define o gasto de PE
         if (!efetiva.isAtiva()) {
             return false;
         }
@@ -482,6 +556,7 @@ public class HabilidadesDoPersonagem {
         aprendidas.clear();
         aprendidas.addAll(lista);
         repeticoes.clear();
+        equipadas.clear();
     }
 
     /** Ao carregar o jogo salvo: quantas vezes cada habilidade repetível foi aprendida. */

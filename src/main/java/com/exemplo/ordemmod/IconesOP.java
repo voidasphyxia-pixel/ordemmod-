@@ -41,6 +41,17 @@ public final class IconesOP {
         return achada;
     }
 
+    /** O poder tem ícone próprio (e não o genérico)? */
+    public static boolean temIcone(String id) {
+        return textura(id) != GENERICO;
+    }
+
+    /** Desenha o ícone do poder; se ele não tiver um próprio, usa o do poder {@code reserva} (ex.: a primeira versão). */
+    public static void desenharOuReserva(GuiGraphicsExtractor g, String id, String reserva, int x, int y, int tamanho,
+            float brilho) {
+        desenhar(g, temIcone(id) ? id : reserva, x, y, tamanho, brilho);
+    }
+
     /** Lê o lado do PNG (quadrado) direto do cabeçalho; 16 se não der para ler. */
     private static int lado(Identifier tex) {
         Integer guardado = LADOS.get(tex);

@@ -451,7 +451,7 @@ public class EventosOrdem {
         if (!p.habilidades.temAprendida(h)) {
             return new Resultado(false, "Você ainda não aprendeu " + h.getNome() + ".");
         }
-        Habilidade efetiva = p.habilidades.melhorVersao(h);
+        Habilidade efetiva = p.habilidades.versaoEquipada(h); // a versao escolhida na ficha (define o gasto de PE)
         if (!efetiva.isAtiva()) {
             return new Resultado(false, efetiva.getNome() + " é passiva: já funciona sozinha.");
         }

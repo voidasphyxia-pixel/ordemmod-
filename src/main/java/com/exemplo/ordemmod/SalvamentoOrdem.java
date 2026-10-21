@@ -19,6 +19,9 @@ import net.minecraft.server.level.ServerPlayer;
  * agora e um record com Codec, o que tambem evita a API de NBT, que mudou bastante na 1.21.5.
  */
 public final class SalvamentoOrdem {
+    /** Prefixo das chaves do mapa "repeticoes" que guardam a versao equipada de um poder escalonavel. */
+    private static final String PREFIXO_EQUIPADA = "equipada:";
+
     private SalvamentoOrdem() {
     }
 
@@ -84,6 +87,12 @@ public final class SalvamentoOrdem {
                 pericias.put(pericia.name(), grau.name());
             }
         }
+        // O codec de DadosSalvos ja esta no limite de 16 campos do RecordCodecBuilder: a versao equipada de cada
+        // poder escalonavel vai dentro do mapa "repeticoes", com o prefixo PREFIXO_EQUIPADA.
+        Map<String, Integer> repeticoes = new LinkedHashMap<>(p.habilidades.getRepeticoes());
+        for (Map.Entry<String, Integer> e : p.habilidades.getEquipadas().entrySet()) {
+            repeticoes.put(PREFIXO_EQUIPADA + e.getKey(), e.getValue());
+        }
         return new DadosSalvos(
                 p.classe.name(),
                 p.isCriado(),
@@ -99,7 +108,7 @@ public final class SalvamentoOrdem {
                 p.pericias.getMelhoriasVeterano(),
                 p.pericias.getMelhoriasExpert(),
                 p.pericias.getTreinosExtras(),
-                Map.copyOf(p.habilidades.getRepeticoes()),
+                Map.copyOf(repeticoes),
                 Optional.of(p.atributos.getPontosLivres()));
     }
 
@@ -135,7 +144,17 @@ public final class SalvamentoOrdem {
                 }
             }
             p.habilidades.restaurar(d.pontos(), trilha, aprendidas);
-            p.habilidades.restaurarRepeticoes(new HashMap<>(d.repeticoes()));
+            Map<String, Integer> repeticoes = new HashMap<>();
+            Map<String, Integer> equipadas = new HashMap<>();
+            for (Map.Entry<String, Integer> e : d.repeticoes().entrySet()) {
+                if (e.getKey().startsWith(PREFIXO_EQUIPADA)) {
+                    equipadas.put(e.getKey().substring(PREFIXO_EQUIPADA.length()), e.getValue());
+                } else {
+                    repeticoes.put(e.getKey(), e.getValue());
+                }
+            }
+            p.habilidades.restaurarRepeticoes(repeticoes);
+            p.habilidades.restaurarEquipadas(equipadas);
 
             if (d.pericias().isPresent()) {
                 Map<Pericia, GrauTreinamento> graus = new EnumMap<>(Pericia.class);

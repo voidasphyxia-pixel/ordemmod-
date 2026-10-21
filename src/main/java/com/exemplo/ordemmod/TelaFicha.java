@@ -1,11 +1,9 @@
 package com.exemplo.ordemmod;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.exemplo.ordemmod.marcado.VfxMarcado;
 
@@ -29,7 +27,8 @@ import net.minecraft.util.Util;
  * à direita há quatro abas, como no rascunho:
  *  - ATRIBUTO: o pentágono de atributos e uma caixa com os NEX em que chegam pontos para distribuir;
  *  - PERÍCIA: as perícias separadas em Treinado, Veterano, Expert e Destreinado (e as melhorias de grau);
- *  - PODERES: os poderes de classe como ícones em pixel art, ligados por setas quando um exige o outro;
+ *  - PODERES: árvore de ícones ligados por linhas em ângulo reto quando um poder exige o outro; poderes que escalonam por
+ *    NEX têm um ícone por escalonamento e o jogador escolhe qual fica equipado (cada um gasta um PE diferente);
  *  - TRILHA: uma coluna de ícones para cada trilha da classe; escolher a trilha fecha as outras para sempre.
  *
  * Os dados chegam prontos do servidor ({@link PacoteFicha}); os cliques que mudam o personagem voltam
@@ -101,8 +100,25 @@ public class TelaFicha extends Screen {
     private byte[] deOrigem;
     private final List<CompoundTag> arvore = new ArrayList<>();
     private final List<CompoundTag> trilhas = new ArrayList<>();
-    /** Poderes de classe agrupados em colunas: cada coluna é um poder e os que dependem dele, de cima para baixo. */
-    private final List<List<CompoundTag>> grupos = new ArrayList<>();
+    /**
+     * Um poder na árvore de poderes: os poderes que dependem dele ficam embaixo (filhos). Poderes que escalonam por NEX
+     * ganham um ícone para cada escalonamento, em fila ao lado do poder. {@code span}, {@code x} e {@code y} são
+     * recalculados a cada quadro (x/y = canto do ícone da primeira versão).
+     */
+    private static final class NoArvore {
+        final CompoundTag tag;
+        final List<NoArvore> filhos = new ArrayList<>();
+        int span;
+        int x;
+        int y;
+
+        NoArvore(CompoundTag tag) {
+            this.tag = tag;
+        }
+    }
+
+    /** As "raízes" da árvore de poderes (poderes sem pré-requisito), cada uma com tudo que depende dela. */
+    private final List<NoArvore> raizes = new ArrayList<>();
 
     /** Uma região clicável desenhada neste quadro. {@code naLista}: só vale se o mouse estiver dentro da lista. */
     private record Alvo(int x, int y, int w, int h, String chave, boolean naLista) {
@@ -145,7 +161,7 @@ public class TelaFicha extends Screen {
                 .orElseGet(() -> new byte[Pericia.values().length]);
         lerLista(dados, "arvore", arvore);
         lerLista(dados, "trilhas", trilhas);
-        montarGrupos();
+        montarArvore();
     }
 
     private static void lerLista(CompoundTag dados, String chave, List<CompoundTag> destino) {
@@ -275,43 +291,58 @@ public class TelaFicha extends Screen {
         };
     }
 
-    private void montarGrupos() {
-        grupos.clear();
+    private void montarArvore() {
+        raizes.clear();
         // quem exige outro poder fica embaixo dele (o primeiro pré-requisito é o "pai")
-        Set<String> ids = new HashSet<>();
+        Map<String, NoArvore> porId = new LinkedHashMap<>();
         for (CompoundTag n : arvore) {
-            ids.add(n.getStringOr("id", ""));
+            porId.put(n.getStringOr("id", ""), new NoArvore(n));
         }
-        Map<String, List<CompoundTag>> filhos = new LinkedHashMap<>();
-        List<CompoundTag> raizes = new ArrayList<>();
-        for (CompoundTag n : arvore) {
-            String pai = n.getStringOr("pai", "");
-            if (pai.isEmpty() || !ids.contains(pai)) {
-                raizes.add(n);
+        for (NoArvore no : porId.values()) {
+            String pai = no.tag.getStringOr("pai", "");
+            NoArvore noPai = pai.isEmpty() ? null : porId.get(pai);
+            if (noPai == null || noPai == no) {
+                raizes.add(no);
             } else {
-                filhos.computeIfAbsent(pai, k -> new ArrayList<>()).add(n);
+                noPai.filhos.add(no);
             }
-        }
-        for (CompoundTag raiz : raizes) {
-            List<CompoundTag> coluna = new ArrayList<>();
-            coletar(raiz, coluna, filhos);
-            grupos.add(coluna);
         }
     }
 
-    private void coletar(CompoundTag no, List<CompoundTag> destino, Map<String, List<CompoundTag>> filhos) {
-        destino.add(no);
-        for (CompoundTag filho : filhos.getOrDefault(no.getStringOr("id", ""), List.of())) {
-            coletar(filho, destino, filhos);
+    /** O id do poder numa chave "h:id" (base) ou "v:id:i" (escalonamento i); null se não for de poder. */
+    private static String idDaChaveDePoder(String chave) {
+        if (chave.startsWith("h:")) {
+            return chave.substring(2);
         }
+        if (chave.startsWith("v:")) {
+            int fim = chave.lastIndexOf(':');
+            return fim > 2 ? chave.substring(2, fim) : null;
+        }
+        return null;
+    }
+
+    /** Qual escalonamento a chave aponta: 0 para "h:id" (a primeira versão), i para "v:id:i"; -1 se não for de poder. */
+    private static int versaoDaChave(String chave) {
+        if (chave.startsWith("h:")) {
+            return 0;
+        }
+        if (chave.startsWith("v:")) {
+            try {
+                return Integer.parseInt(chave.substring(chave.lastIndexOf(':') + 1));
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
+        return -1;
     }
 
     private CompoundTag poderPorChave(String chave) {
-        if (!chave.startsWith("h:")) {
+        String id = idDaChaveDePoder(chave);
+        if (id == null) {
             return null;
         }
         for (CompoundTag n : arvore) {
-            if (chave.equals("h:" + n.getStringOr("id", ""))) {
+            if (id.equals(n.getStringOr("id", ""))) {
                 return n;
             }
         }
@@ -372,6 +403,10 @@ public class TelaFicha extends Screen {
             return new Acao("SELECIONE", false, false);
         }
         int estado = no.getIntOr("estado", 0);
+        int versao = versaoDaChave(selecionado);
+        if (versao >= 1 || (versao == 0 && no.getBooleanOr("equipavel", false))) {
+            return acaoDeEscalonamento(no, versao);
+        }
         if (no.getBooleanOr("repetivel", false)) {
             if (estado == PacoteFicha.DISPONIVEL) {
                 return new Acao("ESCOLHER PERÍCIAS (1 PT)", true, false);
@@ -383,6 +418,28 @@ public class TelaFicha extends Screen {
         }
         return estado == PacoteFicha.DISPONIVEL ? new Acao("APRENDER (1 PT)", true, false)
                 : new Acao(motivoCurto(no), false, false);
+    }
+
+    /** Botão para um ícone de escalonamento: equipar (muda o gasto de PE), já equipado, ou o NEX que falta. */
+    private Acao acaoDeEscalonamento(CompoundTag no, int versao) {
+        ListTag lista = no.getListOrEmpty("versaoLista");
+        CompoundTag v = versao < lista.size() ? lista.getCompoundOrEmpty(versao) : null;
+        boolean liberada = versao == 0 ? no.getIntOr("estado", 0) == PacoteFicha.APRENDIDA
+                : v != null && v.getBooleanOr("liberada", false);
+        if (!liberada) {
+            if (versao == 0) {
+                return no.getIntOr("estado", 0) == PacoteFicha.DISPONIVEL ? new Acao("APRENDER (1 PT)", true, false)
+                        : new Acao(motivoCurto(no), false, false);
+            }
+            return new Acao("NEX " + (v != null ? v.getIntOr("nex", 0) : 0) + "%", false, false);
+        }
+        if (!no.getBooleanOr("equipavel", false)) {
+            return new Acao("APRENDIDO", false, false);
+        }
+        if (no.getIntOr("versaoEquipada", -1) == versao) {
+            return new Acao("EQUIPADO", false, false);
+        }
+        return new Acao("EQUIPAR (" + (v != null ? v.getIntOr("custo", 0) : 0) + " PE)", true, false);
     }
 
     private Acao acaoDaTrilha() {
@@ -405,7 +462,11 @@ public class TelaFicha extends Screen {
         if (no == null || !acaoDoPoder().ativa()) {
             return;
         }
-        if (no.getBooleanOr("repetivel", false)) {
+        int versao = versaoDaChave(selecionado);
+        if (versao >= 0 && no.getBooleanOr("equipavel", false)
+                && (versao > 0 || no.getIntOr("estado", 0) == PacoteFicha.APRENDIDA)) {
+            ReceptoresCliente.enviar(PacoteArvore.equipar(no.getStringOr("id", ""), versao));
+        } else if (no.getBooleanOr("repetivel", false)) {
             escolhendo = true; // Treinamento em Perícia: primeiro escolhe as duas perícias
             escolhidas.clear();
             rolagem = 0;
@@ -1052,33 +1113,26 @@ public class TelaFicha extends Screen {
         iniciarLista(g, corpoY, rodapeY - 3 - corpoY);
         if (escolhendo) {
             desenharEscolhaDePericias(g, mx, my);
-        } else if (grupos.isEmpty()) {
+        } else if (raizes.isEmpty()) {
             texto(g, "Nenhum poder para mostrar.", cx + 8, listaY + 6, COR_APAGADO);
             terminarLista(g, listaY + 20);
         } else {
             int xIni = cx + 8;
             int xMax = cx + cw - 8 - 6;
-            int colunaW = caixaPx + 14;
+            int gapH = 8;
             int x = xIni;
             int y = listaY + 6 - rolagem;
             int alturaFaixa = 0;
-            for (List<CompoundTag> grupo : grupos) {
-                if (x + caixaPx > xMax && x > xIni) { // acabou o espaço: nova faixa de colunas
+            for (NoArvore raiz : raizes) {
+                int w = larguraDoNo(raiz);
+                if (x > xIni && x + w > xMax) { // acabou o espaço: nova faixa de árvores
                     x = xIni;
-                    y += alturaFaixa + 14;
+                    y += alturaFaixa + 16;
                     alturaFaixa = 0;
                 }
-                for (int i = 0; i < grupo.size(); i++) {
-                    CompoundTag no = grupo.get(i);
-                    int by = y + i * (caixaPx + espacoSeta);
-                    if (i > 0) {
-                        boolean pai = grupo.get(i - 1).getIntOr("estado", 0) == PacoteFicha.APRENDIDA;
-                        desenharSeta(g, x + caixaPx / 2, by - espacoSeta, espacoSeta, pai ? COR_DOURADO : COR_SETA);
-                    }
-                    desenharPoder(g, mx, my, x, by, no);
-                }
-                alturaFaixa = Math.max(alturaFaixa, grupo.size() * (caixaPx + espacoSeta) - espacoSeta);
-                x += colunaW;
+                desenharNo(g, mx, my, raiz, x, y);
+                alturaFaixa = Math.max(alturaFaixa, alturaDoNo(raiz));
+                x += w + gapH + 6;
             }
             terminarLista(g, y + alturaFaixa);
         }
@@ -1086,29 +1140,136 @@ public class TelaFicha extends Screen {
         desenharDetalhePoder(g);
     }
 
-    /** Um poder de classe: ícone numa moldura (dourada = aprendido, verde = dá para aprender, cinza = bloqueado). */
-    private void desenharPoder(GuiGraphicsExtractor g, int mx, int my, int x, int y, CompoundTag no) {
-        String chave = "h:" + no.getStringOr("id", "");
-        int estado = no.getIntOr("estado", 0);
+    private static final int GAP_VERSAO = 4;   // espaço entre os ícones de escalonamento de um poder
+    private static final int GAP_FILHOS = 8;   // espaço entre poderes irmãos
+    private static final int ALTURA_LIGACAO = 14; // altura das linhas em ângulo reto entre pai e filhos
+
+    private static int versoesDe(NoArvore no) {
+        return Math.max(1, no.tag.getListOrEmpty("versaoLista").size());
+    }
+
+    /** Largura da fileira de ícones do próprio poder (um ícone por escalonamento). */
+    private int larguraDaFileira(NoArvore no) {
+        int n = versoesDe(no);
+        return n * caixaPx + (n - 1) * GAP_VERSAO;
+    }
+
+    /** Largura da árvore que nasce neste poder: a maior entre a fileira dele e a soma dos filhos. */
+    private int larguraDoNo(NoArvore no) {
+        int filhos = 0;
+        for (NoArvore f : no.filhos) {
+            filhos += larguraDoNo(f);
+        }
+        if (!no.filhos.isEmpty()) {
+            filhos += GAP_FILHOS * (no.filhos.size() - 1);
+        }
+        return Math.max(larguraDaFileira(no), filhos);
+    }
+
+    private int alturaDoNo(NoArvore no) {
+        int maisFundo = 0;
+        for (NoArvore f : no.filhos) {
+            maisFundo = Math.max(maisFundo, alturaDoNo(f));
+        }
+        return caixaPx + (no.filhos.isEmpty() ? 0 : ALTURA_LIGACAO + maisFundo);
+    }
+
+    /**
+     * Desenha o poder (a fileira de ícones) centralizado na largura da sua árvore e, embaixo, os filhos ligados por
+     * linhas em ângulo reto (desce, corre na horizontal, desce de novo), como nos exemplos.
+     */
+    private void desenharNo(GuiGraphicsExtractor g, int mx, int my, NoArvore no, int xEsq, int y) {
+        int w = larguraDoNo(no);
+        int fileiraW = larguraDaFileira(no);
+        int x0 = xEsq + (w - fileiraW) / 2;
+        no.x = x0;
+        no.y = y;
+        int centro = x0 + fileiraW / 2;
+
+        if (!no.filhos.isEmpty()) {
+            int yFilhos = y + caixaPx + ALTURA_LIGACAO;
+            int yMeio = y + caixaPx + ALTURA_LIGACAO / 2;
+            boolean paiAprendido = no.tag.getIntOr("estado", 0) == PacoteFicha.APRENDIDA;
+            int cor = paiAprendido ? COR_DOURADO : COR_SETA;
+            int xf = xEsq + (w - larguraDosFilhos(no)) / 2;
+            int minC = centro;
+            int maxC = centro;
+            List<int[]> descidas = new ArrayList<>();
+            for (NoArvore f : no.filhos) {
+                int fw = larguraDoNo(f);
+                int fc = xf + (fw - larguraDaFileira(f)) / 2 + larguraDaFileira(f) / 2;
+                descidas.add(new int[] {fc});
+                minC = Math.min(minC, fc);
+                maxC = Math.max(maxC, fc);
+                desenharNo(g, mx, my, f, xf, yFilhos);
+                xf += fw + GAP_FILHOS;
+            }
+            g.fill(centro, y + caixaPx, centro + 1, yMeio + 1, cor);          // desce do pai
+            g.fill(minC, yMeio, maxC + 1, yMeio + 1, cor);                    // corre na horizontal
+            for (int[] d : descidas) {
+                g.fill(d[0], yMeio, d[0] + 1, yFilhos, cor);                  // desce até cada filho
+            }
+        }
+        // os ícones por cima das linhas
+        List<CompoundTag> versoes = new ArrayList<>();
+        ListTag lista = no.tag.getListOrEmpty("versaoLista");
+        for (int i = 0; i < lista.size(); i++) {
+            versoes.add(lista.getCompoundOrEmpty(i));
+        }
+        int n = versoesDe(no);
+        for (int i = 0; i < n; i++) {
+            int bx = x0 + i * (caixaPx + GAP_VERSAO);
+            desenharVersao(g, mx, my, no, i, i < versoes.size() ? versoes.get(i) : null, bx, y);
+            if (i > 0) { // ligação curta entre escalonamentos vizinhos
+                g.fill(bx - GAP_VERSAO, y + caixaPx / 2, bx, y + caixaPx / 2 + 1, COR_SETA);
+            }
+        }
+    }
+
+    private int larguraDosFilhos(NoArvore no) {
+        int total = 0;
+        for (NoArvore f : no.filhos) {
+            total += larguraDoNo(f);
+        }
+        return total + GAP_FILHOS * Math.max(0, no.filhos.size() - 1);
+    }
+
+    /**
+     * Um ícone de poder / de escalonamento. Moldura dourada = liberado, verde = dá para aprender, cinza = bloqueado;
+     * o selo no canto diz qual escalonamento é (II, III, IV) e o quadradinho verde marca o que está equipado.
+     */
+    private void desenharVersao(GuiGraphicsExtractor g, int mx, int my, NoArvore no, int i, CompoundTag versao, int x, int y) {
+        String idRaiz = no.tag.getStringOr("id", "");
+        String chave = i == 0 ? "h:" + idRaiz : "v:" + idRaiz + ":" + i;
+        int estadoBase = no.tag.getIntOr("estado", 0);
+        boolean liberada = i == 0 ? estadoBase == PacoteFicha.APRENDIDA
+                : versao != null && versao.getBooleanOr("liberada", false);
+        boolean disponivel = i == 0 && estadoBase == PacoteFicha.DISPONIVEL;
+        boolean equipavel = no.tag.getBooleanOr("equipavel", false);
+        boolean equipada = liberada && no.tag.getIntOr("versaoEquipada", -1) == i;
         boolean selecionada = chave.equals(selecionado);
         boolean passou = alvo(mx, my, x, y, caixaPx, caixaPx, chave, true);
-        desenharMoldura(g, x, y, selecionada, passou,
-                estado == PacoteFicha.APRENDIDA ? COR_DOURADO : estado == PacoteFicha.DISPONIVEL ? COR_OK : COR_BORDA);
-        IconesOP.desenhar(g, no.getStringOr("id", ""), x + (caixaPx - iconePx) / 2, y + (caixaPx - iconePx) / 2, iconePx,
-                estado == PacoteFicha.BLOQUEADA ? 0.35F : 1F);
+        desenharMoldura(g, x, y, selecionada, passou, liberada ? COR_DOURADO : disponivel ? COR_OK : COR_BORDA);
+        String idIcone = versao != null ? versao.getStringOr("id", idRaiz) : idRaiz;
+        IconesOP.desenharOuReserva(g, idIcone, idRaiz, x + (caixaPx - iconePx) / 2, y + (caixaPx - iconePx) / 2, iconePx,
+                liberada || disponivel ? 1F : 0.35F);
 
         String selo = null;
-        if (no.getBooleanOr("repetivel", false)) {
-            if (no.getIntOr("vezes", 0) >= 1) {
-                selo = "x" + no.getIntOr("vezes", 0);
+        if (no.tag.getBooleanOr("repetivel", false)) {
+            if (i == 0 && no.tag.getIntOr("vezes", 0) >= 1) {
+                selo = "x" + no.tag.getIntOr("vezes", 0);
             }
-        } else if (no.getIntOr("versaoAtual", 0) >= 2) {
-            selo = romano(no.getIntOr("versaoAtual", 0)); // II, III, IV: versão aprimorada em uso
+        } else if (i > 0) {
+            selo = romano(i + 1); // II, III, IV: o escalonamento deste ícone
         }
         if (selo != null) {
             int sw = FonteOP.largura(font, selo) + 4;
             g.fill(x + caixaPx - 1 - sw, y + caixaPx - 11, x + caixaPx - 1, y + caixaPx - 1, 0xFF000000);
             textoNaCaixa(g, selo, x + caixaPx - 1 - sw + 2, y + caixaPx - 11, 10, COR_DOURADO);
+        }
+        if (equipavel && equipada) { // marca o escalonamento equipado
+            g.fill(x + 2, y + 2, x + 8, y + 8, 0xFF000000);
+            g.fill(x + 3, y + 3, x + 7, y + 7, COR_OK);
         }
     }
 
@@ -1200,12 +1361,47 @@ public class TelaFicha extends Screen {
             soltar(g);
             return;
         }
-        CompoundTag no = poderPorChave(sobre.startsWith("h:") ? sobre : selecionado);
+        String chaveDetalhe = idDaChaveDePoder(sobre) != null ? sobre : selecionado;
+        CompoundTag no = poderPorChave(chaveDetalhe);
         if (no == null) {
-            y = paragrafo(g, "Clique num poder para ler a descrição e aprender. Uma seta liga um poder ao que "
-                    + "depende dele.", x, y, w, COR_APAGADO, yMax);
-            paragrafo(g, "Moldura dourada: aprendido. Verde: dá para aprender. Cinza: bloqueado.", x, y + 4, w,
-                    COR_APAGADO, yMax);
+            y = paragrafo(g, "Clique num poder para ler a descrição e aprender. Uma linha liga um poder ao que "
+                    + "depende dele. Poderes que escalonam por NEX têm um ícone para cada escalonamento: escolha qual "
+                    + "fica equipado (cada um gasta um PE diferente).", x, y, w, COR_APAGADO, yMax);
+            paragrafo(g, "Moldura dourada: aprendido. Verde: dá para aprender. Cinza: bloqueado. Quadrado verde: equipado.",
+                    x, y + 4, w, COR_APAGADO, yMax);
+            soltar(g);
+            return;
+        }
+        int versaoDetalhe = versaoDaChave(chaveDetalhe);
+        ListTag listaVersoes = no.getListOrEmpty("versaoLista");
+        CompoundTag dv = versaoDetalhe >= 0 && versaoDetalhe < listaVersoes.size()
+                ? listaVersoes.getCompoundOrEmpty(versaoDetalhe) : null;
+        if (dv != null && listaVersoes.size() > 1) { // ícone de escalonamento: mostra os dados dele
+            boolean liberadaV = versaoDetalhe == 0 ? no.getIntOr("estado", 0) == PacoteFicha.APRENDIDA
+                    : dv.getBooleanOr("liberada", false);
+            String tipoV = dv.getBooleanOr("ativa", false) ? "ATIVA · " + dv.getIntOr("custo", 0) + " PE" : "PASSIVA";
+            texto(g, ajustar(dv.getStringOr("nome", "").toUpperCase(java.util.Locale.ROOT) + "  (" + tipoV + ")", w), x, y,
+                    COR_DOURADO);
+            y += 12;
+            y = paragrafo(g, dv.getStringOr("descricao", ""), x, y, w, COR_OSSO, yMax);
+            String sit;
+            int corV;
+            if (!liberadaV && versaoDetalhe > 0) {
+                sit = "Libera sozinho no NEX " + dv.getIntOr("nex", 0) + "%.";
+                corV = COR_SANGUE_CLARO;
+            } else if (!liberadaV) {
+                sit = no.getIntOr("estado", 0) == PacoteFicha.DISPONIVEL ? "Pronto para aprender: custa 1 ponto de habilidade."
+                        : no.getStringOr("motivo", "") + ".";
+                corV = no.getIntOr("estado", 0) == PacoteFicha.DISPONIVEL ? COR_OK : COR_SANGUE_CLARO;
+            } else if (no.getBooleanOr("equipavel", false)) {
+                sit = no.getIntOr("versaoEquipada", -1) == versaoDetalhe ? "Equipado: é esta versão que vale ao usar o poder."
+                        : "Clique em EQUIPAR para usar esta versão (gasta " + dv.getIntOr("custo", 0) + " PE).";
+                corV = COR_OK;
+            } else {
+                sit = "Aprendido.";
+                corV = COR_OK;
+            }
+            paragrafo(g, sit, x, y + 3, w, corV, yMax);
             soltar(g);
             return;
         }
@@ -1234,7 +1430,7 @@ public class TelaFicha extends Screen {
             cor = COR_SANGUE_CLARO;
         }
         if (no.getIntOr("versoes", 0) > 1) {
-            situacao += " Evolui sozinho no NEX " + no.getStringOr("evolucoes", "") + ".";
+            situacao += " Escalona nos NEX " + no.getStringOr("evolucoes", "") + ": cada ícone ao lado é uma versão.";
         }
         paragrafo(g, situacao, x, y + 3, w, cor, yMax);
         soltar(g);

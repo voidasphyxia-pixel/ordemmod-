@@ -11,7 +11,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
  * - TRILHA: escolhe a trilha (pelo indice no enum {@link Trilha}); nao da para trocar depois;
  * - MELHORAR: gasta uma melhoria de grau (2 + Intelecto nos NEX 35% e 70%) numa pericia (pelo indice em {@link Pericia});
  * - TREINAMENTO: poder Treinamento em Pericia: escolhe duas pericias (pelos indices) e sobe cada uma um grau;
- * - ATRIBUTO: gasta 1 ponto de atributo (NEX 20%, 50%, 80% e 95%) num atributo (pelo indice em {@link Atributo}), ate 5.
+ * - ATRIBUTO: gasta 1 ponto de atributo (NEX 20%, 50%, 80% e 95%) num atributo (pelo indice em {@link Atributo}), ate 5;
+ * - EQUIPAR: poder que escalona por NEX; escolhe qual versao fica equipada (muda o gasto de PE). O id e o da primeira versao
+ *   e o indice e a posicao da versao na cadeia.
  * O servidor NUNCA confia no que chega: confere tudo de novo antes de mexer no personagem (veja ReceptoresServidor).
  *
  * @param id      id da habilidade (so na acao APRENDER)
@@ -24,6 +26,7 @@ public record PacoteArvore(int acao, String id, int indice, int indice2) impleme
     public static final int MELHORAR = 2;
     public static final int TREINAMENTO = 3;
     public static final int ATRIBUTO = 4;
+    public static final int EQUIPAR = 5;
 
     public static final CustomPacketPayload.Type<PacoteArvore> TYPE = Rede.tipo("arvore");
     public static final StreamCodec<RegistryFriendlyByteBuf, PacoteArvore> CODEC =
@@ -47,6 +50,11 @@ public record PacoteArvore(int acao, String id, int indice, int indice2) impleme
 
     public static PacoteArvore subirAtributo(Atributo atributo) {
         return new PacoteArvore(ATRIBUTO, "", atributo.ordinal(), -1);
+    }
+
+    /** Poder que escalona por NEX: equipa a versao de posicao {@code versao} (0 = a primeira) da cadeia de {@code idDaRaiz}. */
+    public static PacoteArvore equipar(String idDaRaiz, int versao) {
+        return new PacoteArvore(EQUIPAR, idDaRaiz, versao, -1);
     }
 
     public static void escrever(PacoteArvore m, FriendlyByteBuf buffer) {

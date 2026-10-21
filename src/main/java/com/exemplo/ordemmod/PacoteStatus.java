@@ -28,7 +28,7 @@ public record PacoteStatus(int sanidade, int sanidadeMax, int pe, int peMax, int
     public static PacoteStatus de(Personagem p) {
         List<Slot> fila = new ArrayList<>();
         for (Habilidade h : p.habilidades.getAtivas()) {
-            Habilidade efetiva = p.habilidades.melhorVersao(h);
+            Habilidade efetiva = p.habilidades.versaoEquipada(h);
             fila.add(new Slot(efetiva.getId(), efetiva.getNome(), efetiva.getCustoPe()));
         }
         return new PacoteStatus(p.getSanidade(), p.sanidadeMaxima(), p.pe.getAtual(), p.pe.getMaximo(),

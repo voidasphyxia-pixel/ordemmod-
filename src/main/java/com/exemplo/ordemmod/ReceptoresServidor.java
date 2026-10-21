@@ -81,6 +81,8 @@ public final class ReceptoresServidor {
                 treinamento(jogador, p, m.indice(), m.indice2());
             } else if (m.acao() == PacoteArvore.ATRIBUTO) {
                 subirAtributo(jogador, p, m.indice());
+            } else if (m.acao() == PacoteArvore.EQUIPAR) {
+                equiparVersao(jogador, p, m.id(), m.indice());
             }
             enviarFicha(jogador); // manda a ficha atualizada: a tela aberta se redesenha sozinha
         });
@@ -116,6 +118,26 @@ public final class ReceptoresServidor {
         EventosOrdem.aplicar(jogador, p);
         SalvamentoOrdem.salvar(jogador, p);
         Avisos.enviar(jogador, "Habilidade aprendida: " + h.getNome(), ChatFormatting.GREEN);
+    }
+
+    /** Poder que escalona por NEX: escolhe qual versao (ja liberada) fica equipada. So vale para poderes ativos. */
+    private static void equiparVersao(ServerPlayer jogador, Personagem p, String id, int indice) {
+        Habilidade h = CatalogoHabilidades.porId(id);
+        if (h == null || !p.habilidades.temAprendida(h)) {
+            Avisos.enviar(jogador, "Aprenda o poder antes de escolher a versão.", ChatFormatting.RED);
+            return;
+        }
+        if (!p.habilidades.versaoEquipada(h).isAtiva()) {
+            return; // passivas sempre usam a versao mais forte: nao ha o que escolher
+        }
+        if (!p.habilidades.equiparVersao(h, indice)) {
+            Avisos.enviar(jogador, "Essa versão ainda não foi liberada.", ChatFormatting.RED);
+            return;
+        }
+        Habilidade equipada = p.habilidades.versaoEquipada(h);
+        SalvamentoOrdem.salvar(jogador, p);
+        Avisos.enviar(jogador, "Equipado: " + equipada.getNome() + " (" + equipada.getCustoPe() + " PE)",
+                ChatFormatting.GREEN);
     }
 
     private static Pericia periciaDe(int indice) {

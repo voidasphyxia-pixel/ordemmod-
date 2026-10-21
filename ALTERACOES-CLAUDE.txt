@@ -5,6 +5,33 @@ com data, o que mudou, quais arquivos e como testar. Este arquivo fica na raiz d
 
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e o paragrafo do LEIA-ME no fim da lista "Pronto")
 
+--- 21/10/2026 (NOVO LAYOUT da aba PODERES + escolha do escalonamento equipado) ---------------
+  Pedido: deixar a aba Poderes parecida com a arvore de habilidades de referencia (icones ligados por linhas em angulo
+  reto) e, nos poderes que escalonam por % de NEX, mostrar um icone para cada escalonamento para o jogador escolher qual
+  fica equipado, por causa do gasto de PE.
+  O que mudou:
+  - TelaFicha (aba PODERES): agora e uma ARVORE. Cada poder e uma fileira de icones (um por escalonamento: I, II, III, IV);
+    os poderes que dependem dele ficam embaixo, ligados por linhas em angulo reto (desce, corre na horizontal, desce).
+    Arvores independentes se organizam em faixas e a lista rola. Moldura dourada = liberado, verde = da para aprender,
+    cinza = bloqueado; quadradinho verde no canto = escalonamento equipado; selo II/III/IV = qual escalonamento e.
+    Clicar num icone mostra o nome/descricao/custo de PE DAQUELE escalonamento; o botao do rodape vira "EQUIPAR (n PE)".
+  - HabilidadesDoPersonagem: novos cadeia(), indiceEquipado(), versaoEquipada(), equiparVersao(), getEquipadas(),
+    restaurarEquipadas(). usar() agora gasta o PE da versao EQUIPADA (antes era sempre a mais forte). Sem escolha = a mais forte
+    liberada (acompanha as evolucoes sozinho, como antes). Escolher a mais forte limpa a escolha.
+  - PacoteArvore: nova acao EQUIPAR (id da 1a versao + posicao). ReceptoresServidor.equiparVersao confere tudo (poder aprendido,
+    versao ja liberada, so poderes ativos) e salva.
+  - PacoteFicha: manda versaoLista (id, nome, descricao, custo, NEX, liberada de cada escalonamento), versaoEquipada e equipavel.
+  - EventosOrdem.tentarUsar e PacoteStatus (HUD) usam a versao equipada (nome e custo de PE corretos na HUD).
+  - SalvamentoOrdem: o codec ja esta com 16 campos (limite do RecordCodecBuilder), entao a escolha e salva no mapa "repeticoes"
+    com o prefixo "equipada:". Saves antigos abrem normalmente.
+  - IconesOP: desenharOuReserva() (escalonamento sem PNG proprio usa o icone da primeira versao).
+  Arquivos: TelaFicha, HabilidadesDoPersonagem, PacoteArvore, PacoteFicha, ReceptoresServidor, EventosOrdem, PacoteStatus,
+  SalvamentoOrdem, IconesOP.
+  ATENCAO: NAO foi compilado aqui (Minecraft/Fabric bloqueados). Rode `gradlew build` / `runClient` e me mande qualquer erro.
+  Como testar: runClient, aperte K > PODERES. Aprenda Ataque Especial e suba o NEX (/ordem): aparecem os icones II, III, IV;
+  clique num ja liberado e use EQUIPAR; use o poder e veja o PE gasto mudar. Feche e abra o save: a escolha continua.
+  Obs.: para os escalonamentos terem arte propria, coloque PNGs em textures/gui/poderes/<id>.png (ex.: ataque_especial_2.png).
+
 --- 20/10/2026 (FUNCIONAL: Armadura de Sangue no PERSONAGEM) ---------------------------------
   Pedido: "vamos fazer a armadura de sangue ficar funcional no personagem".
   O que foi feito (v1: entidade presa ao jogador; NAO e ainda uma camada do modelo do jogador):
