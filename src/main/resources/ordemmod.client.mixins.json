@@ -6,9 +6,12 @@
     "AbstractContainerScreenAccessor",
     "AbstractContainerScreenFundoMixin",
     "AbstractContainerScreenMixin",
+    "AvatarRenderStateMixin",
+    "AvatarRendererMixin",
     "ContainerScreenMixin",
     "CraftingScreenMixin",
     "InventoryScreenMixin",
+    "PlayerModelMixin",
     "ScreenMixin"
   ],
   "injectors": {
