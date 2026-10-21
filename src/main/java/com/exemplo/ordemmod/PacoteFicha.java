@@ -108,7 +108,8 @@ public record PacoteFicha(CompoundTag dados) implements CustomPacketPayload {
 
             CompoundTag c = new CompoundTag();
             c.putString("id", raiz.getId());
-            c.putString("pai", raiz.getPrerequisitos().isEmpty() ? "" : raiz.getPrerequisitos().get(0));
+            c.putString("ramo", RamosDePoderes.de(raiz.getId()));
+            c.putString("pai",raiz.getPrerequisitos().isEmpty() ? "" : raiz.getPrerequisitos().get(0));
             c.putString("nome", atual.getNome());
             c.putString("descricao", atual.getDescricao());
             c.putBoolean("ativa", atual.isAtiva());
