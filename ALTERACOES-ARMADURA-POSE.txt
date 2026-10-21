@@ -1,5 +1,20 @@
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e depois apagar este arquivo)
 
+--- 21/10/2026 (COMPATIBILIDADE com Fresh Animations Player / EMF: armadura copia a pose REAL do jogador) ----
+  Problema: com o resource pack Fresh Animations (Player) a animacao do jogador muda e nao batia com a da armadura, porque o renderer
+  da armadura calculava a pose por conta propria (formula do jogo vanilla).
+  O que foi feito (somente na branch main):
+  - PlayerModelMixin agora roda com priority 2000 (depois do EMF/NEA) e, no fim de PlayerModel.setupAnim, GRAVA a pose final das 6 partes
+    (head, body, bracos, pernas: x,y,z e rotacoes) em PoseFormacao.Capturada (so quando o jogador tem a armadura ativa).
+  - ArmaduraSangueJogadorRenderer usa essa pose capturada (< 0,25 s) para os ossos head/body/left_arm/right_arm/left_leg/right_leg,
+    inclusive o deslocamento (translacao) das partes; se nao houver captura, cai na pose calculada (calcularPropria), como antes.
+    Como os bracos da armadura sao filhos do corpo, a rotacao/translacao do corpo e descontada dos bracos.
+  - AvatarRenderStateMixin/AvatarRendererMixin/PoseFormacaoAcesso: o estado de render do jogador tambem guarda o id do jogador.
+  LIMITES: nao testado (nao compilo aqui). O EMF pode usar partes proprias e ajustes de pivo do Fresh Animations (ex.: bracos mais
+  finos/deslocados): se ficar deslocado ~1-2 px ou rodar em torno de um ponto errado, e diferenca de pivo do MODELO da armadura
+  (bracos em x=+-6, corpo em y=12) - me diga o que viu (print ajuda) que eu ajusto. Se continuar nao batendo, mande o log.
+  COMO TESTAR: com o Fresh Animations Player ligado: /ordem armadura vestir; F5; andar, correr, agachar, bater, nadar, levantar o braco.
+
 --- 20/10/2026 (BRACO DO PERSONAGEM LEVANTA na formacao da Armadura de Sangue) ----------------
   Pedido: "faca o braco levantar, se quiser use o Not Enough Animations".
   O NEA (tr7zw) nao tem API para outros mods; o que ele faz e um mixin em PlayerModel.setupAnim (final do metodo) - e o mesmo gancho
@@ -26,5 +41,5 @@
     da armadura (balanco ao andar, ataque, olhar para os lados/cima, agachar, respiracao). As placas sao filhas desses ossos e seguem junto.
     Convencao igual ao GeoArmorRenderer do GeckoLib: rotacao (-x, -y, +z). Nao usa mixin nem modelo vanilla.
   - A animacao de formacao continua tocando so nas placas (nao foi alterada).
-  COMO TESTAR: gradlew build / runClient; /ordem armadura vestir; F5 (3a pessoa); andar, correr, bater, olhar para cima/lados, agachar.
+  COMO TESTAR: gradlew build / runClient; /ordem armadura vestir; F5 (3a pessoa); andar, correr, agachar, bater, olhar para cima/lados.
   SE O BUILD FALHAR: mande o erro. Pontos de risco: vivo.walkAnimation.position/speed, yHeadRotO/yBodyRotO, getAttackAnim, getMainArm, DataTicket.create.

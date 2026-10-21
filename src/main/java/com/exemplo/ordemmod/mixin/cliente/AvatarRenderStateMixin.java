@@ -13,6 +13,19 @@ public abstract class AvatarRenderStateMixin implements PoseFormacaoAcesso {
     @Unique
     private float ordemmod$progresso;
 
+    @Unique
+    private int ordemmod$jogadorId = -1;
+
+    @Override
+    public int ordemmod$getJogadorId() {
+        return this.ordemmod$jogadorId;
+    }
+
+    @Override
+    public void ordemmod$setJogadorId(int id) {
+        this.ordemmod$jogadorId = id;
+    }
+
     @Override
     public float ordemmod$getProgresso() {
         return this.ordemmod$progresso;

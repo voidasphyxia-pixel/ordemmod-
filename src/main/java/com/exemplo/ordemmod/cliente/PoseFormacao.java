@@ -2,6 +2,9 @@ package com.exemplo.ordemmod.cliente;
 
 import com.exemplo.ordemmod.entidade.ArmaduraSangueJogadorEntity;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.util.Mth;
 
@@ -62,5 +65,54 @@ public final class PoseFormacao {
         braco.xRot = mesclarX(p, braco.xRot);
         braco.yRot = mesclarY(p, braco.yRot);
         braco.zRot = mesclarZ(p, braco.zRot);
+    }
+
+    /**
+     * Pose REAL do modelo do jogador, lida no fim de PlayerModel.setupAnim (PlayerModelMixin). Como o fim do setupAnim ja inclui
+     * o que resource packs/mods fizeram (Fresh Animations Player via EMF, Not Enough Animations, etc.), a armadura copia exatamente
+     * o que o jogador esta fazendo na tela. Se nao houver captura recente (ex.: o modelo do jogador nao foi desenhado neste frame),
+     * o renderer usa a pose calculada por conta propria.
+     * Ordem dos 6 ossos: head, body, left_arm, right_arm, left_leg, right_leg; por osso: x, y, z, xRot, yRot, zRot.
+     */
+    public static final class Capturada {
+        public static final int OSSOS = 6;
+        public static final int CAMPOS = 6;
+        private static final long VALIDADE_NS = 250_000_000L; // 0,25 s
+
+        private static final class Registro {
+            final float[] v = new float[OSSOS * CAMPOS];
+            long quando;
+        }
+
+        private static final Map<Integer, Registro> MAPA = new HashMap<>();
+
+        private Capturada() {
+        }
+
+        public static void guardar(int jogadorId, ModelPart cabeca, ModelPart corpo, ModelPart bracoE, ModelPart bracoD,
+                                   ModelPart pernaE, ModelPart pernaD) {
+            Registro r = MAPA.computeIfAbsent(jogadorId, k -> new Registro());
+            ModelPart[] partes = {cabeca, corpo, bracoE, bracoD, pernaE, pernaD};
+            for (int i = 0; i < OSSOS; i++) {
+                ModelPart p = partes[i];
+                int o = i * CAMPOS;
+                r.v[o] = p.x;
+                r.v[o + 1] = p.y;
+                r.v[o + 2] = p.z;
+                r.v[o + 3] = p.xRot;
+                r.v[o + 4] = p.yRot;
+                r.v[o + 5] = p.zRot;
+            }
+            r.quando = System.nanoTime();
+        }
+
+        /** Pose capturada ha menos de 0,25 s, ou null. NAO altere o array devolvido. */
+        public static float[] obter(int jogadorId) {
+            Registro r = MAPA.get(jogadorId);
+            if (r == null || System.nanoTime() - r.quando > VALIDADE_NS) {
+                return null;
+            }
+            return r.v;
+        }
     }
 }

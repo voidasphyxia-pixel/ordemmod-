@@ -19,6 +19,7 @@ public abstract class AvatarRendererMixin {
             at = @At("TAIL"))
     private void ordemmod$poseFormacao(Avatar avatar, AvatarRenderState estado, float parcial, CallbackInfo ci) {
         if (estado instanceof PoseFormacaoAcesso acesso) {
+            acesso.ordemmod$setJogadorId(avatar.getId());
             acesso.ordemmod$setProgresso(PoseFormacao.progresso(avatar.getId(), parcial));
         }
     }
