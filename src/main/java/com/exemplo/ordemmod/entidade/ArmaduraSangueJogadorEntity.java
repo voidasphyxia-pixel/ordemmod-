@@ -29,6 +29,19 @@ public class ArmaduraSangueJogadorEntity extends ArmaduraSangueEntity {
     private static final EntityDataAccessor<Integer> DONO =
             SynchedEntityData.defineId(ArmaduraSangueJogadorEntity.class, EntityDataSerializers.INT);
 
+    /** So no cliente: jogador (id) -> sua armadura. Usado pela pose de formacao (braco levantado). */
+    private static final java.util.Map<Integer, ArmaduraSangueJogadorEntity> NO_CLIENTE = new java.util.HashMap<>();
+
+    /** Armadura do jogador de id donoId no cliente (null se nao houver / foi removida). */
+    public static ArmaduraSangueJogadorEntity doDono(int donoId) {
+        ArmaduraSangueJogadorEntity e = NO_CLIENTE.get(donoId);
+        if (e != null && e.isRemoved()) {
+            NO_CLIENTE.remove(donoId);
+            return null;
+        }
+        return e;
+    }
+
     public ArmaduraSangueJogadorEntity(EntityType<? extends ArmaduraSangueEntity> tipo, Level mundo) {
         super(tipo, mundo);
         this.setNoGravity(true);
@@ -67,6 +80,9 @@ public class ArmaduraSangueJogadorEntity extends ArmaduraSangueEntity {
                 this.discard();
             }
             return;
+        }
+        if (this.level().isClientSide()) {
+            NO_CLIENTE.put(dono.getId(), this);
         }
         this.snapTo(dono.getX(), dono.getY(), dono.getZ(), dono.getYRot(), 0.0F);
         if (dono instanceof LivingEntity vivo) {

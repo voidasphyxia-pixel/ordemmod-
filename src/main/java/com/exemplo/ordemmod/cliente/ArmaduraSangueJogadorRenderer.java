@@ -28,6 +28,7 @@ import net.minecraft.world.phys.Vec3;
  *  - POSE: os ossos do Steve (head, body, left_arm, right_arm, left_leg, right_leg) copiam a pose do jogador
  *    (balanco de bracos/pernas, ataque, olhar, agachar), como uma peca de armadura. As placas sao filhas desses
  *    ossos, entao acompanham tudo. A animacao de formacao so mexe nas placas e continua tocando normal.
+ *  - FORMACAO: o braco direito levanta junto com o do personagem (veja {@link PoseFormacao}).
  * Arquivos: veja {@link ArmaduraSangueJogadorEntity}.
  */
 public class ArmaduraSangueJogadorRenderer
@@ -112,6 +113,14 @@ public class ArmaduraSangueJogadorRenderer
                 r[BRACO_E * 3] -= 0.6F + balanco;
                 r[CORPO * 3 + 1] = -Mth.sin(Mth.sqrt(ataque) * Mth.TWO_PI) * 0.2F;
             }
+        }
+
+        // formacao: braco direito levantado (igual ao do personagem, veja PoseFormacao)
+        float levanta = PoseFormacao.progresso(vivo.getId(), parcial);
+        if (levanta > 0.0F) {
+            r[BRACO_D * 3] = PoseFormacao.mesclarX(levanta, r[BRACO_D * 3]);
+            r[BRACO_D * 3 + 1] = PoseFormacao.mesclarY(levanta, r[BRACO_D * 3 + 1]);
+            r[BRACO_D * 3 + 2] = PoseFormacao.mesclarZ(levanta, r[BRACO_D * 3 + 2]);
         }
 
         if (agachado) {

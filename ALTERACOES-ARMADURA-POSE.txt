@@ -1,5 +1,24 @@
 (COLAR no topo do ALTERACOES-CLAUDE.txt, logo abaixo do cabecalho, e depois apagar este arquivo)
 
+--- 20/10/2026 (BRACO DO PERSONAGEM LEVANTA na formacao da Armadura de Sangue) ----------------
+  Pedido: "faca o braco levantar, se quiser use o Not Enough Animations".
+  O NEA (tr7zw) nao tem API para outros mods; o que ele faz e um mixin em PlayerModel.setupAnim (final do metodo) - e o mesmo gancho
+  usado aqui. Nao depende do NEA estar instalado (funciona junto com ele, que esta no modpack).
+  O que foi feito (somente na branch main):
+  - NOVO cliente/PoseFormacao: curva do gesto (sobe em 0,5 s, fica erguido, desce no fim dos 3,7 s da formacao) e angulos
+    (ANGULO_X/Y/Z: ajuste ali o gesto). O tempo vem do tickCount da entidade da armadura no cliente.
+  - NOVO mixin/cliente/PlayerModelMixin: no fim de PlayerModel.setupAnim aplica a pose no braco DIREITO do personagem.
+  - NOVO mixin/cliente/AvatarRendererMixin + AvatarRenderStateMixin + cliente/PoseFormacaoAcesso: levam o progresso (0..1) do
+    AvatarRenderer.extractRenderState ate o PlayerModel (estado de render do jogador).
+  - ArmaduraSangueJogadorEntity: mapa estatico (so cliente) jogador -> armadura, com doDono(id).
+  - ArmaduraSangueJogadorRenderer: o osso right_arm da armadura recebe a mesma pose, entao armadura e braco real sobem juntos.
+  - ordemmod.client.mixins.json e build.gradle (lista nucleo) atualizados com os arquivos novos.
+  COMO TESTAR: gradlew build / runClient; /ordem armadura vestir; F5. O braco direito deve subir, ficar erguido ~2,5 s e descer.
+  SE O BUILD/JOGO FALHAR: mande o erro/log (procure 'ordemmod' e 'Mixin' em run/logs/latest.log). Pontos de risco: nome do metodo
+  extractRenderState do AvatarRenderer, PlayerModel.setupAnim, campo rightArm. Se so a manga do braco ficar para baixo, e a camada
+  da manga (sleeve) - me avise que eu aplico nela tambem.
+  Mudar o gesto: edite ANGULO_X (mais negativo = mais alto) / ANGULO_Y em PoseFormacao.java.
+
 --- 20/10/2026 (CORRECAO: Armadura de Sangue acompanha bracos/torso/pernas do personagem) -------
   Problema: a armadura tocava a formacao certinha, mas ficava rigida e nao seguia os movimentos do personagem.
   O que foi feito (somente na branch main):
@@ -7,7 +26,5 @@
     da armadura (balanco ao andar, ataque, olhar para os lados/cima, agachar, respiracao). As placas sao filhas desses ossos e seguem junto.
     Convencao igual ao GeoArmorRenderer do GeckoLib: rotacao (-x, -y, +z). Nao usa mixin nem modelo vanilla.
   - A animacao de formacao continua tocando so nas placas (nao foi alterada).
-  LIMITACAO: o BRACO REAL do jogador nao levanta durante a formacao (exigiria mixin no modelo do jogador); a armadura segue o braco real.
   COMO TESTAR: gradlew build / runClient; /ordem armadura vestir; F5 (3a pessoa); andar, correr, bater, olhar para cima/lados, agachar.
   SE O BUILD FALHAR: mande o erro. Pontos de risco: vivo.walkAnimation.position/speed, yHeadRotO/yBodyRotO, getAttackAnim, getMainArm, DataTicket.create.
-  Se alguma placa ficar deslocada ~1 px ao mexer o braco: diferenca de pivo do modelo (braco x=+-6 vs 5 do vanilla); ajusto depois.
