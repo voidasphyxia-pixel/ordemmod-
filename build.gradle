@@ -131,6 +131,8 @@ def nucleo = [
     'ReceptoresCliente', 'ClienteCriacao', 'ClienteFicha', 'ClienteTeste',
     // etapa 6b: tela do dado e ficha (+ DesenhoOP, IconesOP, DescricoesOP e o VfxMarcado do fundo)
     'DesenhoOP', 'IconesOP', 'DescricoesOP', 'marcado/VfxMarcado', 'TelaTeste', 'TelaFicha',
+    // ramos da arvore de poderes (aba Poderes da ficha; usado por PacoteFicha e TelaFicha)
+    'RamosDePoderes',
     // etapa 6c: tela de criacao de personagem
     'TelaCriacao',
     // etapa 6d: cena do Marcado
