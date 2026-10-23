@@ -4,22 +4,30 @@ import java.util.Map;
 
 /**
  * Em qual ramo da árvore de poderes (aba Poderes da ficha) cada poder aparece. Os ramos são só uma organização visual
- * (como "Close Combat" e "Ranged Combat" nas árvores de habilidade): estar no mesmo ramo NÃO é pré-requisito.
+ * (como "Close Combat" e "Ranged Combat" nas árvores de habilidade): estar no mesmo ramo NÃO é pré-requisito, e a tela
+ * só desenha linha entre poderes que dependem de verdade um do outro (pré-requisito ou escalonamento por NEX).
  * Poder que não está na lista cai em {@link #GERAL}. Para mudar um poder de ramo, mexa só no mapa abaixo.
+ *
+ * O ramo {@link #CLASSE} é a faixa separada no topo da aba: poderes da classe que não são "da árvore"
+ * (Ataque Especial, que o Combatente recebe sozinho, Transcender e Treinamento em Perícia).
  */
 public final class RamosDePoderes {
+    public static final String CLASSE = "CLASSE";
     public static final String CORPO_A_CORPO = "CORPO A CORPO";
     public static final String A_DISTANCIA = "À DISTÂNCIA";
     public static final String DEFESA = "DEFESA";
     public static final String TATICO = "TÁTICO";
     public static final String GERAL = "GERAL";
 
-    /** Ordem em que os ramos aparecem na tela, da esquerda para a direita. */
-    public static final String[] ORDEM = {CORPO_A_CORPO, A_DISTANCIA, DEFESA, TATICO, GERAL};
+    /** Ordem em que os ramos aparecem na tela (a faixa da classe fica sozinha no topo). */
+    public static final String[] ORDEM = {CLASSE, CORPO_A_CORPO, A_DISTANCIA, DEFESA, TATICO, GERAL};
 
     private static final Map<String, String> RAMO_DO_PODER = Map.ofEntries(
-            // Combatente
-            Map.entry(CatalogoHabilidades.ID_ATAQUE_ESPECIAL, CORPO_A_CORPO),
+            // Combatente: faixa da classe
+            Map.entry(CatalogoHabilidades.ID_ATAQUE_ESPECIAL, CLASSE),
+            Map.entry(CatalogoHabilidades.ID_TREINAMENTO_PERICIA, CLASSE),
+            Map.entry("transcender", CLASSE),
+            // Combatente: árvore
             Map.entry("artista_marcial", CORPO_A_CORPO),
             Map.entry("ataque_de_oportunidade", CORPO_A_CORPO),
             Map.entry("combater_com_duas_armas", CORPO_A_CORPO),
@@ -37,8 +45,6 @@ public final class RamosDePoderes {
             Map.entry("sentido_tatico", TATICO),
             Map.entry(CatalogoHabilidades.ID_INCANSAVEL, TATICO),
             Map.entry(CatalogoHabilidades.ID_PRESTEZA_ATLETICA, TATICO),
-            Map.entry(CatalogoHabilidades.ID_TREINAMENTO_PERICIA, TATICO),
-            Map.entry("transcender", TATICO),
             // Especialista
             Map.entry("golpe_certeiro", CORPO_A_CORPO),
             Map.entry("golpe_mortal", CORPO_A_CORPO),
