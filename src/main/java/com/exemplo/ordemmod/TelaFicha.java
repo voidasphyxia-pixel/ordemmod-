@@ -28,9 +28,10 @@ import net.minecraft.util.Util;
  *  - ATRIBUTO: o pentágono de atributos e uma caixa com os NEX em que chegam pontos para distribuir;
  *  - PERÍCIA: as perícias separadas em Treinado, Veterano, Expert e Destreinado (e as melhorias de grau);
  *  - PODERES: no topo uma faixa "CLASSE" com os poderes que não são da árvore (Ataque Especial, que o Combatente recebe
- *    sozinho, Transcender e Treinamento em Perícia); embaixo a árvore de habilidades em ramos (Corpo a corpo, À distância,
- *    Defesa...). Só há linha entre poderes que dependem de verdade um do outro (pré-requisito) e entre os escalonamentos
- *    por NEX (I, II, III, IV), que descem em coluna; o jogador escolhe qual fica equipado (cada um gasta um PE diferente);
+ *    sozinho, com as 4 versões lado a lado, e Treinamento em Perícia); embaixo a árvore de habilidades em ramos (Corpo a
+ *    corpo, À distância, Defesa...). Só há linha entre poderes que dependem de verdade um do outro (pré-requisito) e entre os
+ *    escalonamentos por NEX (I, II, III, IV), que descem em coluna na árvore; o jogador escolhe qual fica equipado (cada um
+ *    gasta um PE diferente);
  *  - TRILHA: uma coluna de ícones para cada trilha da classe; escolher a trilha fecha as outras para sempre.
  *
  * Os dados chegam prontos do servidor ({@link PacoteFicha}); os cliques que mudam o personagem voltam
@@ -104,7 +105,7 @@ public class TelaFicha extends Screen {
     private final List<CompoundTag> trilhas = new ArrayList<>();
     /**
      * Um poder na árvore de poderes: os poderes que dependem dele ficam embaixo (filhos) e os escalonamentos por NEX
-     * descem em coluna (I, II, III, IV), cada um ligado ao anterior.
+     * descem em coluna (I, II, III, IV), cada um ligado ao anterior. Na faixa da CLASSE os escalonamentos ficam lado a lado.
      */
     private static final class NoArvore {
         final CompoundTag tag;
@@ -306,7 +307,11 @@ public class TelaFicha extends Screen {
         // quem exige outro poder (do mesmo ramo) fica embaixo dele (o primeiro pré-requisito é o "pai")
         Map<String, NoArvore> porId = new LinkedHashMap<>();
         for (CompoundTag n : arvore) {
-            porId.put(n.getStringOr("id", ""), new NoArvore(n));
+            String id = n.getStringOr("id", "");
+            if (RamosDePoderes.oculto(id)) { // poderes escondidos da ficha (ex.: Transcender)
+                continue;
+            }
+            porId.put(id, new NoArvore(n));
         }
         Map<String, Ramo> porNome = new LinkedHashMap<>();
         for (String nome : RamosDePoderes.ORDEM) {
@@ -1140,7 +1145,7 @@ public class TelaFicha extends Screen {
             int xIni = cx + 10;
             int disponivel = cw - 10 - 14;
             // 1) mede cada ramo e separa em faixas (cada faixa é uma linha de ramos lado a lado);
-            //    a faixa da CLASSE (Ataque Especial, Transcender, Treinamento em Perícia) fica sempre sozinha no topo
+            //    a faixa da CLASSE (Ataque Especial e Treinamento em Perícia) fica sempre sozinha no topo
             List<List<Ramo>> faixas = new ArrayList<>();
             List<Ramo> atual = new ArrayList<>();
             int somaAtual = 0;
@@ -1194,6 +1199,7 @@ public class TelaFicha extends Screen {
     private static final int GAP_COLUNAS = 10;   // espaço entre as colunas de um ramo
     private static final int GAP_LINHAS = 14;    // espaço vertical entre poderes empilhados na mesma coluna
     private static final int GAP_PASSO = 10;     // espaço vertical entre escalonamentos (onde passa a linha)
+    private static final int GAP_CADEIA_H = 14;  // espaço horizontal entre escalonamentos na faixa da classe (onde passa a linha)
     private static final int ALTURA_TITULO = 20; // título do ramo
     private static final int ALTURA_BARRA = 10;  // espaço entre o título e os poderes
 
@@ -1227,7 +1233,18 @@ public class TelaFicha extends Screen {
         return Math.max(1, no.tag.getListOrEmpty("versaoLista").size());
     }
 
-    /** Largura da árvore que nasce neste poder: o ícone dele ou a soma dos filhos, o que for maior. */
+    /** Na faixa da CLASSE os escalonamentos (I, II, III, IV) ficam lado a lado; na árvore descem em coluna. */
+    private static boolean cadeiaHorizontal(NoArvore no) {
+        return RamosDePoderes.CLASSE.equals(no.tag.getStringOr("ramo", "")) && versoesDe(no) > 1;
+    }
+
+    /** Largura da fileira de escalonamentos (só a faixa da classe é horizontal; nos outros é um ícone só). */
+    private int larguraDaCadeia(NoArvore no) {
+        int n = versoesDe(no);
+        return cadeiaHorizontal(no) ? n * caixaPx + (n - 1) * GAP_CADEIA_H : caixaPx;
+    }
+
+    /** Largura da árvore que nasce neste poder: a cadeia dele ou a soma dos filhos, o que for maior. */
     private int larguraDoNo(NoArvore no) {
         int filhos = 0;
         for (NoArvore f : no.filhos) {
@@ -1236,11 +1253,14 @@ public class TelaFicha extends Screen {
         if (!no.filhos.isEmpty()) {
             filhos += GAP_COLUNAS * (no.filhos.size() - 1);
         }
-        return Math.max(caixaPx, filhos);
+        return Math.max(larguraDaCadeia(no), filhos);
     }
 
-    /** Altura da coluna de escalonamentos (I, II, III, IV) de um poder. */
+    /** Altura da cadeia de escalonamentos (I, II, III, IV) de um poder. */
     private int alturaDaCadeia(NoArvore no) {
+        if (cadeiaHorizontal(no)) {
+            return caixaPx;
+        }
         int n = versoesDe(no);
         return n * caixaPx + (n - 1) * GAP_PASSO;
     }
@@ -1318,24 +1338,32 @@ public class TelaFicha extends Screen {
     }
 
     /**
-     * Desenha um poder (a coluna dos escalonamentos I, II, III, IV, cada um ligado ao anterior) centralizado na faixa
-     * {@code larguraFaixa} e, abaixo, os poderes que dependem dele, ligados por linhas em ângulo reto.
+     * Desenha um poder (a coluna dos escalonamentos I, II, III, IV, cada um ligado ao anterior; lado a lado na faixa da
+     * classe) centralizado na faixa {@code larguraFaixa} e, abaixo, os poderes que dependem dele, ligados por linhas em
+     * ângulo reto.
      */
     private void desenharNo(GuiGraphicsExtractor g, int mx, int my, NoArvore no, int xEsq, int y, int larguraFaixa) {
-        int w = Math.max(larguraDoNo(no), caixaPx);
         int centro = xEsq + larguraFaixa / 2;
         int bx = centro - caixaPx / 2;
         boolean base = no.tag.getIntOr("estado", 0) == PacoteFicha.APRENDIDA;
 
         ListTag lista = no.tag.getListOrEmpty("versaoLista");
         int n = versoesDe(no);
+        boolean horizontal = cadeiaHorizontal(no);
+        int xInicio = horizontal ? centro - larguraDaCadeia(no) / 2 : bx;
         for (int i = 0; i < n; i++) {
-            int by = y + i * (caixaPx + GAP_PASSO);
+            int vx = horizontal ? xInicio + i * (caixaPx + GAP_CADEIA_H) : bx;
+            int by = horizontal ? y : y + i * (caixaPx + GAP_PASSO);
             if (i > 0) { // linha clara entre escalonamentos: dourada se este já foi liberado
                 boolean lib = lista.getCompoundOrEmpty(i).getBooleanOr("liberada", false);
-                g.fill(centro, by - GAP_PASSO, centro + 1, by, lib ? COR_DOURADO : COR_SETA);
+                int corLinha = lib ? COR_DOURADO : COR_SETA;
+                if (horizontal) {
+                    g.fill(vx - GAP_CADEIA_H, by + caixaPx / 2, vx, by + caixaPx / 2 + 1, corLinha);
+                } else {
+                    g.fill(centro, by - GAP_PASSO, centro + 1, by, corLinha);
+                }
             }
-            desenharVersao(g, mx, my, no, i, i < lista.size() ? lista.getCompoundOrEmpty(i) : null, bx, by);
+            desenharVersao(g, mx, my, no, i, i < lista.size() ? lista.getCompoundOrEmpty(i) : null, vx, by);
         }
 
         if (!no.filhos.isEmpty()) {

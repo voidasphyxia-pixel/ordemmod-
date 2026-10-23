@@ -9,7 +9,7 @@ import java.util.Map;
  * Poder que não está na lista cai em {@link #GERAL}. Para mudar um poder de ramo, mexa só no mapa abaixo.
  *
  * O ramo {@link #CLASSE} é a faixa separada no topo da aba: poderes da classe que não são "da árvore"
- * (Ataque Especial, que o Combatente recebe sozinho, Transcender e Treinamento em Perícia).
+ * (Ataque Especial, que o Combatente recebe sozinho, e Treinamento em Perícia).
  */
 public final class RamosDePoderes {
     public static final String CLASSE = "CLASSE";
@@ -26,7 +26,6 @@ public final class RamosDePoderes {
             // Combatente: faixa da classe
             Map.entry(CatalogoHabilidades.ID_ATAQUE_ESPECIAL, CLASSE),
             Map.entry(CatalogoHabilidades.ID_TREINAMENTO_PERICIA, CLASSE),
-            Map.entry("transcender", CLASSE),
             // Combatente: árvore
             Map.entry("artista_marcial", CORPO_A_CORPO),
             Map.entry("ataque_de_oportunidade", CORPO_A_CORPO),
@@ -55,11 +54,19 @@ public final class RamosDePoderes {
             Map.entry(CatalogoHabilidades.ID_ARMADURA_SANGUE, DEFESA),
             Map.entry("sentir_outro_lado", TATICO));
 
+    /** Poderes que existem nos dados mas não aparecem na ficha (ex.: Transcender, que o mod ainda não usa). */
+    private static final java.util.Set<String> OCULTOS = java.util.Set.of("transcender");
+
     private RamosDePoderes() {
     }
 
     /** O ramo do poder (pelo id da primeira versão). */
     public static String de(String idDoPoder) {
         return RAMO_DO_PODER.getOrDefault(idDoPoder, GERAL);
+    }
+
+    /** Este poder fica escondido da ficha? */
+    public static boolean oculto(String idDoPoder) {
+        return OCULTOS.contains(idDoPoder);
     }
 }
