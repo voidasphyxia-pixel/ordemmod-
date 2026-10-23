@@ -5,12 +5,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * As habilidades que um personagem aprendeu na árvore.
  * A cada marco de NEX o personagem ganha pontos de habilidade e gasta esses pontos
  * para aprender habilidades. Versões aprimoradas (evoluções) são liberadas
- * automaticamente, sem gastar pontos.
+ * automaticamente, sem gastar pontos. Poderes concedidos pela classe (Ataque Especial do Combatente)
+ * também vêm sozinhos, sem gastar ponto.
  */
 public class HabilidadesDoPersonagem {
     public static final int CUSTO_EM_PONTOS = 1;
@@ -19,6 +21,8 @@ public class HabilidadesDoPersonagem {
     public static final int DEFESA_BASE = 10;
     /** NEX 50%: o Combatente ganha a Versatilidade (um poder a mais, além do ponto normal do nível). */
     public static final int NIVEL_VERSATILIDADE = 10;
+    /** Poderes que a classe concede de graça (não se compram com ponto): o Combatente já nasce com o Ataque Especial. */
+    private static final Set<String> IDS_CONCEDIDOS_PELA_CLASSE = Set.of(CatalogoHabilidades.ID_ATAQUE_ESPECIAL);
 
     private final ClasseOP classe;
     private final Atributos atributos; // os atributos do personagem (usados nos requisitos)
@@ -31,10 +35,25 @@ public class HabilidadesDoPersonagem {
     public HabilidadesDoPersonagem(ClasseOP classe, Atributos atributos) {
         this.classe = classe;
         this.atributos = atributos;
+        concederDaClasse();
     }
 
     public int getPontos() {
         return pontos;
+    }
+
+    /** Dá os poderes que a classe concede sozinha (sem gastar ponto), se ainda não estiverem aprendidos. */
+    private void concederDaClasse() {
+        for (Habilidade habilidade : CatalogoHabilidades.daClasse(classe)) {
+            if (IDS_CONCEDIDOS_PELA_CLASSE.contains(habilidade.getId()) && !aprendidas.contains(habilidade)) {
+                aprendidas.add(habilidade);
+            }
+        }
+    }
+
+    /** Este poder é concedido pela classe (não se compra com ponto)? */
+    public static boolean eConcedidoPelaClasse(Habilidade habilidade) {
+        return IDS_CONCEDIDOS_PELA_CLASSE.contains(habilidade.getId());
     }
 
     /**
@@ -139,11 +158,13 @@ public class HabilidadesDoPersonagem {
      * Pode aprender? Precisa ser da classe, nova, ter nível, pontos, pré-requisitos
      * e os atributos mínimos que a habilidade exigir.
      * Versões aprimoradas não são aprendidas com pontos: são liberadas automaticamente.
+     * Poderes concedidos pela classe (Ataque Especial) também não se compram.
      */
     public boolean podeAprender(Habilidade habilidade, int nivel) {
         return habilidade.getClasse() == classe
                 && !habilidade.isEvolucao()
                 && !habilidade.isDeTrilha()
+                && !eConcedidoPelaClasse(habilidade)
                 && (!temAprendida(habilidade) || habilidade.isRepetivel())
                 && nivel >= habilidade.getNivelMinimo()
                 && pontos >= CUSTO_EM_PONTOS
@@ -158,6 +179,9 @@ public class HabilidadesDoPersonagem {
     public String motivoBloqueio(Habilidade habilidade, int nivel) {
         if (habilidade.getClasse() != classe || habilidade.isEvolucao() || habilidade.isDeTrilha()) {
             return "Não disponível";
+        }
+        if (eConcedidoPelaClasse(habilidade)) {
+            return "Concedida pela classe";
         }
         if (temAprendida(habilidade) && !habilidade.isRepetivel()) {
             return "Já aprendida";
@@ -211,6 +235,7 @@ public class HabilidadesDoPersonagem {
      * Retorna as que foram liberadas agora.
      */
     public List<Habilidade> liberarAutomaticas(int nivel) {
+        concederDaClasse();
         List<Habilidade> novas = new ArrayList<>();
         boolean mudou = true;
         while (mudou) { // repete: uma liberação pode abrir a próxima versão
@@ -550,6 +575,11 @@ public class HabilidadesDoPersonagem {
     public boolean resistiuAoEfeito(EfeitosAtivos efeitos, boolean usandoProtecaoPesada, Random random) {
         return random.nextDouble() < chanceResistirEfeitosTotal(efeitos, usandoProtecaoPesada);
     }
+
+    /**
+     * Ao carregar o jogo salvo. O Ataque Especial (concedido pela classe) é devolvido mesmo em saves antigos em que
+     * ele não tinha sido comprado; as versões aprimoradas dele chegam no próximo marco de NEX.
+     */
     public void restaurar(int pontos, Trilha trilha, List<Habilidade> lista) {
         this.pontos = pontos;
         this.trilha = trilha;
@@ -557,6 +587,7 @@ public class HabilidadesDoPersonagem {
         aprendidas.addAll(lista);
         repeticoes.clear();
         equipadas.clear();
+        concederDaClasse();
     }
 
     /** Ao carregar o jogo salvo: quantas vezes cada habilidade repetível foi aprendida. */
