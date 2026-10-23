@@ -27,8 +27,10 @@ import net.minecraft.util.Util;
  * à direita há quatro abas, como no rascunho:
  *  - ATRIBUTO: o pentágono de atributos e uma caixa com os NEX em que chegam pontos para distribuir;
  *  - PERÍCIA: as perícias separadas em Treinado, Veterano, Expert e Destreinado (e as melhorias de grau);
- *  - PODERES: árvore de habilidades em ramos (Corpo a corpo, À distância, Defesa...), com linhas em ângulo reto; poderes que
- *    escalonam por NEX descem em coluna (I, II, III, IV) e o jogador escolhe qual fica equipado (cada um gasta um PE diferente);
+ *  - PODERES: no topo uma faixa "CLASSE" com os poderes que não são da árvore (Ataque Especial, que o Combatente recebe
+ *    sozinho, Transcender e Treinamento em Perícia); embaixo a árvore de habilidades em ramos (Corpo a corpo, À distância,
+ *    Defesa...). Só há linha entre poderes que dependem de verdade um do outro (pré-requisito) e entre os escalonamentos
+ *    por NEX (I, II, III, IV), que descem em coluna; o jogador escolhe qual fica equipado (cada um gasta um PE diferente);
  *  - TRILHA: uma coluna de ícones para cada trilha da classe; escolher a trilha fecha as outras para sempre.
  *
  * Os dados chegam prontos do servidor ({@link PacoteFicha}); os cliques que mudam o personagem voltam
@@ -114,8 +116,8 @@ public class TelaFicha extends Screen {
     }
 
     /**
-     * Um ramo da árvore (ex.: CORPO A CORPO): um título, de onde partem as colunas de poderes. Estar no mesmo ramo é só
-     * organização visual; só os poderes ligados por linha clara dependem um do outro.
+     * Um ramo da árvore (ex.: CORPO A CORPO): um título e as colunas de poderes embaixo dele. Estar no mesmo ramo é só
+     * organização visual (não há linha ligando); só os poderes ligados por linha clara dependem um do outro.
      */
     private static final class Ramo {
         final String nome;
@@ -1137,21 +1139,30 @@ public class TelaFicha extends Screen {
         } else {
             int xIni = cx + 10;
             int disponivel = cw - 10 - 14;
-            // 1) mede cada ramo e separa em faixas (cada faixa é uma linha de ramos lado a lado)
+            // 1) mede cada ramo e separa em faixas (cada faixa é uma linha de ramos lado a lado);
+            //    a faixa da CLASSE (Ataque Especial, Transcender, Treinamento em Perícia) fica sempre sozinha no topo
             List<List<Ramo>> faixas = new ArrayList<>();
             List<Ramo> atual = new ArrayList<>();
             int somaAtual = 0;
             for (Ramo r : ramos) {
                 int w = larguraDoRamo(r);
-                if (!atual.isEmpty() && somaAtual + GAP_RAMOS + w > disponivel) {
+                boolean daClasse = r.nome.equals(RamosDePoderes.CLASSE);
+                if (!atual.isEmpty() && (daClasse || somaAtual + GAP_RAMOS + w > disponivel)) {
                     faixas.add(atual);
                     atual = new ArrayList<>();
                     somaAtual = 0;
                 }
                 somaAtual += (atual.isEmpty() ? 0 : GAP_RAMOS) + w;
                 atual.add(r);
+                if (daClasse) {
+                    faixas.add(atual);
+                    atual = new ArrayList<>();
+                    somaAtual = 0;
+                }
             }
-            faixas.add(atual);
+            if (!atual.isEmpty()) {
+                faixas.add(atual);
+            }
             // 2) desenha: os ramos de cada faixa se espalham pela largura toda (sem sobrar vazio nas laterais)
             int y = listaY + 8 - rolagem;
             for (List<Ramo> faixa : faixas) {
@@ -1168,6 +1179,9 @@ public class TelaFicha extends Screen {
                     desenharRamo(g, mx, my, r, x, y);
                     x += larguraDoRamo(r) + gap;
                 }
+                if (faixa.get(0).nome.equals(RamosDePoderes.CLASSE)) { // divisória entre a faixa da classe e a árvore
+                    g.fill(xIni, y + maior + 10, xIni + disponivel, y + maior + 11, COR_BORDA);
+                }
                 y += maior + 22;
             }
             terminarLista(g, y - 22);
@@ -1180,11 +1194,13 @@ public class TelaFicha extends Screen {
     private static final int GAP_COLUNAS = 10;   // espaço entre as colunas de um ramo
     private static final int GAP_LINHAS = 14;    // espaço vertical entre poderes empilhados na mesma coluna
     private static final int GAP_PASSO = 10;     // espaço vertical entre escalonamentos (onde passa a linha)
-    private static final int ALTURA_TITULO = 20; // título do ramo + o tronco que desce dele
-    private static final int ALTURA_BARRA = 10;  // do tronco até as colunas
-    private static final int COR_RAMO = 0xFF22222B; // linha de organização do ramo (não é pré-requisito)
+    private static final int ALTURA_TITULO = 20; // título do ramo
+    private static final int ALTURA_BARRA = 10;  // espaço entre o título e os poderes
 
     private int numeroDeColunas(Ramo r) {
+        if (r.nome.equals(RamosDePoderes.CLASSE)) { // faixa da classe: cada poder na sua coluna, lado a lado
+            return Math.max(1, r.raizes.size());
+        }
         return Math.min(3, Math.max(1, (r.raizes.size() + 1) / 2));
     }
 
@@ -1272,8 +1288,9 @@ public class TelaFicha extends Screen {
     }
 
     /**
-     * Um ramo: o título no topo, um tronco que desce e se abre numa barra horizontal, e daí uma coluna de poderes para cada
-     * ponta (linhas em ângulo reto, como nos exemplos). A linha escura só organiza o ramo; as claras são dependência de verdade.
+     * Um ramo: o título (com um sublinhado) e, embaixo, as colunas de poderes. Não há tronco nem barra ligando as colunas, nem
+     * espinha ligando poderes empilhados: estar no mesmo ramo não quer dizer que um depende do outro. As únicas linhas são as
+     * de {@link #desenharNo} (pré-requisito e escalonamento por NEX).
      */
     private void desenharRamo(GuiGraphicsExtractor g, int mx, int my, Ramo r, int xEsq, int y) {
         int w = larguraDoRamo(r);
@@ -1288,35 +1305,15 @@ public class TelaFicha extends Screen {
             somaCols += larguraDaColuna(c);
         }
         int x = xEsq + (w - somaCols) / 2;
-        int yBarra = y + ALTURA_TITULO + ALTURA_BARRA / 2;
         int yTopo = y + ALTURA_TITULO + ALTURA_BARRA;
-        int primeiro = -1;
-        int ultimo = -1;
-        List<Integer> centros = new ArrayList<>();
-        List<List<NoArvore>> ordem = colunas;
-        for (List<NoArvore> coluna : ordem) {
+        for (List<NoArvore> coluna : colunas) {
             int cw2 = larguraDaColuna(coluna);
-            int centro = x + cw2 / 2;
-            centros.add(centro);
-            primeiro = primeiro < 0 ? centro : primeiro;
-            ultimo = centro;
             int yy = yTopo;
-            int cabecaY = yTopo;
-            for (int i = 0; i < coluna.size(); i++) {
-                NoArvore n = coluna.get(i);
-                if (i > 0) { // espinha escura entre poderes empilhados da mesma coluna
-                    g.fill(centro, yy - GAP_LINHAS, centro + 1, yy, COR_RAMO);
-                }
+            for (NoArvore n : coluna) {
                 desenharNo(g, mx, my, n, x, yy, cw2);
                 yy += alturaDoNo(n) + GAP_LINHAS;
             }
-            // desce da barra até o primeiro poder da coluna
-            g.fill(centro, yBarra, centro + 1, cabecaY, COR_RAMO);
             x += cw2 + GAP_COLUNAS;
-        }
-        g.fill(meio, y + 13, meio + 1, yBarra + 1, COR_RAMO);                   // tronco
-        if (primeiro >= 0) {
-            g.fill(Math.min(primeiro, meio), yBarra, Math.max(ultimo, meio) + 1, yBarra + 1, COR_RAMO); // barra
         }
     }
 
@@ -1502,8 +1499,9 @@ public class TelaFicha extends Screen {
         String chaveDetalhe = idDaChaveDePoder(sobre) != null ? sobre : selecionado;
         CompoundTag no = poderPorChave(chaveDetalhe);
         if (no == null) {
-            y = paragrafo(g, "Clique num poder para ler a descrição e aprender. Os poderes ficam em ramos; uma linha clara liga um poder ao que "
-                    + "depende dele. Poderes que escalonam por NEX têm um ícone para cada escalonamento: escolha qual "
+            y = paragrafo(g, "Clique num poder para ler a descrição e aprender. No topo ficam os poderes da classe (o Ataque Especial "
+                    + "você já recebe); embaixo, a árvore em ramos. Só há linha entre poderes que dependem um do outro. "
+                    + "Poderes que escalonam por NEX têm um ícone para cada escalonamento: escolha qual "
                     + "fica equipado (cada um gasta um PE diferente).", x, y, w, COR_APAGADO, yMax);
             paragrafo(g, "Moldura dourada: aprendido. Verde: dá para aprender. Cinza: bloqueado. Quadrado verde: equipado.",
                     x, y + 4, w, COR_APAGADO, yMax);
@@ -1514,6 +1512,9 @@ public class TelaFicha extends Screen {
         ListTag listaVersoes = no.getListOrEmpty("versaoLista");
         CompoundTag dv = versaoDetalhe >= 0 && versaoDetalhe < listaVersoes.size()
                 ? listaVersoes.getCompoundOrEmpty(versaoDetalhe) : null;
+        boolean concedido = RamosDePoderes.CLASSE.equals(no.getStringOr("ramo", ""))
+                && !no.getBooleanOr("repetivel", false) && no.getIntOr("estado", 0) == PacoteFicha.APRENDIDA
+                && CatalogoHabilidades.ID_ATAQUE_ESPECIAL.equals(no.getStringOr("id", ""));
         if (dv != null && listaVersoes.size() > 1) { // ícone de escalonamento: mostra os dados dele
             boolean liberadaV = versaoDetalhe == 0 ? no.getIntOr("estado", 0) == PacoteFicha.APRENDIDA
                     : dv.getBooleanOr("liberada", false);
@@ -1539,6 +1540,9 @@ public class TelaFicha extends Screen {
                 sit = "Aprendido.";
                 corV = COR_OK;
             }
+            if (concedido && liberadaV) {
+                sit = "Concedido pela classe. " + sit;
+            }
             paragrafo(g, sit, x, y + 3, w, corV, yMax);
             soltar(g);
             return;
@@ -1558,7 +1562,7 @@ public class TelaFicha extends Screen {
                             : no.getStringOr("motivo", "") + ".");
             cor = estado == PacoteFicha.DISPONIVEL ? COR_OK : COR_SANGUE_CLARO;
         } else if (estado == PacoteFicha.APRENDIDA) {
-            situacao = "Aprendido.";
+            situacao = concedido ? "Concedido pela classe." : "Aprendido.";
             cor = COR_OK;
         } else if (estado == PacoteFicha.DISPONIVEL) {
             situacao = "Pronto para aprender: custa 1 ponto de habilidade.";
